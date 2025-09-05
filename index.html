@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>하이퍼캐주얼 머지 – 세로 모바일</title>
+  <style>
+    :root {
+      --bg:#111;
+      --panel:#1c1c1c;
+      --tile:#2a2a2a;
+      --acc:#6ee7ff;
+      --good:#7fff6e;
+      --warn:#ffb86e;
+      --bad:#ff6e6e;
+      --txt:#f5f5f5;
+      --muted:#bdbdbd;
+      --gap:10px;
+      --radius:14px;
+    }
+    *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--txt); font-family:system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;}
+    .wrap{
+      min-height:100dvh; width:100%;
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+      padding:calc(env(safe-area-inset-top) + 16px) 12px calc(env(safe-area-inset-bottom) + 16px);
+      gap:12px;
+    }
+    .topbar{
+      width:100%; max-width:480px; display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center;
+    }
+    .badge{
+      background:var(--panel); padding:10px 12px; border-radius:10px; text-align:center; line-height:1.1;
+      min-width:92px;
+    }
+    .badge b{display:block; font-size:18px;}
+    .badge small{color:var(--muted); font-size:12px;}
+    button{
+      background:var(--acc); color:#001018; border:none; border-radius:10px; padding:10px 14px; font-weight:700;
+      cursor:pointer;
+    }
+    button:active{transform:translateY(1px)}
+    .gauge{
+      width:100%; max-width:480px; background:var(--panel); border-radius:999px; height:14px; overflow:hidden; position:relative;
+    }
+    .gauge>span{
+      display:block; height:100%; width:0%; background:linear-gradient(90deg,#46d3ff,#7fff6e);
+      transition:width .15s ease;
+    }
+    .gauge .tip{
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      font-size:11px; color:var(--muted); pointer-events:none;
+    }
+    .board-wrap{
+      width:100%; max-width:480px; aspect-ratio:1/1;
+      background:var(--panel); border-radius:var(--radius); padding:var(--gap);
+      display:grid; grid-template-rows:1fr;
+      touch-action:none;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .grid{
+      height:100%; width:100%;
+      display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr); gap:var(--gap);
+    }
+    .cell{
+      background:#0e0e0e; border-radius:var(--radius); position:relative; overflow:hidden;
+    }
+    .tile{
+      position:absolute; inset:0; margin:auto;
+      display:flex; align-items:center; justify-content:center;
+      border-radius:var(--radius);
+      font-weight:900; font-size:clamp(20px, 6.2vw, 34px);
+      transition:transform .08s ease, background-color .08s ease, opacity .08s ease;
+      user-select:none;
+      will-change:transform, opacity;
+    }
+    /* 숫자 타일 톤 */
+    .num-2{ background:#2b2b2b; color:#e8e8e8;}
+    .num-4{ background:#333; color:#e8f7ff;}
+    .num-8{ background:#3b3b3b; color:#d3fce1;}
+    .num-16{ background:#444; color:#ffe9c9;}
+    .num-32{ background:#4c4c4c; color:#ffd4d4;}
+    .num-64{ background:#555; color:#e1d3ff;}
+    .num-128{ background:#5e5e5e; color:#fff;}
+    .num-256{ background:#676767; color:#fff;}
+    .num-512{ background:#707070; color:#fff;}
+    .num-1024{ background:#7a7a7a; color:#fff;}
+    .num-2048{ background:#838383; color:#fff;}
+    /* 특수 */
+    .wild{ background:conic-gradient(from 0deg, #46d3ff, #7fff6e, #46d3ff); color:#001018; }
+    .rock{ background:#262626; color:#ffb86e; border:2px dashed #3a3a3a;}
+
+    /* ✅ 합쳐질 때 팝 애니메이션 */
+    @keyframes pop {
+      0% { transform:scale(1); box-shadow:0 0 0 rgba(127,255,110,0); }
+      50% { transform:scale(1.14); box-shadow:0 0 18px rgba(127,255,110,.25); }
+      100% { transform:scale(1); box-shadow:0 0 0 rgba(127,255,110,0); }
+    }
+    .tile.pop{ animation:pop .18s ease both; }
+
+    /* 스폰 살짝 페이드인(선택사항) */
+    @keyframes spawn {
+      from { transform:scale(.85); opacity:.0; }
+      to   { transform:scale(1);   opacity:1; }
+    }
+    .tile.spawn{ animation:spawn .12s ease both; }
+
+    .meta{
+      width:100%; max-width:480px; color:var(--muted); font-size:12px; text-align:center; line-height:1.5;
+    }
+    .toast{
+      position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px);
+      transform:translateX(-50%); background:#000; color:#fff; padding:10px 14px; border-radius:999px;
+      opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    }
+    .toast.show{ opacity:0.95; transform:translateX(-50%) translateY(-4px); }
+    .overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:22px;
+    }
+    .overlay .panel{
+      width:100%; max-width:420px; background:#161616; border-radius:16px; padding:18px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.45);
+    }
+    .overlay h2{margin:6px 0 12px 0}
+    .overlay .row{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
+    .overlay .row button{min-width:120px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="badge" id="scoreBox"><small>SCORE</small><b>0</b></div>
+      <div class="badge" id="bestBox"><small>BEST</small><b>0</b></div>
+      <button id="btnNew">NEW</button>
+    </div>
+
+    <div class="gauge" aria-label="combo gauge">
+      <span id="gaugeFill"></span>
+      <div class="tip" id="gaugeTip">게이지 0 / 5</div>
+    </div>
+
+    <div class="board-wrap" id="board">
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="meta">
+      스와이프(모바일) / 방향키(PC). ⭐=와일드(아무 숫자와 합치면 그 숫자 업그레이드). 🪨=락(3턴 뒤 자동 2).<br/>
+      빠르게 합치면 게이지가 차고 가득 차면 다음 스폰이 ⭐로 나와!
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Merged!</div>
+
+  <div class="overlay" id="gameover">
+    <div class="panel">
+      <h2>게임 오버</h2>
+      <p id="finalScore">점수: 0</p>
+      <div class="row">
+        <button id="again">다시하기</button>
+        <button id="share">복사: 점수 자랑</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const SIZE = 4;
+  const GAUGE_MAX = 5;              // 이만큼 합치면 와일드(⭐) 스폰
+  const ROCK_LIFE = 3;              // 락(🪨) 수명(턴)
+  const ROCK_SPAWN_CHANCE = 0.07;   // 새 타일 스폰 시 락 확률
+  const FOUR_CHANCE = 0.1;          // 숫자 스폰 시 4 확률
+  const WILD_AFTER_FULL = true;
+
+  const gridEl = document.getElementById('grid');
+  const boardEl = document.getElementById('board');
+  const scoreBox = document.getElementById('scoreBox').querySelector('b');
+  const bestBox = document.getElementById('bestBox').querySelector('b');
+  const btnNew = document.getElementById('btnNew');
+  const gaugeFill = document.getElementById('gaugeFill');
+  const gaugeTip = document.getElementById('gaugeTip');
+  const toastEl = document.getElementById('toast');
+  const overEl  = document.getElementById('gameover');
+  const finalScoreEl = document.getElementById('finalScore');
+  const againBtn = document.getElementById('again');
+  const shareBtn = document.getElementById('share');
+
+  let board, score, best, gauge, pendingWild, moving;
+  /** 머지 애니메이션을 줄 좌표 집합 (원래 좌표계 기준: "r,c" 문자열 키) */
+  let popCoords = new Set();
+
+  function newBoard(){
+    board = Array.from({length:SIZE}, ()=> Array.from({length:SIZE}, ()=> null));
+    score = 0; gauge = 0; pendingWild = false;
+    best = Number(localStorage.getItem('merge_best')||0);
+    updateHUD();
+    renderGridSkeleton();
+    spawnRandom(true); spawnRandom(true);
+    render();
+  }
+
+  function updateHUD(){
+    scoreBox.textContent = score;
+    bestBox.textContent = Math.max(best, score);
+    const pct = Math.min(100, Math.round((gauge/GAUGE_MAX)*100));
+    gaugeFill.style.width = pct + '%';
+    gaugeTip.textContent = `게이지 ${gauge} / ${GAUGE_MAX}`;
+    localStorage.setItem('merge_best', String(Math.max(best, score)));
+  }
+
+  function renderGridSkeleton(){
+    gridEl.innerHTML = '';
+    for(let i=0;i<SIZE*SIZE;i++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      gridEl.appendChild(cell);
+    }
+  }
+
+  function forEachCell(fn){
+    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) fn(r,c,board[r][c]);
+  }
+
+  function emptyCells(){
+    const out=[];
+    forEachCell((r,c,t)=>{ if(!t) out.push([r,c]); });
+    return out;
+  }
+
+  function randomChoice(arr){ return arr[(Math.random()*arr.length)|0]; }
+
+  function spawnRandom(isInitial=false){
+    const empties = emptyCells();
+    if(!empties.length) return false;
+
+    let kind = 'num';
+    if (pendingWild && WILD_AFTER_FULL) {
+      kind = 'wild';
+      pendingWild = false;
+    } else if (!isInitial && Math.random() < ROCK_SPAWN_CHANCE){
+      kind = 'rock';
+    }
+
+    const [r,c] = randomChoice(empties);
+    if(kind==='num'){
+      board[r][c] = {type:'num', value: Math.random()<FOUR_CHANCE?4:2};
+    } else if(kind==='wild'){
+      board[r][c] = {type:'wild', value:null};
+      flashToast('⭐ 와일드!');
+    } else {
+      board[r][c] = {type:'rock', life: ROCK_LIFE};
+    }
+    return true;
+  }
+
+  function render(){
+    const cells = gridEl.querySelectorAll('.cell');
+    cells.forEach(cell => cell.innerHTML='');
+
+    forEachCell((r,c,tile)=>{
+      if(!tile) return;
+      const idx = r*SIZE + c;
+      const cell = cells[idx];
+
+      const el = document.createElement('div');
+      el.classList.add('tile');
+
+      // 스폰 연출: 막 생성된 것처럼 보이게(가벼운 효과)
+      el.classList.add('spawn');
+
+      if(tile.type==='num'){
+        el.textContent = tile.value;
+        el.classList.add('num-'+tile.value);
+      } else if(tile.type==='wild'){
+        el.textContent = '⭐';
+        el.classList.add('wild');
+      } else if(tile.type==='rock'){
+        el.textContent = '🪨'+(tile.life>0?`(${tile.life})`:``);
+        el.classList.add('rock');
+      }
+
+      // ✅ 머지 팝 애니메이션 좌표면 pop 클래스 추가
+      if(popCoords.has(keyRC(r,c))){
+        el.classList.add('pop');
+      }
+
+      cell.appendChild(el);
+    });
+
+    // 한 프레임 뒤 pop 좌표 초기화 (다음 렌더에서 다시 안 붙도록)
+    if (popCoords.size){
+      requestAnimationFrame(()=>{ popCoords.clear(); });
+    }
+
+    updateHUD();
+  }
+
+  function canMerge(a,b){
+    if(!a || !b) return false;
+    if(a.type==='rock' || b.type==='rock') return false;
+    if(a.type==='wild' && b.type==='wild') return true;
+    if(a.type==='wild' && b.type==='num') return true;
+    if(b.type==='wild' && a.type==='num') return true;
+    if(a.type==='num' && b.type==='num') return a.value===b.value;
+    return false;
+  }
+
+  function mergeResult(a,b){
+    if(a.type==='wild' && b.type==='wild'){
+      return {tile:{type:'num', value:4}, scoreDelta:4};
+    }
+    if(a.type==='wild' && b.type==='num'){
+      return {tile:{type:'num', value:b.value*2}, scoreDelta:b.value*2};
+    }
+    if(b.type==='wild' && a.type==='num'){
+      return {tile:{type:'num', value:a.value*2}, scoreDelta:a.value*2};
+    }
+    if(a.type==='num' && b.type==='num' && a.value===b.value){
+      return {tile:{type:'num', value:a.value*2}, scoreDelta:a.value*2};
+    }
+    return {tile:a, scoreDelta:0};
+  }
+
+  /**
+   * 한 줄(좌로 슬라이드 기준)을 처리.
+   * 반환: { line, gained, mergedAt }
+   * - mergedAt: 병합 결과 타일이 놓인 인덱스 배열 (0~SIZE-1)
+   */
+  function slideLine(line){
+    const arr = line.filter(x=>x); // 압축
+    const out = [];
+    let gained = 0;
+    const mergedAt = [];
+    for(let i=0;i<arr.length;i++){
+      if(i<arr.length-1 && canMerge(arr[i], arr[i+1])){
+        const {tile, scoreDelta} = mergeResult(arr[i], arr[i+1]);
+        out.push(tile);
+        mergedAt.push(out.length-1); // 방금 넣은 위치
+        gained += scoreDelta;
+        i++; // 다음 하나 스킵
+      } else {
+        out.push(arr[i]);
+      }
+    }
+    while(out.length<SIZE) out.push(null);
+    return {line:out, gained, mergedAt};
+  }
+
+  // 보드 회전 (시계 90°)
+  function rotateBoard(times){
+    for(let t=0;t<times;t++){
+      const nb = Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>null));
+      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+        nb[c][SIZE-1-r] = board[r][c];
+      }
+      board = nb;
+    }
+  }
+
+  // 회전 좌표 → 원래 좌표로 역변환
+  function unrotateCoord(Rr, Rc, rot){
+    if(rot===0) return [Rr, Rc];
+    if(rot===1) return [SIZE-1 - Rc, Rr];
+    if(rot===2) return [SIZE-1 - Rr, SIZE-1 - Rc];
+    // rot===3
+    return [Rc, SIZE-1 - Rr];
+  }
+
+  function keyRC(r,c){ return r+','+c; }
+
+  function move(dir){
+    if(moving) return false;
+    moving = true;
+
+    let rot = 0;
+    if(dir==='up') rot = 3;
+    else if(dir==='right') rot = 2;
+    else if(dir==='down') rot = 1;
+
+    rotateBoard(rot);
+
+    let totalGained=0, anyMoved=false;
+    // 이번 이동에서 팝 애니메이션 줄 좌표 수집
+    const mergedCoordsThisMove = [];
+
+    for(let r=0;r<SIZE;r++){
+      const before = board[r].slice();
+      const {line, gained, mergedAt} = slideLine(before);
+      board[r] = line;
+
+      // 이동 여부 체크
+      if(!arraysEqual(before, line)) anyMoved = true;
+
+      // 병합 좌표(회전 좌표계 기준 r, cIndex)를 모아서 나중에 역변환
+      if(mergedAt.length){
+        for(const cIndex of mergedAt){
+          mergedCoordsThisMove.push([r, cIndex]);
+        }
+      }
+      totalGained += gained;
+    }
+
+    // 병합 좌표를 원래 좌표계로 변환해서 popCoords에 추가
+    for(const [Rr,Rc] of mergedCoordsThisMove){
+      const [or, oc] = unrotateCoord(Rr, Rc, rot);
+      popCoords.add(keyRC(or, oc));
+    }
+
+    rotateBoard((4-rot)%4);
+
+    if(anyMoved){
+      decayRocks();
+      if(totalGained>0){
+        score += totalGained;
+        gauge = Math.min(GAUGE_MAX, gauge + 1);
+        flashToast('+'+totalGained);
+        if(gauge>=GAUGE_MAX){
+          pendingWild = true;
+          gauge = 0;
+        }
+      }else{
+        if(Math.random()<0.25 && gauge>0) gauge -= 1;
+      }
+      spawnRandom();
+      render();
+
+      if(isGameOver()){
+        best = Math.max(best, score);
+        updateHUD();
+        showGameOver();
+      }
+    }
+
+    moving = false;
+    return anyMoved;
+  }
+
+  function arraysEqual(a,b){
+    if(a.length!==b.length) return false;
+    for(let i=0;i<a.length;i++){
+      const A=a[i], B=b[i];
+      if(!A && !B) continue;
+      if(!A || !B) return false;
+      // 타입 & 값 비교
+      if(A.type!==B.type) return false;
+      if(A.type==='num' && A.value!==B.value) return false;
+      if(A.type==='rock' && A.life!==B.life) return false;
+    }
+    return true;
+  }
+
+  function decayRocks(){
+    forEachCell((r,c,t)=>{
+      if(t && t.type==='rock'){
+        t.life--;
+        if(t.life<=0){
+          board[r][c] = {type:'num', value:2};
+        }
+      }
+    });
+  }
+
+  function isGameOver(){
+    if(emptyCells().length>0) return false;
+    for(let r=0;r<SIZE;r++){
+      for(let c=0;c<SIZE;c++){
+        const a = board[r][c];
+        for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nr=r+dr, nc=c+dc;
+          if(nr<0||nc<0||nr>=SIZE||nc>=SIZE) continue;
+          const b = board[nr][nc];
+          if(canMerge(a,b)) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // 입력 (스와이프 & 키)
+  let tStart=null;
+  boardEl.addEventListener('touchstart', (e)=>{
+    if(e.touches.length!==1) return;
+    tStart = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+  }, {passive:true});
+  boardEl.addEventListener('touchmove', (e)=>{ e.preventDefault(); }, {passive:false});
+  boardEl.addEventListener('touchend', (e)=>{
+    if(!tStart) return;
+    const dx = (e.changedTouches[0].clientX - tStart.x);
+    const dy = (e.changedTouches[0].clientY - tStart.y);
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    if(Math.max(absX,absY) < 20){ tStart=null; return; }
+    if(absX>absY) move(dx>0?'right':'left'); else move(dy>0?'down':'up');
+    tStart=null;
+  });
+
+  window.addEventListener('keydown', (e)=>{
+    const k = e.key;
+    if(k==='ArrowLeft') move('left');
+    else if(k==='ArrowRight') move('right');
+    else if(k==='ArrowUp') move('up');
+    else if(k==='ArrowDown') move('down');
+  });
+
+  function flashToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(flashToast._t);
+    flashToast._t = setTimeout(()=> toastEl.classList.remove('show'), 700);
+  }
+
+  function showGameOver(){
+    finalScoreEl.textContent = `점수: ${score} (최고 ${Math.max(best, score)})`;
+    overEl.style.display = 'flex';
+  }
+  function hideGameOver(){ overEl.style.display='none'; }
+
+  btnNew.addEventListener('click', ()=>{ hideGameOver(); newBoard(); });
+  againBtn.addEventListener('click', ()=>{ hideGameOver(); newBoard(); });
+  shareBtn.addEventListener('click', async ()=>{
+    const txt = `하이퍼캐주얼 머지 점수: ${score} (최고 ${Math.max(best, score)}) 💥`;
+    try{
+      await navigator.clipboard.writeText(txt);
+      flashToast('복사됨!');
+    }catch{ alert(txt); }
+  });
+
+  newBoard();
+
+  // 디버그
+  window.__dump = ()=>console.log(JSON.parse(JSON.stringify(board)));
+})();
+</script>
+</body>
+</html>
