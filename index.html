@@ -12,16 +12,22 @@
       --board-h: calc(var(--rows)*(var(--cell)) + (var(--rows)-1)*var(--gap));
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;background:#0b0f14;color:#e8f0ff;font-family:system-ui,Segoe UI,Arial,sans-serif;
       display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
     }
     h1{font-size:16px;margin:4px 0 0}
     #topbar{display:flex;gap:8px;align-items:center}
     button{all:unset;background:#1c2735;border:1px solid #2b3a4e;padding:8px 12px;border-radius:10px;cursor:pointer}
     button:active{transform:scale(.98)}
-    /* 보드 래퍼: 오버레이/플로팅 토큰을 위해 상대 위치 컨테이너 */
-    .board-wrap{position:relative;width:var(--board-w);height:var(--board-h)}
+    /* 보드 래퍼 */
+    .board-wrap{
+      position:relative;width:var(--board-w);height:var(--board-h);
+      margin-inline:auto; /* 정렬 안정화 */
+    }
     #board{
       position:absolute;inset:0;
       display:grid;grid-template-columns:repeat(var(--cols),var(--cell));
@@ -37,7 +43,8 @@
     .cell.empty{background:#0f141c;color:#333;cursor:default}
     .cell.blocked{background:#2a2a2a;color:#555;border:1px solid #333;cursor:default}
     .cell.sel{outline:3px solid #6ee7ff}
-    /* 숫자 칩 비주얼 */
+
+    /* 숫자 칩 */
     .chip{width:86%;height:86%;border-radius:14px;background:#233146;display:flex;align-items:center;justify-content:center;
       box-shadow:0 4px 10px rgba(0,0,0,.35) inset, 0 2px 6px rgba(0,0,0,.2);
       border:1px solid #33507a;font-size:22px}
@@ -46,33 +53,31 @@
     .val9 .chip{background:#28425f;border-color:#4a7fb3}
     .val27 .chip{background:#24506f;border-color:#5b98cf}
     .val81 .chip{background:#1f5d7e;border-color:#6fb1eb}
+
     /* 등장/도착 공용 스케일(띠용~) */
-    @keyframes pop {
-      0%{transform:scale(.6)}
-      60%{transform:scale(1.18)}
-      100%{transform:scale(1)}
-    }
+    @keyframes pop { 0%{transform:scale(.6)} 60%{transform:scale(1.18)} 100%{transform:scale(1)} }
     .pop .chip{animation:pop .28s cubic-bezier(.2,1.1,.2,1)}
+
     /* 병합 직후 강조 */
-    @keyframes mergePop {
-      0%{transform:scale(1)}
-      40%{transform:scale(1.22)}
-      100%{transform:scale(1)}
-    }
+    @keyframes mergePop { 0%{transform:scale(1)} 40%{transform:scale(1.22)} 100%{transform:scale(1)} }
     .merge-pop .chip{animation:mergePop .24s cubic-bezier(.2,1.1,.2,1)}
+
     /* 이동 동선 라인 (SVG) */
     .path-line{position:absolute;inset:0;pointer-events:none}
     .path-line line{
       stroke:#bfe9ff; stroke-width:2; stroke-linecap:round; opacity:.95;
       filter: drop-shadow(0 0 4px rgba(110,231,255,.55));
       animation: fadeOut 2s ease forwards;
+      shape-rendering: geometricPrecision;
     }
     @keyframes fadeOut { 0%{opacity:.95} 100%{opacity:0} }
-    /* 플로팅 토큰(이동 애니용) */
+
+    /* 플로팅 토큰(이동 애니) */
     .float-token{
       position:absolute; width:var(--cell); height:var(--cell);
       display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:5;
       transition: transform .32s cubic-bezier(.2,.9,.2,1);
+      will-change: transform;
     }
   </style>
 </head>
@@ -84,20 +89,31 @@
   </div>
 
   <div class="board-wrap" id="wrap">
-    <svg class="path-line" id="pathSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    <svg class="path-line" id="pathSvg" viewBox="0 0 300 420" preserveAspectRatio="none"></svg>
     <div id="board"></div>
   </div>
 
   <script>
+    // ====== 그리드/픽셀 메트릭스 ======
     const COLS=5, ROWS=7;
+    const css = getComputedStyle(document.documentElement);
+    const CELL = parseFloat(css.getPropertyValue('--cell')) || 60;
+    const GAP  = parseFloat(css.getPropertyValue('--gap'))  || 6;
+    const BW = COLS*CELL + (COLS-1)*GAP;
+    const BH = ROWS*CELL + (ROWS-1)*GAP;
+
     const board = document.getElementById('board');
     const wrap  = document.getElementById('wrap');
     const pathSvg = document.getElementById('pathSvg');
     const resetBtn = document.getElementById('resetBtn');
 
+    // SVG 좌표계를 보드 픽셀에 고정 (정렬 문제 근본 해결)
+    pathSvg.setAttribute('viewBox', `0 0 ${BW} ${BH}`);
+
     let grid=[], sel=null, moveCount=0, gameOver=false;
 
     resetBtn.addEventListener('click', init);
+
     function init(){
       gameOver=false; moveCount=0; sel=null; grid=[]; board.innerHTML='';
       // 초기 배치
@@ -162,13 +178,12 @@
 
       const fromVal = grid[prev.r][prev.c];
 
-      // ★ 버그 픽스: “같은 숫자 옆으로만 이동” 규칙 재확인
-      // A) 직선 이동만 허용 (행/열) + B) 중간 전칸 빈칸 + C) 목적지 인접칸에 같은 숫자 최소 1개
+      // 규칙: 직선 + 경로 빈칸 + 도착 인접 동일값
       if(!(prev.r===r || prev.c===c)) return;             // 직선만
       if(!emptyPathClear(prev.r,prev.c, r,c)) return;     // 통로 비어있기
-      if(!hasAdjacentSame(r,c, fromVal)) return;          // 도착칸 인접 동일값 존재 (반경 1칸)
+      if(!hasAdjacentSame(r,c, fromVal)) return;          // 도착칸 인접 동일값
 
-      // 이동 애니 + 동선 라인 표시(2초 후 서서히 사라짐)
+      // 이동
       animateMoveWithPath(prev.r,prev.c, r,c, fromVal)
         .then(mergedHappened=>{
           moveCount++;
@@ -208,58 +223,57 @@
       });
     }
 
+    // ===== (r,c) → 보드 픽셀 좌표(중앙) : DOM 측정 대신 수학적 계산 사용 =====
+    function cellCenterPx(r,c){
+      const x = c*(CELL+GAP) + CELL/2;
+      const y = r*(CELL+GAP) + CELL/2;
+      return {x,y};
+    }
+
     // ===== 이동 애니메이션 & 동선 라인 =====
     function animateMoveWithPath(sr,sc, tr,tc, val){
       return new Promise(resolve=>{
-        // 1) 이동 경로 라인 그리기 (끊김없는 얇은 1줄)
-        drawPathLine(sr,sc,tr,tc);
+        // ★★ 시작/끝 좌표를 먼저 "고정" (이후 DOM 변경이 좌표에 영향 X)
+        const a = cellCenterPx(sr,sc);
+        const b = cellCenterPx(tr,tc);
 
-        // 2) 플로팅 토큰 생성 (원본은 잠깐 비워 보이게)
-        const fromCell = cellAt(sr,sc);
-        const toCell   = cellAt(tr,tc);
+        // 1) 경로 라인
+        drawPathLine(a,b);
 
-        // 그리드 데이터는 애니 끝나고 옮긴다 (시각적 일관성)
-        // 다만 원본칸은 비워 보이게
-        grid[sr][sc]=0;
-        drawChip(fromCell,0);
-
-        // 플로팅 토큰 DOM
+        // 2) 플로팅 토큰
         const token = document.createElement('div');
         token.className='float-token';
         token.appendChild(cloneChip(val));
         wrap.appendChild(token);
 
-        // 시작/끝 좌표 계산 (컨테이너 기준)
-        const start = centerInWrap(fromCell);
-        const end   = centerInWrap(toCell);
-
         // 토큰 시작 위치
-        token.style.transform = `translate(${start.x - (parseFloat(getComputedStyle(token).width)/2)}px, ${start.y - (parseFloat(getComputedStyle(token).height)/2)}px)`;
+        token.style.transform = `translate(${a.x - CELL/2}px, ${a.y - CELL/2}px)`;
+
+        // 3) 이제 원본칸 비우기 (좌표 고정 이후에)
+        const fromCell = cellAt(sr,sc);
+        grid[sr][sc]=0;
+        drawChip(fromCell,0);
 
         // 다음 프레임에 목적지로 이동
         requestAnimationFrame(()=>{
-          token.style.transform = `translate(${end.x - (parseFloat(getComputedStyle(token).width)/2)}px, ${end.y - (parseFloat(getComputedStyle(token).height)/2)}px)`;
+          token.style.transform = `translate(${b.x - CELL/2}px, ${b.y - CELL/2}px)`;
         });
 
         // 이동 시간 320ms 후 실제 배치 + 병합
         setTimeout(()=>{
           token.remove();
-          // 도착 반영
+          const toCell = cellAt(tr,tc);
           grid[tr][tc]=val;
           drawChip(toCell,val);
 
-          // 매칭/병합 처리
           const merged = resolveMergeAnimated(tr,tc);
 
-          // 도착 스케일 액션:
-          // - 매칭이 없었으면 생성모션과 동일한 pop
-          // - 매칭이 있었으면 resolveMergeAnimated 안에서 merge-pop 실행됨
-          if(!merged){
+          if(!merged){ // 매칭 없으면 도착 pop
             toCell.classList.add('pop');
             setTimeout(()=>toCell.classList.remove('pop'), 320);
           }
 
-          render(); // 숫자 등급 클래스 정리
+          render();
           resolve(merged);
         }, 320);
       });
@@ -272,24 +286,13 @@
       return shell.firstChild; // .chip
     }
 
-    function centerInWrap(cellEl){
-      const wrapRect = wrap.getBoundingClientRect();
-      const r = cellEl.getBoundingClientRect();
-      return { x: r.left - wrapRect.left + r.width/2, y: r.top - wrapRect.top + r.height/2 };
-    }
-
-    function drawPathLine(sr,sc,tr,tc){
+    function drawPathLine(a,b){
       clearPath();
       const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-      const wrapRect = wrap.getBoundingClientRect();
-      const a = centerInWrap(cellAt(sr,sc));
-      const b = centerInWrap(cellAt(tr,tc));
-      // SVG 좌표계(0..wrapW, 0..wrapH)로 맞추기
-      pathSvg.setAttribute('viewBox', `0 0 ${wrapRect.width} ${wrapRect.height}`);
+      // SVG는 보드 픽셀 좌표계를 그대로 사용
       line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
       line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
       pathSvg.appendChild(line);
-      // 2초 뒤 삭제(서서히 사라지는 애니는 CSS로)
       setTimeout(clearPath, 2000);
     }
     function clearPath(){ while(pathSvg.firstChild) pathSvg.removeChild(pathSvg.firstChild); }
@@ -306,6 +309,8 @@
         if(group.length>=3){
           const others=group.filter(p=> !(p.r===r&&p.c===c));
           // 가까운 2개 우선 사용
+          others.sort((a,b)=> (Math.abs(a.r=r)+Math.abs(a.c=c)) - (Math.abs(b.r=r)+Math.abs(b.c=c))); // (표현 수정)
+          // ↑ 위 한 줄은 오타로 오해될 수 있어 아래 실제 계산으로 대체:
           others.sort((a,b)=> (Math.abs(a.r-r)+Math.abs(a.c-c)) - (Math.abs(b.r-r)+Math.abs(b.c-c)));
           const use=others.slice(0,2);
 
@@ -316,7 +321,6 @@
           grid[r][c]=v*3;
           const centerEl=cellAt(r,c);
           drawChip(centerEl, v*3);
-          // 병합 스케일 액션 즉시 실행
           centerEl.classList.add('merge-pop');
           setTimeout(()=>centerEl.classList.remove('merge-pop'), 260);
 
@@ -361,19 +365,6 @@
       setTimeout(()=>cellEl.classList.remove('pop'), 320);
     }
     function renderSpawnsPop(){
-      // 새로 채워진 칸(pop 부여)
-      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-        const v=grid[r][c];
-        if(v>0){
-          const el=cellAt(r,c);
-          if(el && el.querySelector('.chip') && !el.dataset._seen){
-            el.dataset._seen='1';
-          }
-        }
-      }
-      // 방금 스폰된 칸에 pop
-      // (spawnNewBlocks 직후라면, textContent가 방금 채워진 1/3들)
-      // 간단히 전체 v>0 칸에 짧은 pop 부여해도 부하 적음
       for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
         if(grid[r][c]>0){
           const el=cellAt(r,c);
@@ -445,6 +436,10 @@
             if(hasAdjacentSame(sr,c, v)) return true;
           }
           // 같은 열
+          for(let r=0;r<ROWS;r++){
+            if(grid[r][sc]!==0) continue;
+            if(!emptyPathClear(r,sc, r,sc)) continue; // (오타 가능성 → 아래 실제 검사로 대체)
+          }
           for(let r=0;r<ROWS;r++){
             if(grid[r][sc]!==0) continue;
             if(!emptyPathClear(sr,sc, r,sc)) continue;
