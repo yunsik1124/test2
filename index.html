@@ -1,516 +1,464 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>3매칭 머지 프로토타입 (5x7) - 총합본</title>
-<style>
-  :root{
-    --cell:60px; --gap:6px; --cols:5; --rows:7;
-    --board-w: calc(var(--cols)*(var(--cell)) + (var(--cols)-1)*var(--gap));
-    --board-h: calc(var(--rows)*(var(--cell)) + (var(--rows)-1)*var(--gap));
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;background:#0b0f14;color:#e8f0ff;font-family:system-ui,Segoe UI,Arial,sans-serif;
-    display:flex;flex-direction:column;align-items:center;min-height:100vh;gap:10px;padding:12px;
-    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-  }
-  h1{font-size:16px;margin:6px 0 0;opacity:.9}
-  #ui{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.8}
-  #board-wrap{position:relative;width:var(--board-w);height:var(--board-h)}
-  #board{
-    position:absolute;left:0;top:0; z-index:10;
-    display:grid;grid-template-columns:repeat(var(--cols), var(--cell));
-    grid-template-rows:repeat(var(--rows), var(--cell));
-    gap:var(--gap);
-  }
-  .cell{
-    width:var(--cell);height:var(--cell);
-    background:#111723;border:1px solid #1c2433;border-radius:10px;
-    display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
-  }
-  .cell.blocked{ background:#202733; }
-  .cell.blocked::after{ content:"✕"; color:#8090a6;font-size:18px;opacity:.6; }
-  .tile{
-    position:absolute;left:0;top:0;width:var(--cell);height:var(--cell);
-    display:flex;align-items:center;justify-content:center;
-    border-radius:12px;font-weight:800;font-size:18px;letter-spacing:.5px;
-    color:#0b0f14; user-select:none; pointer-events:auto;
-    transform:translate3d(0,0,0) scale(1); transition:transform .18s cubic-bezier(.2, .9, .2, 1);
-    box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.08);
-  }
-  .tile[data-v="1"]{background:#9fd3ff}
-  .tile[data-v="2"]{background:#7ee7c8}
-  .tile[data-v="3"]{background:#ffe08a}
-  .tile[data-v="4"]{background:#ffb3b3}
-  .tile[data-v="5"]{background:#d4b5ff}
-  .tile[data-v="6"]{background:#ffdfdf}
-  .tile.selected{outline:3px solid #66ffd1; outline-offset:-3px; z-index:20}
-
-  /* 스폰 & 도착(매칭 실패) 공용 ‘띠용’ */
-  @keyframes pop {
-    0%{transform:scale(.2)}
-    60%{transform:scale(1.12)}
-    100%{transform:scale(1)}
-  }
-  .pop{animation:pop .22s cubic-bezier(.2,1.2,.2,1) forwards}
-
-  /* 머지 시 살짝 크게 튀기는 액션 */
-  @keyframes merge-bounce {
-    0%{transform:scale(1)}
-    35%{transform:scale(1.15)}
-    100%{transform:scale(1)}
-  }
-  .merge-bounce{animation:merge-bounce .26s cubic-bezier(.2,1.2,.2,1) forwards}
-
-  /* 제거되는 타일 페이드 */
-  .fade-out{transition:opacity .18s ease, transform .18s ease; opacity:0; transform:scale(.6)}
-
-  /* 경로 라인 (단일 얇은 선, 끊김 없음) */
-  #path-layer{
-    position:absolute;left:0;top:0;width:100%;height:100%;
-    pointer-events:none; z-index:30;
-  }
-  .path-stroke{
-    fill:none; stroke:#e8f0ff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
-    filter: drop-shadow(0 0 2px rgba(232,240,255,.6));
-    opacity:.9; transition:opacity .4s ease;
-  }
-  .path-fade{opacity:0}
-
-  .hint{font-size:12px;opacity:.7;margin-top:2px}
-  button{
-    background:#1a2533;color:#e8f0ff;border:1px solid #2a394f;border-radius:8px;padding:8px 10px;
-    cursor:pointer;font-weight:700
-  }
-  button:active{transform:translateY(1px)}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>3매칭 머지 프로토타입 (5x7) - 총합본</title>
+  <style>
+    :root{
+      --cell:60px; --gap:6px; --cols:5; --rows:7;
+      --board-w: calc(var(--cols)*(var(--cell)) + (var(--cols)-1)*var(--gap));
+      --board-h: calc(var(--rows)*(var(--cell)) + (var(--rows)-1)*var(--gap));
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;background:#0b0f14;color:#e8f0ff;font-family:system-ui,Segoe UI,Arial,sans-serif;
+      display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;
+    }
+    h1{font-size:16px;margin:4px 0 0}
+    #topbar{display:flex;gap:8px;align-items:center}
+    button{all:unset;background:#1c2735;border:1px solid #2b3a4e;padding:8px 12px;border-radius:10px;cursor:pointer}
+    button:active{transform:scale(.98)}
+    /* 보드 래퍼: 오버레이/플로팅 토큰을 위해 상대 위치 컨테이너 */
+    .board-wrap{position:relative;width:var(--board-w);height:var(--board-h)}
+    #board{
+      position:absolute;inset:0;
+      display:grid;grid-template-columns:repeat(var(--cols),var(--cell));
+      grid-template-rows:repeat(var(--rows),var(--cell));
+      gap:var(--gap);
+    }
+    .cell{
+      width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;
+      background:#1a2330;border-radius:12px;font-weight:800;font-size:20px;cursor:pointer;user-select:none;
+      outline-offset:-3px; position:relative; overflow:hidden;
+      transition:transform .12s ease;
+    }
+    .cell.empty{background:#0f141c;color:#333;cursor:default}
+    .cell.blocked{background:#2a2a2a;color:#555;border:1px solid #333;cursor:default}
+    .cell.sel{outline:3px solid #6ee7ff}
+    /* 숫자 칩 비주얼 */
+    .chip{width:86%;height:86%;border-radius:14px;background:#233146;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 10px rgba(0,0,0,.35) inset, 0 2px 6px rgba(0,0,0,.2);
+      border:1px solid #33507a;font-size:22px}
+    .val1 .chip{background:#20324b;border-color:#2f5484}
+    .val3 .chip{background:#2a3b56;border-color:#3b699a}
+    .val9 .chip{background:#28425f;border-color:#4a7fb3}
+    .val27 .chip{background:#24506f;border-color:#5b98cf}
+    .val81 .chip{background:#1f5d7e;border-color:#6fb1eb}
+    /* 등장/도착 공용 스케일(띠용~) */
+    @keyframes pop {
+      0%{transform:scale(.6)}
+      60%{transform:scale(1.18)}
+      100%{transform:scale(1)}
+    }
+    .pop .chip{animation:pop .28s cubic-bezier(.2,1.1,.2,1)}
+    /* 병합 직후 강조 */
+    @keyframes mergePop {
+      0%{transform:scale(1)}
+      40%{transform:scale(1.22)}
+      100%{transform:scale(1)}
+    }
+    .merge-pop .chip{animation:mergePop .24s cubic-bezier(.2,1.1,.2,1)}
+    /* 이동 동선 라인 (SVG) */
+    .path-line{position:absolute;inset:0;pointer-events:none}
+    .path-line line{
+      stroke:#bfe9ff; stroke-width:2; stroke-linecap:round; opacity:.95;
+      filter: drop-shadow(0 0 4px rgba(110,231,255,.55));
+      animation: fadeOut 2s ease forwards;
+    }
+    @keyframes fadeOut { 0%{opacity:.95} 100%{opacity:0} }
+    /* 플로팅 토큰(이동 애니용) */
+    .float-token{
+      position:absolute; width:var(--cell); height:var(--cell);
+      display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:5;
+      transition: transform .32s cubic-bezier(.2,.9,.2,1);
+    }
+  </style>
 </head>
 <body>
-  <h1>3매칭 머지 (5×7) — 총합본</h1>
-  <div id="ui">
+  <h1>5x7 3매칭 머지 (단층)</h1>
+  <div id="topbar">
     <button id="resetBtn">리셋</button>
-    <span>턴: <b id="turn">0</b></span>
-    <span>다음 스폰까지: <b id="spawnIn">5</b>턴</span>
+    <div id="info" style="opacity:.8;font-size:12px">이동 5턴마다 신규 블록 등장</div>
   </div>
-  <div id="board-wrap">
-    <svg id="path-layer" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+
+  <div class="board-wrap" id="wrap">
+    <svg class="path-line" id="pathSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
     <div id="board"></div>
   </div>
-  <div class="hint">규칙: 빈칸 경로가 있어야 이동 가능. 도착 지점의 상하좌우에 같은 숫자가 최소 1개 있어야 이동 허용. 이동 후 3+ 연결이면 즉시 머지.</div>
 
-<script>
-(() => {
-  const COLS = 5, ROWS = 7;
-  const NEW_TILE_VALUES = [1,1,1,2,2,3]; // 새로 나오는 값 분포
-  const INITIAL_TILES = 10; // 초기 생성 수
-  const BLOCKED_MIN = 2, BLOCKED_MAX = 3;
-  const TURNS_PER_SPAWN = 5; // 5턴마다 새 블록 4~5개 생성
+  <script>
+    const COLS=5, ROWS=7;
+    const board = document.getElementById('board');
+    const wrap  = document.getElementById('wrap');
+    const pathSvg = document.getElementById('pathSvg');
+    const resetBtn = document.getElementById('resetBtn');
 
-  const boardEl = document.getElementById('board');
-  const pathLayer = document.getElementById('path-layer');
-  const turnEl = document.getElementById('turn');
-  const spawnInEl = document.getElementById('spawnIn');
+    let grid=[], sel=null, moveCount=0, gameOver=false;
 
-  // ✅ 안전한 ID 생성 폴백
-  const genId = () => {
-    try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch(e){}
-    return 't-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  };
-
-  // 상태
-  let grid = createEmpty();
-  let blocked = new Set(); // "r,c"
-  let tiles = new Map(); // id -> {id, r, c, v, el}
-  let selectedId = null;
-  let turn = 0, turnsUntilSpawn = TURNS_PER_SPAWN;
-
-  // 유틸
-  const key = (r,c)=> `${r},${c}`;
-  const inBounds = (r,c)=> r>=0 && r<ROWS && c>=0 && c<COLS;
-  const neighbors4 = (r,c)=> [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc])=>inBounds(rr,cc));
-
-  function createEmpty(){
-    return Array.from({length:ROWS},()=> Array.from({length:COLS},()=> null));
-  }
-
-  function cellCenterPx(r,c){
-    const styles = getComputedStyle(document.documentElement);
-    const cell = parseInt(styles.getPropertyValue('--cell'));
-    const gap = parseInt(styles.getPropertyValue('--gap'));
-    const x = c*(cell+gap) + cell/2;
-    const y = r*(cell+gap) + cell/2;
-    return {x,y};
-  }
-
-  function gridToPx(r,c){
-    const styles = getComputedStyle(document.documentElement);
-    const cell = parseInt(styles.getPropertyValue('--cell'));
-    const gap = parseInt(styles.getPropertyValue('--gap'));
-    const x = c*(cell+gap);
-    const y = r*(cell+gap);
-    return {x,y};
-  }
-
-  function drawBoard(){
-    boardEl.innerHTML = '';
-    for(let r=0;r<ROWS;r++){
-      for(let c=0;c<COLS;c++){
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        if(blocked.has(key(r,c))) cell.classList.add('blocked');
-        cell.dataset.r = r; cell.dataset.c = c;
-        boardEl.appendChild(cell);
-      }
-    }
-    // 타일 DOM 추가
-    tiles.forEach(t => {
-      boardEl.appendChild(t.el);
-      placeTileElement(t);
-    });
-  }
-
-  // ✅ 셀 클릭 이벤트 위임(겹침 이슈 방지)
-  boardEl.addEventListener('click', (e)=>{
-    const cell = e.target.closest('.cell');
-    if(!cell || !boardEl.contains(cell)) return;
-    onCellClick(+cell.dataset.r, +cell.dataset.c);
-  });
-
-  function makeTileEl(t){
-    const el = document.createElement('div');
-    el.className = 'tile pop';
-    el.textContent = t.v;
-    el.dataset.v = t.v;
-    el.style.zIndex = 15;
-    el.addEventListener('click', (e)=>{ e.stopPropagation(); onTileClick(t.id); });
-    return el;
-  }
-
-  function placeTileElement(t){
-    const {x,y} = gridToPx(t.r,t.c);
-    t.el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
-  }
-
-  function randomChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-
-  function randomEmptyCell(){
-    const empties = [];
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-      if(!grid[r][c] && !blocked.has(key(r,c))) empties.push([r,c]);
-    }
-    return empties.length? randomChoice(empties) : null;
-  }
-
-  function addRandomTile(value=null, withSpawnAnim=true){
-    const pos = randomEmptyCell();
-    if(!pos) return false;
-    const [r,c] = pos;
-    const v = value ?? randomChoice(NEW_TILE_VALUES);
-    const id = genId();                // ✅ 폴백 사용
-    const tile = {id,r,c,v,el:null};
-    grid[r][c] = id;
-    tiles.set(id, tile);
-    tile.el = makeTileEl(tile);
-    if(!withSpawnAnim) tile.el.classList.remove('pop');
-    tile.el.textContent = v;
-    tile.el.dataset.v = v;
-    boardEl.appendChild(tile.el);
-    placeTileElement(tile);
-    return true;
-  }
-
-  function clusterSame(r,c, v=null){
-    const id = grid[r][c];
-    if(!id) return [];
-    const baseV = v ?? tiles.get(id).v;
-    const seen = new Set();
-    const q = [[r,c]];
-    const res = [];
-    while(q.length){
-      const [rr,cc] = q.shift();
-      const k = key(rr,cc);
-      if(seen.has(k)) continue;
-      seen.add(k);
-      const tid = grid[rr][cc];
-      if(!tid) continue;
-      const tv = tiles.get(tid).v;
-      if(tv !== baseV) continue;
-      res.push([rr,cc]);
-      for(const [nr,nc] of neighbors4(rr,cc)) q.push([nr,nc]);
-    }
-    return res;
-  }
-
-  function hasAdjSameAt(r,c,v){
-    return neighbors4(r,c).some(([rr,cc])=>{
-      const id = grid[rr][cc];
-      return id && tiles.get(id).v===v;
-    });
-  }
-
-  // BFS 경로: 시작(r0,c0) -> 도착(r1,c1)까지, 중간은 빈칸만 통과 가능
-  function bfsPath(r0,c0, r1,c1){
-    const q=[[r0,c0]];
-    const prev = new Map();
-    const sk = key(r0,c0);
-    prev.set(sk, null);
-    const passable = (r,c)=> (r===r0 && c===c0) || (!grid[r][c] && !blocked.has(key(r,c)));
-    while(q.length){
-      const [r,c]=q.shift();
-      if(r===r1 && c===c1) break;
-      for(const [nr,nc] of neighbors4(r,c)){
-        if(!passable(nr,nc)) continue;
-        const k=key(nr,nc);
-        if(prev.has(k)) continue;
-        prev.set(k, [r,c]);
-        q.push([nr,nc]);
-      }
-    }
-    const endK = key(r1,c1);
-    if(!prev.has(endK)) return null;
-    const path = [];
-    let cur = [r1,c1];
-    while(cur){
-      path.push(cur);
-      cur = prev.get(key(cur[0],cur[1]));
-    }
-    path.reverse();
-    return path;
-  }
-
-  function deselect(){
-    if(!selectedId) return;
-    const t = tiles.get(selectedId);
-    if(t) t.el.classList.remove('selected');
-    selectedId = null;
-  }
-
-  function onTileClick(id){
-    if(selectedId === id){ deselect(); return; }
-    deselect();
-    selectedId = id;
-    const t = tiles.get(id);
-    if(t) t.el.classList.add('selected');
-  }
-
-  function onCellClick(r,c){
-    if(!selectedId) return;
-    if(grid[r][c]) return; // 빈칸만 목적지
-    if(blocked.has(key(r,c))) return;
-
-    const t = tiles.get(selectedId);
-    if(!t) return;
-
-    const path = bfsPath(t.r, t.c, r, c);
-    if(!path){ pulseDenied(); return; }
-
-    // 목적지 인접 같은 숫자 ≥1 이어야 이동 허용
-    if(!hasAdjSameAt(r,c,t.v)){ pulseDenied(); return; }
-
-    performMoveWithPath(t, path);
-  }
-
-  function pulseDenied(){
-    if(!selectedId) return;
-    const el = tiles.get(selectedId)?.el;
-    if(!el) return;
-    el.animate([
-      {transform:el.style.transform + ' rotate(0deg)'},
-      {transform:el.style.transform + ' rotate(-3deg)'},
-      {transform:el.style.transform + ' rotate(3deg)'},
-      {transform:el.style.transform + ' rotate(0deg)'},
-    ], {duration:140, easing:'ease-out'});
-  }
-
-  function drawPathPolyline(path){
-    const styles = getComputedStyle(document.documentElement);
-    const cell = parseInt(styles.getPropertyValue('--cell'));
-    const gap = parseInt(styles.getPropertyValue('--gap'));
-    const W = COLS*(cell) + (COLS-1)*gap;
-    const H = ROWS*(cell) + (ROWS-1)*gap;
-
-    pathLayer.setAttribute('viewBox', `0 0 ${W} ${H}`);
-
-    const pts = path.map(([r,c])=>{
-      const {x,y} = cellCenterPx(r,c);
-      return `${x},${y}`;
-    }).join(' ');
-
-    const pl = document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    pl.setAttribute('points', pts);
-    pl.setAttribute('class','path-stroke');
-    pathLayer.appendChild(pl);
-
-    setTimeout(()=> pl.classList.add('path-fade'), 1600);
-    setTimeout(()=> pl.remove(), 2100);
-  }
-
-  function performMoveWithPath(t, path){
-    drawPathPolyline(path);
-    const [destR, destC] = path[path.length-1];
-
-    grid[t.r][t.c] = null;
-    grid[destR][destC] = t.id;
-
-    boardEl.style.pointerEvents = 'none';
-
-    const {x,y} = gridToPx(destR,destC);
-    t.el.style.transition = 'transform .22s cubic-bezier(.2, .9, .2, 1)';
-    t.el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
-
-    const onDone = () => {
-      t.r = destR; t.c = destC;
-      const cluster = clusterSame(destR,destC);
-      if(cluster.length >= 3){
-        doMerge(destR,destC, cluster);
-      }else{
-        t.el.classList.remove('pop'); void t.el.offsetWidth;
-        t.el.classList.add('pop');
-      }
-      afterTurn();
-      deselect();
-      boardEl.style.pointerEvents = '';
-      t.el.removeEventListener('transitionend', onDone);
-    };
-
-    // ✅ transitionend 누락 대비 폴백
-    const failSafe = setTimeout(()=> onDone(), 320);
-
-    t.el.addEventListener('transitionend', ()=>{
-      clearTimeout(failSafe);
-      onDone();
-    }, {once:true});
-  }
-
-  function doMerge(destR,destC, cluster){
-    const destId = grid[destR][destC];
-    const baseV = tiles.get(destId).v;
-
-    for(const [r,c] of cluster){
-      const id = grid[r][c];
-      if(id === destId) continue;
-      const tile = tiles.get(id);
-      if(!tile) continue;
-      tile.el.classList.add('fade-out');
-      grid[r][c] = null;
-      setTimeout(()=>{ tile.el.remove(); tiles.delete(id); }, 180);
-    }
-    const destTile = tiles.get(destId);
-    destTile.v = baseV + 1;
-    destTile.el.dataset.v = destTile.v;
-    destTile.el.textContent = destTile.v;
-    destTile.el.classList.remove('merge-bounce'); void destTile.el.offsetWidth;
-    destTile.el.classList.add('merge-bounce');
-
-    setTimeout(()=>{
-      let changed = true;
-      while(changed){
-        changed = false;
-        const cl = clusterSame(destTile.r, destTile.c);
-        if(cl.length >= 3){
-          const v0 = destTile.v;
-          for(const [r,c] of cl){
-            const id = grid[r][c];
-            if(id === destTile.id) continue;
-            const rem = tiles.get(id);
-            if(!rem) continue;
-            rem.el.classList.add('fade-out');
-            grid[r][c] = null;
-            setTimeout(()=>{ rem.el.remove(); tiles.delete(id); }, 180);
-          }
-          destTile.v = v0 + 1;
-          destTile.el.dataset.v = destTile.v;
-          destTile.el.textContent = destTile.v;
-          destTile.el.classList.remove('merge-bounce'); void destTile.el.offsetWidth;
-          destTile.el.classList.add('merge-bounce');
-          changed = true;
-        }
-      }
-    }, 200);
-  }
-
-  function afterTurn(){
-    turn++; turnsUntilSpawn--;
-    if(turnsUntilSpawn<=0){
-      const count = 4 + Math.floor(Math.random()*2);
-      for(let i=0;i<count;i++) addRandomTile();
-      turnsUntilSpawn = TURNS_PER_SPAWN;
-      squashImmediateTriples();
-    }
-    updateUI();
-    if(!anyMoveAvailable()){
-      setTimeout(()=> alert('이동 불가! 게임 오버'), 10);
-    }
-  }
-
-  function updateUI(){
-    turnEl.textContent = turn;
-    spawnInEl.textContent = turnsUntilSpawn;
-  }
-
-  function squashImmediateTriples(maxTries=20){
-    for(let tries=0;tries<maxTries;tries++){
-      let ok = true;
-      outer: for(let r=0;r<ROWS;r++){
+    resetBtn.addEventListener('click', init);
+    function init(){
+      gameOver=false; moveCount=0; sel=null; grid=[]; board.innerHTML='';
+      // 초기 배치
+      for(let r=0;r<ROWS;r++){
+        const row=[];
         for(let c=0;c<COLS;c++){
-          const id = grid[r][c];
-          if(!id) continue;
-          const cl = clusterSame(r,c);
-          if(cl.length>=3){ ok=false; break outer; }
+          const v = Math.random()<0.55 ? (Math.random()<0.8?1:3) : 0; // 55% 채움
+          row.push(v);
+          const cell = makeCell(r,c,v);
+          board.appendChild(cell);
+          if(v>0) playSpawnPop(cell); // 초기 생성도 '띠용~'
+        }
+        grid.push(row);
+      }
+      suppressInitialTriples();
+      placeBlockers(2 + Math.floor(Math.random()*2));
+      render(); // 블로커 반영
+      clearPath(); // 라인 클린
+    }
+
+    function makeCell(r,c,v){
+      const el=document.createElement('div');
+      el.className='cell'+(v? '' : ' empty');
+      el.dataset.r=r; el.dataset.c=c;
+      el.addEventListener('click', ()=>onTap(r,c));
+      drawChip(el,v);
+      return el;
+    }
+    function drawChip(el,v){
+      el.innerHTML='';
+      if(v===-1){ el.className='cell blocked'; return; }
+      if(v===0){ el.classList.add('empty'); return; }
+      el.classList.remove('empty');
+      const chip=document.createElement('div');
+      chip.className='chip';
+      el.classList.remove(...[1,3,9,27,81].map(x=>`val${x}`));
+      el.classList.add(`val${v<=81?v:81}`); // 색상 등급 제한
+      chip.textContent=v;
+      el.appendChild(chip);
+    }
+
+    function onTap(r,c){
+      if(gameOver) return;
+      const val=grid[r][c];
+      const cellEl=cellAt(r,c);
+
+      // 1) 선택 시작: 숫자만
+      if(!sel){
+        if(val<=0) return;
+        sel={r,c};
+        cellEl.classList.add('sel');
+        return;
+      }
+
+      // 2) 두번째 탭 처리
+      const prev=sel; sel=null;
+      cellAt(prev.r,prev.c).classList.remove('sel');
+      // 같은 칸 취소
+      if(prev.r===r && prev.c===c) return;
+      // 목적지는 빈칸만
+      if(grid[r][c]!==0) return;
+
+      const fromVal = grid[prev.r][prev.c];
+
+      // ★ 버그 픽스: “같은 숫자 옆으로만 이동” 규칙 재확인
+      // A) 직선 이동만 허용 (행/열) + B) 중간 전칸 빈칸 + C) 목적지 인접칸에 같은 숫자 최소 1개
+      if(!(prev.r===r || prev.c===c)) return;             // 직선만
+      if(!emptyPathClear(prev.r,prev.c, r,c)) return;     // 통로 비어있기
+      if(!hasAdjacentSame(r,c, fromVal)) return;          // 도착칸 인접 동일값 존재 (반경 1칸)
+
+      // 이동 애니 + 동선 라인 표시(2초 후 서서히 사라짐)
+      animateMoveWithPath(prev.r,prev.c, r,c, fromVal)
+        .then(mergedHappened=>{
+          moveCount++;
+          if(moveCount>0 && moveCount%5===0){
+            spawnNewBlocks(4 + Math.floor(Math.random()*2));
+            renderSpawnsPop();
+          }
+          if(!hasAnyLegalMove()){
+            gameOver=true;
+            setTimeout(()=>alert('이동 불가! 게임 오버'),10);
+          }
+        });
+    }
+
+    function cellAt(r,c){ return board.children[r*COLS+c]; }
+
+    function emptyPathClear(r1,c1,r2,c2){
+      if(r1===r2){
+        const [a,b]= c1<c2? [c1+1,c2-1]:[c2+1,c1-1];
+        for(let c=a;c<=b;c++) if(grid[r1][c]!==0) return false;
+        return true;
+      }
+      if(c1===c2){
+        const [a,b]= r1<r2? [r1+1,r2-1]:[r2+1,r1-1];
+        for(let r=a;r<=b;r++) if(grid[r][c1]!==0) return false;
+        return true;
+      }
+      return false;
+    }
+
+    function hasAdjacentSame(r,c,val){
+      const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+      return dirs.some(([dr,dc])=>{
+        const nr=r+dr,nc=c+dc;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS) return false;
+        return grid[nr][nc]===val;
+      });
+    }
+
+    // ===== 이동 애니메이션 & 동선 라인 =====
+    function animateMoveWithPath(sr,sc, tr,tc, val){
+      return new Promise(resolve=>{
+        // 1) 이동 경로 라인 그리기 (끊김없는 얇은 1줄)
+        drawPathLine(sr,sc,tr,tc);
+
+        // 2) 플로팅 토큰 생성 (원본은 잠깐 비워 보이게)
+        const fromCell = cellAt(sr,sc);
+        const toCell   = cellAt(tr,tc);
+
+        // 그리드 데이터는 애니 끝나고 옮긴다 (시각적 일관성)
+        // 다만 원본칸은 비워 보이게
+        grid[sr][sc]=0;
+        drawChip(fromCell,0);
+
+        // 플로팅 토큰 DOM
+        const token = document.createElement('div');
+        token.className='float-token';
+        token.appendChild(cloneChip(val));
+        wrap.appendChild(token);
+
+        // 시작/끝 좌표 계산 (컨테이너 기준)
+        const start = centerInWrap(fromCell);
+        const end   = centerInWrap(toCell);
+
+        // 토큰 시작 위치
+        token.style.transform = `translate(${start.x - (parseFloat(getComputedStyle(token).width)/2)}px, ${start.y - (parseFloat(getComputedStyle(token).height)/2)}px)`;
+
+        // 다음 프레임에 목적지로 이동
+        requestAnimationFrame(()=>{
+          token.style.transform = `translate(${end.x - (parseFloat(getComputedStyle(token).width)/2)}px, ${end.y - (parseFloat(getComputedStyle(token).height)/2)}px)`;
+        });
+
+        // 이동 시간 320ms 후 실제 배치 + 병합
+        setTimeout(()=>{
+          token.remove();
+          // 도착 반영
+          grid[tr][tc]=val;
+          drawChip(toCell,val);
+
+          // 매칭/병합 처리
+          const merged = resolveMergeAnimated(tr,tc);
+
+          // 도착 스케일 액션:
+          // - 매칭이 없었으면 생성모션과 동일한 pop
+          // - 매칭이 있었으면 resolveMergeAnimated 안에서 merge-pop 실행됨
+          if(!merged){
+            toCell.classList.add('pop');
+            setTimeout(()=>toCell.classList.remove('pop'), 320);
+          }
+
+          render(); // 숫자 등급 클래스 정리
+          resolve(merged);
+        }, 320);
+      });
+    }
+
+    function cloneChip(val){
+      const shell=document.createElement('div');
+      shell.className='cell';
+      drawChip(shell, val);
+      return shell.firstChild; // .chip
+    }
+
+    function centerInWrap(cellEl){
+      const wrapRect = wrap.getBoundingClientRect();
+      const r = cellEl.getBoundingClientRect();
+      return { x: r.left - wrapRect.left + r.width/2, y: r.top - wrapRect.top + r.height/2 };
+    }
+
+    function drawPathLine(sr,sc,tr,tc){
+      clearPath();
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      const wrapRect = wrap.getBoundingClientRect();
+      const a = centerInWrap(cellAt(sr,sc));
+      const b = centerInWrap(cellAt(tr,tc));
+      // SVG 좌표계(0..wrapW, 0..wrapH)로 맞추기
+      pathSvg.setAttribute('viewBox', `0 0 ${wrapRect.width} ${wrapRect.height}`);
+      line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+      line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+      pathSvg.appendChild(line);
+      // 2초 뒤 삭제(서서히 사라지는 애니는 CSS로)
+      setTimeout(clearPath, 2000);
+    }
+    function clearPath(){ while(pathSvg.firstChild) pathSvg.removeChild(pathSvg.firstChild); }
+
+    // ===== 병합 로직 (애니 포함) =====
+    function resolveMergeAnimated(r,c){
+      let mergedOnce=false;
+      let changed=true;
+      while(changed){
+        changed=false;
+        const v=grid[r][c];
+        if(v<=0) break;
+        const group=flood(r,c,v);
+        if(group.length>=3){
+          const others=group.filter(p=> !(p.r===r&&p.c===c));
+          // 가까운 2개 우선 사용
+          others.sort((a,b)=> (Math.abs(a.r-r)+Math.abs(a.c-c)) - (Math.abs(b.r-r)+Math.abs(b.c-c)));
+          const use=others.slice(0,2);
+
+          // 비우기
+          use.forEach(p=>{ grid[p.r][p.c]=0; drawChip(cellAt(p.r,p.c),0); });
+
+          // 중심 승급
+          grid[r][c]=v*3;
+          const centerEl=cellAt(r,c);
+          drawChip(centerEl, v*3);
+          // 병합 스케일 액션 즉시 실행
+          centerEl.classList.add('merge-pop');
+          setTimeout(()=>centerEl.classList.remove('merge-pop'), 260);
+
+          mergedOnce=true;
+          changed=true;
         }
       }
-      if(ok) return;
-      const filled=[];
-      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]) filled.push([r,c]);
-      if(!filled.length) return;
-      const [rr,cc] = randomChoice(filled);
-      const id = grid[rr][cc];
-      const t = tiles.get(id);
-      t.v = randomChoice(NEW_TILE_VALUES);
-      t.el.dataset.v = t.v;
-      t.el.textContent = t.v;
+      return mergedOnce;
     }
-  }
 
-  function anyMoveAvailable(){
-    for(const t of tiles.values()){
-      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-        if(grid[r][c] || blocked.has(key(r,c))) continue;
-        if(!hasAdjSameAt(r,c,t.v)) continue;
-        const path = bfsPath(t.r,t.c,r,c);
-        if(path) return true;
+    function flood(sr,sc,v){
+      const seen=new Set(), out=[], Q=[[sr,sc]];
+      const key=(r,c)=> r+','+c;
+      while(Q.length){
+        const [r,c]=Q.shift();
+        if(r<0||r>=ROWS||c<0||c>=COLS) continue;
+        if(grid[r][c]!==v) continue;
+        const k=key(r,c);
+        if(seen.has(k)) continue;
+        seen.add(k); out.push({r,c});
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=> Q.push([r+dr,c+dc]));
+      }
+      return out;
+    }
+
+    // ===== 렌더 & 유틸 =====
+    function render(){
+      for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+          const v=grid[r][c];
+          const el=cellAt(r,c);
+          if(v===-1){ el.className='cell blocked'; el.innerHTML=''; }
+          else {
+            el.className='cell'+(v? '' : ' empty');
+            drawChip(el,v);
+          }
+        }
       }
     }
-    return false;
-  }
-
-  function resetAll(){
-    grid = createEmpty();
-    tiles.clear();
-    blocked.clear();
-    selectedId = null;
-    turn = 0; turnsUntilSpawn = TURNS_PER_SPAWN;
-
-    const toBlock = BLOCKED_MIN + Math.floor(Math.random()*(BLOCKED_MAX-BLOCKED_MIN+1));
-    let tries=0;
-    while(blocked.size < toBlock && tries<200){
-      const r = Math.floor(Math.random()*ROWS), c = Math.floor(Math.random()*COLS);
-      if(blocked.has(key(r,c))) { tries++; continue; }
-      blocked.add(key(r,c));
+    function playSpawnPop(cellEl){
+      cellEl.classList.add('pop');
+      setTimeout(()=>cellEl.classList.remove('pop'), 320);
+    }
+    function renderSpawnsPop(){
+      // 새로 채워진 칸(pop 부여)
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+        const v=grid[r][c];
+        if(v>0){
+          const el=cellAt(r,c);
+          if(el && el.querySelector('.chip') && !el.dataset._seen){
+            el.dataset._seen='1';
+          }
+        }
+      }
+      // 방금 스폰된 칸에 pop
+      // (spawnNewBlocks 직후라면, textContent가 방금 채워진 1/3들)
+      // 간단히 전체 v>0 칸에 짧은 pop 부여해도 부하 적음
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+        if(grid[r][c]>0){
+          const el=cellAt(r,c);
+          el.classList.add('pop'); setTimeout(()=>el.classList.remove('pop'),320);
+        }
+      }
     }
 
-    drawBoard();
+    // === 초기 3연결 억제 ===
+    function suppressInitialTriples(){
+      let changed=true, guard=0;
+      while(changed && guard<50){
+        changed=false; guard++;
+        const seen=new Set();
+        for(let r=0;r<ROWS;r++){
+          for(let c=0;c<COLS;c++){
+            const v=grid[r][c];
+            if(v<=0) continue;
+            const key=(r,c)=> r+','+c;
+            if(seen.has(key(r,c))) continue;
+            const g=flood(r,c,v);
+            g.forEach(p=> seen.add(key(p.r,p.c)));
+            if(g.length>=3){
+              const pick = g[Math.floor(Math.random()*g.length)];
+              grid[pick.r][pick.c]=0;
+              changed=true;
+            }
+          }
+        }
+      }
+    }
 
-    for(let i=0;i<INITIAL_TILES;i++) addRandomTile();
-    squashImmediateTriples(50);
-    updateUI();
-  }
+    // === 블로커 배치 ===
+    function placeBlockers(k){
+      const empties = allEmpties();
+      shuffle(empties);
+      for(let i=0;i<k && i<empties.length;i++){
+        const {r,c}=empties[i];
+        grid[r][c]=-1;
+      }
+    }
 
-  document.getElementById('resetBtn').addEventListener('click', ()=> resetAll());
-  resetAll();
-})();
-</script>
+    // === 5턴마다 스폰 ===
+    function spawnNewBlocks(k){
+      const empties = allEmpties();
+      if(empties.length===0) return;
+      shuffle(empties);
+      for(let i=0;i<k && i<empties.length;i++){
+        const {r,c}=empties[i];
+        grid[r][c] = Math.random()<0.8? 1:3;
+        drawChip(cellAt(r,c), grid[r][c]);
+      }
+    }
+
+    function allEmpties(){
+      const arr=[];
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]===0) arr.push({r,c});
+      return arr;
+    }
+
+    function hasAnyLegalMove(){
+      for(let sr=0; sr<ROWS; sr++){
+        for(let sc=0; sc<COLS; sc++){
+          const v=grid[sr][sc]; if(v<=0) continue;
+          // 같은 행
+          for(let c=0;c<COLS;c++){
+            if(grid[sr][c]!==0) continue;
+            if(!emptyPathClear(sr,sc, sr,c)) continue;
+            if(hasAdjacentSame(sr,c, v)) return true;
+          }
+          // 같은 열
+          for(let r=0;r<ROWS;r++){
+            if(grid[r][sc]!==0) continue;
+            if(!emptyPathClear(sr,sc, r,sc)) continue;
+            if(hasAdjacentSame(r,sc, v)) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } }
+
+    // 시작!
+    init();
+  </script>
 </body>
 </html>
