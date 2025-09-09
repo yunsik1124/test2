@@ -1,531 +1,534 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>하이퍼캐주얼 머지 – 세로 모바일</title>
-  <style>
-    :root {
-      --bg:#111;
-      --panel:#1c1c1c;
-      --tile:#2a2a2a;
-      --acc:#6ee7ff;
-      --good:#7fff6e;
-      --warn:#ffb86e;
-      --bad:#ff6e6e;
-      --txt:#f5f5f5;
-      --muted:#bdbdbd;
-      --gap:10px;
-      --radius:14px;
-    }
-    *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-    html,body{height:100%; margin:0; background:var(--bg); color:var(--txt); font-family:system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;}
-    .wrap{
-      min-height:100dvh; width:100%;
-      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-      padding:calc(env(safe-area-inset-top) + 16px) 12px calc(env(safe-area-inset-bottom) + 16px);
-      gap:12px;
-    }
-    .topbar{
-      width:100%; max-width:480px; display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center;
-    }
-    .badge{
-      background:var(--panel); padding:10px 12px; border-radius:10px; text-align:center; line-height:1.1;
-      min-width:92px;
-    }
-    .badge b{display:block; font-size:18px;}
-    .badge small{color:var(--muted); font-size:12px;}
-    button{
-      background:var(--acc); color:#001018; border:none; border-radius:10px; padding:10px 14px; font-weight:700;
-      cursor:pointer;
-    }
-    button:active{transform:translateY(1px)}
-    .gauge{
-      width:100%; max-width:480px; background:var(--panel); border-radius:999px; height:14px; overflow:hidden; position:relative;
-    }
-    .gauge>span{
-      display:block; height:100%; width:0%; background:linear-gradient(90deg,#46d3ff,#7fff6e);
-      transition:width .15s ease;
-    }
-    .gauge .tip{
-      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-      font-size:11px; color:var(--muted); pointer-events:none;
-    }
-    .board-wrap{
-      width:100%; max-width:480px; aspect-ratio:1/1;
-      background:var(--panel); border-radius:var(--radius); padding:var(--gap);
-      display:grid; grid-template-rows:1fr;
-      touch-action:none;
-      box-shadow:0 10px 30px rgba(0,0,0,.35);
-    }
-    .grid{
-      height:100%; width:100%;
-      display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(4, 1fr); gap:var(--gap);
-    }
-    .cell{
-      background:#0e0e0e; border-radius:var(--radius); position:relative; overflow:hidden;
-    }
-    .tile{
-      position:absolute; inset:0; margin:auto;
-      display:flex; align-items:center; justify-content:center;
-      border-radius:var(--radius);
-      font-weight:900; font-size:clamp(20px, 6.2vw, 34px);
-      transition:transform .08s ease, background-color .08s ease, opacity .08s ease;
-      user-select:none;
-      will-change:transform, opacity;
-    }
-    /* 숫자 타일 톤 */
-    .num-2{ background:#2b2b2b; color:#e8e8e8;}
-    .num-4{ background:#333; color:#e8f7ff;}
-    .num-8{ background:#3b3b3b; color:#d3fce1;}
-    .num-16{ background:#444; color:#ffe9c9;}
-    .num-32{ background:#4c4c4c; color:#ffd4d4;}
-    .num-64{ background:#555; color:#e1d3ff;}
-    .num-128{ background:#5e5e5e; color:#fff;}
-    .num-256{ background:#676767; color:#fff;}
-    .num-512{ background:#707070; color:#fff;}
-    .num-1024{ background:#7a7a7a; color:#fff;}
-    .num-2048{ background:#838383; color:#fff;}
-    /* 특수 */
-    .wild{ background:conic-gradient(from 0deg, #46d3ff, #7fff6e, #46d3ff); color:#001018; }
-    .rock{ background:#262626; color:#ffb86e; border:2px dashed #3a3a3a;}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>3매칭 머지 프로토타입 (5x7) - 총합본</title>
+<style>
+  :root{
+    --cell:60px; --gap:6px; --cols:5; --rows:7;
+    --board-w: calc(var(--cols)*(var(--cell)) + (var(--cols)-1)*var(--gap));
+    --board-h: calc(var(--rows)*(var(--cell)) + (var(--rows)-1)*var(--gap));
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:#0b0f14;color:#e8f0ff;font-family:system-ui,Segoe UI,Arial,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;gap:10px;padding:12px;
+  }
+  h1{font-size:16px;margin:6px 0 0;opacity:.9}
+  #ui{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.8}
+  #board-wrap{position:relative;width:var(--board-w);height:var(--board-h)}
+  #board{
+    position:absolute;left:0;top:0;
+    display:grid;grid-template-columns:repeat(var(--cols), var(--cell));
+    grid-template-rows:repeat(var(--rows), var(--cell));
+    gap:var(--gap);
+  }
+  .cell{
+    width:var(--cell);height:var(--cell);
+    background:#111723;border:1px solid #1c2433;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  }
+  .cell.blocked{
+    background:#202733;
+  }
+  .cell.blocked::after{
+    content:"✕";
+    color:#8090a6;font-size:18px;opacity:.6;
+  }
+  .tile{
+    position:absolute;left:0;top:0;width:var(--cell);height:var(--cell);
+    display:flex;align-items:center;justify-content:center;
+    border-radius:12px;font-weight:800;font-size:18px;letter-spacing:.5px;
+    color:#0b0f14; user-select:none; pointer-events:auto;
+    transform:translate3d(0,0,0) scale(1); transition:transform .18s cubic-bezier(.2, .9, .2, 1);
+    box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.08);
+  }
+  .tile[data-v="1"]{background:#9fd3ff}
+  .tile[data-v="2"]{background:#7ee7c8}
+  .tile[data-v="3"]{background:#ffe08a}
+  .tile[data-v="4"]{background:#ffb3b3}
+  .tile[data-v="5"]{background:#d4b5ff}
+  .tile[data-v="6"]{background:#ffdfdf}
+  .tile.selected{outline:3px solid #66ffd1; outline-offset:-3px; z-index:10}
 
-    /* ✅ 합쳐질 때 팝 애니메이션 */
-    @keyframes pop {
-      0% { transform:scale(1); box-shadow:0 0 0 rgba(127,255,110,0); }
-      50% { transform:scale(1.14); box-shadow:0 0 18px rgba(127,255,110,.25); }
-      100% { transform:scale(1); box-shadow:0 0 0 rgba(127,255,110,0); }
-    }
-    .tile.pop{ animation:pop .18s ease both; }
+  /* 스폰 & 도착(매칭 실패) 공용 ‘띠용’ */
+  @keyframes pop {
+    0%{transform:scale(.2)}
+    60%{transform:scale(1.12)}
+    100%{transform:scale(1)}
+  }
+  .pop{animation:pop .22s cubic-bezier(.2,1.2,.2,1) forwards}
 
-    /* 스폰 살짝 페이드인(선택사항) */
-    @keyframes spawn {
-      from { transform:scale(.85); opacity:.0; }
-      to   { transform:scale(1);   opacity:1; }
-    }
-    .tile.spawn{ animation:spawn .12s ease both; }
+  /* 머지 시 살짝 크게 튀기는 액션 */
+  @keyframes merge-bounce {
+    0%{transform:scale(1)}
+    35%{transform:scale(1.15)}
+    100%{transform:scale(1)}
+  }
+  .merge-bounce{animation:merge-bounce .26s cubic-bezier(.2,1.2,.2,1) forwards}
 
-    .meta{
-      width:100%; max-width:480px; color:var(--muted); font-size:12px; text-align:center; line-height:1.5;
-    }
-    .toast{
-      position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px);
-      transform:translateX(-50%); background:#000; color:#fff; padding:10px 14px; border-radius:999px;
-      opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
-    }
-    .toast.show{ opacity:0.95; transform:translateX(-50%) translateY(-4px); }
-    .overlay{
-      position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:22px;
-    }
-    .overlay .panel{
-      width:100%; max-width:420px; background:#161616; border-radius:16px; padding:18px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.45);
-    }
-    .overlay h2{margin:6px 0 12px 0}
-    .overlay .row{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
-    .overlay .row button{min-width:120px;}
-  </style>
+  /* 제거되는 타일 페이드 */
+  .fade-out{transition:opacity .18s ease, transform .18s ease; opacity:0; transform:scale(.6)}
+
+  /* 경로 라인 (단일 얇은 선, 끊김 없음) */
+  #path-layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+  .path-stroke{
+    fill:none; stroke:#e8f0ff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+    filter: drop-shadow(0 0 2px rgba(232,240,255,.6));
+    opacity:.9; transition:opacity .4s ease;
+  }
+  .path-fade{opacity:0}
+
+  /* 툴팁 */
+  .hint{font-size:12px;opacity:.7;margin-top:2px}
+  button{
+    background:#1a2533;color:#e8f0ff;border:1px solid #2a394f;border-radius:8px;padding:8px 10px;
+    cursor:pointer;font-weight:700
+  }
+  button:active{transform:translateY(1px)}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="badge" id="scoreBox"><small>SCORE</small><b>0</b></div>
-      <div class="badge" id="bestBox"><small>BEST</small><b>0</b></div>
-      <button id="btnNew">NEW</button>
-    </div>
-
-    <div class="gauge" aria-label="combo gauge">
-      <span id="gaugeFill"></span>
-      <div class="tip" id="gaugeTip">게이지 0 / 5</div>
-    </div>
-
-    <div class="board-wrap" id="board">
-      <div class="grid" id="grid"></div>
-    </div>
-
-    <div class="meta">
-      스와이프(모바일) / 방향키(PC). ⭐=와일드(아무 숫자와 합치면 그 숫자 업그레이드). 🪨=락(3턴 뒤 자동 2).<br/>
-      빠르게 합치면 게이지가 차고 가득 차면 다음 스폰이 ⭐로 나와!
-    </div>
+  <h1>3매칭 머지 (5×7) — 총합본</h1>
+  <div id="ui">
+    <button id="resetBtn">리셋</button>
+    <span>턴: <b id="turn">0</b></span>
+    <span>다음 스폰까지: <b id="spawnIn">5</b>턴</span>
   </div>
-
-  <div class="toast" id="toast">Merged!</div>
-
-  <div class="overlay" id="gameover">
-    <div class="panel">
-      <h2>게임 오버</h2>
-      <p id="finalScore">점수: 0</p>
-      <div class="row">
-        <button id="again">다시하기</button>
-        <button id="share">복사: 점수 자랑</button>
-      </div>
-    </div>
+  <div id="board-wrap">
+    <svg id="path-layer" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    <div id="board"></div>
   </div>
+  <div class="hint">규칙: 빈칸 경로가 있어야 이동 가능. 도착 지점의 상하좌우에 같은 숫자가 최소 1개 있어야 이동 허용. 이동 후 3+ 연결이면 즉시 머지.</div>
 
 <script>
 (() => {
-  const SIZE = 4;
-  const GAUGE_MAX = 5;              // 이만큼 합치면 와일드(⭐) 스폰
-  const ROCK_LIFE = 3;              // 락(🪨) 수명(턴)
-  const ROCK_SPAWN_CHANCE = 0.07;   // 새 타일 스폰 시 락 확률
-  const FOUR_CHANCE = 0.1;          // 숫자 스폰 시 4 확률
-  const WILD_AFTER_FULL = true;
+  const COLS = 5, ROWS = 7;
+  const NEW_TILE_VALUES = [1,1,1,2,2,3]; // 새로 나오는 값 분포
+  const INITIAL_TILES = 10; // 초기 생성 수
+  const BLOCKED_MIN = 2, BLOCKED_MAX = 3;
+  const TURNS_PER_SPAWN = 5; // 5턴마다 새 블록 4~5개 생성
 
-  const gridEl = document.getElementById('grid');
   const boardEl = document.getElementById('board');
-  const scoreBox = document.getElementById('scoreBox').querySelector('b');
-  const bestBox = document.getElementById('bestBox').querySelector('b');
-  const btnNew = document.getElementById('btnNew');
-  const gaugeFill = document.getElementById('gaugeFill');
-  const gaugeTip = document.getElementById('gaugeTip');
-  const toastEl = document.getElementById('toast');
-  const overEl  = document.getElementById('gameover');
-  const finalScoreEl = document.getElementById('finalScore');
-  const againBtn = document.getElementById('again');
-  const shareBtn = document.getElementById('share');
+  const pathLayer = document.getElementById('path-layer');
+  const turnEl = document.getElementById('turn');
+  const spawnInEl = document.getElementById('spawnIn');
 
-  let board, score, best, gauge, pendingWild, moving;
-  /** 머지 애니메이션을 줄 좌표 집합 (원래 좌표계 기준: "r,c" 문자열 키) */
-  let popCoords = new Set();
+  // 상태
+  let grid = createEmpty();
+  let blocked = new Set(); // "r,c"
+  let tiles = new Map(); // id -> {id, r, c, v, el}
+  let selectedId = null;
+  let turn = 0, turnsUntilSpawn = TURNS_PER_SPAWN;
 
-  function newBoard(){
-    board = Array.from({length:SIZE}, ()=> Array.from({length:SIZE}, ()=> null));
-    score = 0; gauge = 0; pendingWild = false;
-    best = Number(localStorage.getItem('merge_best')||0);
-    updateHUD();
-    renderGridSkeleton();
-    spawnRandom(true); spawnRandom(true);
-    render();
+  // 유틸
+  const key = (r,c)=> `${r},${c}`;
+  const inBounds = (r,c)=> r>=0 && r<ROWS && c>=0 && c<COLS;
+  const neighbors4 = (r,c)=> [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc])=>inBounds(rr,cc));
+
+  function createEmpty(){
+    return Array.from({length:ROWS},()=> Array.from({length:COLS},()=> null));
   }
 
-  function updateHUD(){
-    scoreBox.textContent = score;
-    bestBox.textContent = Math.max(best, score);
-    const pct = Math.min(100, Math.round((gauge/GAUGE_MAX)*100));
-    gaugeFill.style.width = pct + '%';
-    gaugeTip.textContent = `게이지 ${gauge} / ${GAUGE_MAX}`;
-    localStorage.setItem('merge_best', String(Math.max(best, score)));
+  function cellCenterPx(r,c){
+    // 보드 내 좌표 px
+    const styles = getComputedStyle(document.documentElement);
+    const cell = parseInt(styles.getPropertyValue('--cell'));
+    const gap = parseInt(styles.getPropertyValue('--gap'));
+    const x = c*(cell+gap) + cell/2;
+    const y = r*(cell+gap) + cell/2;
+    return {x,y};
   }
 
-  function renderGridSkeleton(){
-    gridEl.innerHTML = '';
-    for(let i=0;i<SIZE*SIZE;i++){
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      gridEl.appendChild(cell);
+  function gridToPx(r,c){
+    const styles = getComputedStyle(document.documentElement);
+    const cell = parseInt(styles.getPropertyValue('--cell'));
+    const gap = parseInt(styles.getPropertyValue('--gap'));
+    const x = c*(cell+gap);
+    const y = r*(cell+gap);
+    return {x,y};
+  }
+
+  function drawBoard(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if(blocked.has(key(r,c))) cell.classList.add('blocked');
+        cell.dataset.r = r; cell.dataset.c = c;
+        cell.addEventListener('click', ()=> onCellClick(r,c));
+        boardEl.appendChild(cell);
+      }
     }
+    // 타일 DOM 추가
+    tiles.forEach(t => {
+      boardEl.appendChild(t.el);
+      placeTileElement(t);
+    });
   }
 
-  function forEachCell(fn){
-    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) fn(r,c,board[r][c]);
+  function makeTileEl(t){
+    const el = document.createElement('div');
+    el.className = 'tile pop';
+    el.textContent = t.v;
+    el.dataset.v = t.v;
+    el.style.zIndex = 5;
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); onTileClick(t.id); });
+    return el;
   }
 
-  function emptyCells(){
-    const out=[];
-    forEachCell((r,c,t)=>{ if(!t) out.push([r,c]); });
-    return out;
+  function placeTileElement(t){
+    const {x,y} = gridToPx(t.r,t.c);
+    t.el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
   }
 
-  function randomChoice(arr){ return arr[(Math.random()*arr.length)|0]; }
+  function randomChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-  function spawnRandom(isInitial=false){
-    const empties = emptyCells();
-    if(!empties.length) return false;
-
-    let kind = 'num';
-    if (pendingWild && WILD_AFTER_FULL) {
-      kind = 'wild';
-      pendingWild = false;
-    } else if (!isInitial && Math.random() < ROCK_SPAWN_CHANCE){
-      kind = 'rock';
+  function randomEmptyCell(){
+    const empties = [];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      if(!grid[r][c] && !blocked.has(key(r,c))) empties.push([r,c]);
     }
+    return empties.length? randomChoice(empties) : null;
+  }
 
-    const [r,c] = randomChoice(empties);
-    if(kind==='num'){
-      board[r][c] = {type:'num', value: Math.random()<FOUR_CHANCE?4:2};
-    } else if(kind==='wild'){
-      board[r][c] = {type:'wild', value:null};
-      flashToast('⭐ 와일드!');
-    } else {
-      board[r][c] = {type:'rock', life: ROCK_LIFE};
-    }
+  function addRandomTile(value=null, withSpawnAnim=true){
+    const pos = randomEmptyCell();
+    if(!pos) return false;
+    const [r,c] = pos;
+    const v = value ?? randomChoice(NEW_TILE_VALUES);
+    const id = crypto.randomUUID();
+    const tile = {id,r,c,v,el:null};
+    grid[r][c] = id;
+    tiles.set(id, tile);
+    tile.el = makeTileEl(tile);
+    if(!withSpawnAnim) tile.el.classList.remove('pop');
+    tile.el.textContent = v;
+    tile.el.dataset.v = v;
+    boardEl.appendChild(tile.el);
+    placeTileElement(tile);
     return true;
   }
 
-  function render(){
-    const cells = gridEl.querySelectorAll('.cell');
-    cells.forEach(cell => cell.innerHTML='');
-
-    forEachCell((r,c,tile)=>{
-      if(!tile) return;
-      const idx = r*SIZE + c;
-      const cell = cells[idx];
-
-      const el = document.createElement('div');
-      el.classList.add('tile');
-
-      // 스폰 연출: 막 생성된 것처럼 보이게(가벼운 효과)
-      el.classList.add('spawn');
-
-      if(tile.type==='num'){
-        el.textContent = tile.value;
-        el.classList.add('num-'+tile.value);
-      } else if(tile.type==='wild'){
-        el.textContent = '⭐';
-        el.classList.add('wild');
-      } else if(tile.type==='rock'){
-        el.textContent = '🪨'+(tile.life>0?`(${tile.life})`:``);
-        el.classList.add('rock');
-      }
-
-      // ✅ 머지 팝 애니메이션 좌표면 pop 클래스 추가
-      if(popCoords.has(keyRC(r,c))){
-        el.classList.add('pop');
-      }
-
-      cell.appendChild(el);
-    });
-
-    // 한 프레임 뒤 pop 좌표 초기화 (다음 렌더에서 다시 안 붙도록)
-    if (popCoords.size){
-      requestAnimationFrame(()=>{ popCoords.clear(); });
+  function clusterSame(r,c, v=null){
+    const id = grid[r][c];
+    if(!id) return [];
+    const baseV = v ?? tiles.get(id).v;
+    const seen = new Set();
+    const q = [[r,c]];
+    const res = [];
+    while(q.length){
+      const [rr,cc] = q.shift();
+      const k = key(rr,cc);
+      if(seen.has(k)) continue;
+      seen.add(k);
+      const tid = grid[rr][cc];
+      if(!tid) continue;
+      const tv = tiles.get(tid).v;
+      if(tv !== baseV) continue;
+      res.push([rr,cc]);
+      for(const [nr,nc] of neighbors4(rr,cc)) q.push([nr,nc]);
     }
-
-    updateHUD();
+    return res;
   }
 
-  function canMerge(a,b){
-    if(!a || !b) return false;
-    if(a.type==='rock' || b.type==='rock') return false;
-    if(a.type==='wild' && b.type==='wild') return true;
-    if(a.type==='wild' && b.type==='num') return true;
-    if(b.type==='wild' && a.type==='num') return true;
-    if(a.type==='num' && b.type==='num') return a.value===b.value;
+  function hasAdjSameAt(r,c,v){
+    return neighbors4(r,c).some(([rr,cc])=>{
+      const id = grid[rr][cc];
+      return id && tiles.get(id).v===v;
+    });
+  }
+
+  // BFS 경로: 시작(r0,c0) -> 도착(r1,c1)까지, 중간은 빈칸만 통과 가능
+  function bfsPath(r0,c0, r1,c1){
+    const q=[[r0,c0]];
+    const prev = new Map();
+    const sk = key(r0,c0);
+    prev.set(sk, null);
+    const passable = (r,c)=> (r===r0 && c===c0) || (!grid[r][c] && !blocked.has(key(r,c)));
+    while(q.length){
+      const [r,c]=q.shift();
+      if(r===r1 && c===c1) break;
+      for(const [nr,nc] of neighbors4(r,c)){
+        if(!passable(nr,nc)) continue;
+        const k=key(nr,nc);
+        if(prev.has(k)) continue;
+        prev.set(k, [r,c]);
+        q.push([nr,nc]);
+      }
+    }
+    const endK = key(r1,c1);
+    if(!prev.has(endK)) return null;
+    const path = [];
+    let cur = [r1,c1];
+    while(cur){
+      path.push(cur);
+      cur = prev.get(key(cur[0],cur[1]));
+    }
+    path.reverse();
+    return path;
+  }
+
+  function deselect(){
+    if(!selectedId) return;
+    const t = tiles.get(selectedId);
+    if(t) t.el.classList.remove('selected');
+    selectedId = null;
+  }
+
+  function onTileClick(id){
+    if(selectedId === id){ deselect(); return; }
+    deselect();
+    selectedId = id;
+    const t = tiles.get(id);
+    if(t) t.el.classList.add('selected');
+  }
+
+  function onCellClick(r,c){
+    if(!selectedId) return;
+    if(grid[r][c]) return; // 빈칸만 목적지
+    if(blocked.has(key(r,c))) return;
+
+    const t = tiles.get(selectedId);
+    if(!t) return;
+
+    // 경로 존재해야 함(빈칸만 통과)
+    const path = bfsPath(t.r, t.c, r, c);
+    if(!path){ pulseDenied(); return; }
+
+    // 목적지 인접 같은 숫자 ≥1 이어야 이동 허용
+    if(!hasAdjSameAt(r,c,t.v)){ pulseDenied(); return; }
+
+    performMoveWithPath(t, path);
+  }
+
+  function pulseDenied(){
+    // 간단한 거부 피드백(선택 타일 살짝 흔들기)
+    if(!selectedId) return;
+    const el = tiles.get(selectedId)?.el;
+    if(!el) return;
+    el.animate([
+      {transform:el.style.transform + ' rotate(0deg)'},
+      {transform:el.style.transform + ' rotate(-3deg)'},
+      {transform:el.style.transform + ' rotate(3deg)'},
+      {transform:el.style.transform + ' rotate(0deg)'},
+    ], {duration:140, easing:'ease-out'});
+  }
+
+  function drawPathPolyline(path){
+    // path: [[r,c],...]; SVG polyline으로 단일 선
+    // px -> % 좌표로 변환해 viewBox=0 0 boardW boardH 대신, clientBBox 사용 없이 간단 변환
+    const styles = getComputedStyle(document.documentElement);
+    const cell = parseInt(styles.getPropertyValue('--cell'));
+    const gap = parseInt(styles.getPropertyValue('--gap'));
+    const W = COLS*(cell) + (COLS-1)*gap;
+    const H = ROWS*(cell) + (ROWS-1)*gap;
+
+    // SVG 크기를 고정 픽셀 좌표계로
+    pathLayer.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    // 좌표들
+    const pts = path.map(([r,c])=>{
+      const {x,y} = cellCenterPx(r,c);
+      return `${x},${y}`;
+    }).join(' ');
+
+    const pl = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    pl.setAttribute('points', pts);
+    pl.setAttribute('class','path-stroke');
+    pathLayer.appendChild(pl);
+
+    // 1.6s 유지 후 페이드아웃 -> 제거
+    setTimeout(()=> pl.classList.add('path-fade'), 1600);
+    setTimeout(()=> pl.remove(), 2100);
+  }
+
+  function performMoveWithPath(t, path){
+    // 시각 경로 라인 먼저 그리기
+    drawPathPolyline(path);
+
+    // 실제 이동: 애니메이션으로 목적지까지 translate
+    const [destR, destC] = path[path.length-1];
+
+    // 논리 그리드 갱신(목적지 차지)
+    grid[t.r][t.c] = null;
+    grid[destR][destC] = t.id;
+
+    // 비활성화 중복 클릭 방지
+    boardEl.style.pointerEvents = 'none';
+
+    // 타일 이동 애니메이션(연속 경로를 한 번에)
+    const {x,y} = gridToPx(destR,destC);
+    t.el.style.transition = 'transform .22s cubic-bezier(.2, .9, .2, 1)';
+    t.el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
+
+    const done = () => {
+      t.r = destR; t.c = destC;
+      // 이동 후 매칭 검사
+      const cluster = clusterSame(destR,destC);
+      if(cluster.length >= 3){
+        // 즉시 머지
+        doMerge(destR,destC, cluster);
+      }else{
+        // 매칭 실패: 생성과 동일한 스케일 액션
+        t.el.classList.remove('pop'); void t.el.offsetWidth; // reflow
+        t.el.classList.add('pop');
+      }
+      // 턴 처리
+      afterTurn();
+      // 선택 해제
+      deselect();
+      boardEl.style.pointerEvents = '';
+      t.el.removeEventListener('transitionend', done);
+    };
+    t.el.addEventListener('transitionend', done, {once:true});
+  }
+
+  function doMerge(destR,destC, cluster){
+    // dest를 제외한 나머지 제거 -> dest 값 +1 -> 이펙트
+    const destId = grid[destR][destC];
+    const baseV = tiles.get(destId).v;
+
+    for(const [r,c] of cluster){
+      const id = grid[r][c];
+      if(id === destId) continue;
+      const tile = tiles.get(id);
+      if(!tile) continue;
+      tile.el.classList.add('fade-out');
+      grid[r][c] = null;
+      // DOM 제거는 약간 지연
+      setTimeout(()=>{ tile.el.remove(); tiles.delete(id); }, 180);
+    }
+    // 도착 타일 값을 +1하고 바운스
+    const destTile = tiles.get(destId);
+    destTile.v = baseV + 1;
+    destTile.el.dataset.v = destTile.v;
+    destTile.el.textContent = destTile.v;
+    destTile.el.classList.remove('merge-bounce'); void destTile.el.offsetWidth;
+    destTile.el.classList.add('merge-bounce');
+
+    // 연쇄 머지(새 값으로 다시 3+가 되는지 루프)
+    setTimeout(()=>{
+      let changed = true;
+      while(changed){
+        changed = false;
+        const cl = clusterSame(destTile.r, destTile.c);
+        if(cl.length >= 3){
+          const v0 = destTile.v;
+          for(const [r,c] of cl){
+            const id = grid[r][c];
+            if(id === destTile.id) continue;
+            const rem = tiles.get(id);
+            if(!rem) continue;
+            rem.el.classList.add('fade-out');
+            grid[r][c] = null;
+            setTimeout(()=>{ rem.el.remove(); tiles.delete(id); }, 180);
+          }
+          destTile.v = v0 + 1;
+          destTile.el.dataset.v = destTile.v;
+          destTile.el.textContent = destTile.v;
+          destTile.el.classList.remove('merge-bounce'); void destTile.el.offsetWidth;
+          destTile.el.classList.add('merge-bounce');
+          changed = true;
+        }
+      }
+    }, 200);
+  }
+
+  function afterTurn(){
+    turn++; turnsUntilSpawn--;
+    if(turnsUntilSpawn<=0){
+      // 4~5개 스폰
+      const count = 4 + Math.floor(Math.random()*2);
+      for(let i=0;i<count;i++) addRandomTile();
+      turnsUntilSpawn = TURNS_PER_SPAWN;
+      // 시작 시 3매칭 억제(최소 노력: 즉시 3+가 생기면 해당 스폰 롤백하고 다시 시도)
+      squashImmediateTriples();
+    }
+    updateUI();
+    // 이동 가능성 체크 -> 게임오버
+    if(!anyMoveAvailable()){
+      setTimeout(()=> alert('이동 불가! 게임 오버'), 10);
+    }
+  }
+
+  function updateUI(){
+    turnEl.textContent = turn;
+    spawnInEl.textContent = turnsUntilSpawn;
+  }
+
+  function squashImmediateTriples(maxTries=20){
+    // 생성 직후 즉시 3+ 클러스터가 생기지 않도록(초기 및 스폰 시)
+    // 간단한 재롤 방식
+    for(let tries=0;tries<maxTries;tries++){
+      let ok = true;
+      outer: for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+          const id = grid[r][c];
+          if(!id) continue;
+          const cl = clusterSame(r,c);
+          if(cl.length>=3){ ok=false; break outer; }
+        }
+      }
+      if(ok) return;
+      // 하나 랜덤 선택해서 값 바꾸기
+      const filled=[];
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]) filled.push([r,c]);
+      if(!filled.length) return;
+      const [rr,cc] = randomChoice(filled);
+      const id = grid[rr][cc];
+      const t = tiles.get(id);
+      t.v = randomChoice(NEW_TILE_VALUES);
+      t.el.dataset.v = t.v;
+      t.el.textContent = t.v;
+    }
+  }
+
+  function anyMoveAvailable(){
+    // 어떤 타일이라도: 도착 가능한 빈칸 중, 목적지 인접 같은 숫자 ≥1 이고 경로 존재 -> 이동 가능
+    for(const t of tiles.values()){
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+        if(grid[r][c] || blocked.has(key(r,c))) continue;
+        if(!hasAdjSameAt(r,c,t.v)) continue;
+        const path = bfsPath(t.r,t.c,r,c);
+        if(path) return true;
+      }
+    }
     return false;
   }
 
-  function mergeResult(a,b){
-    if(a.type==='wild' && b.type==='wild'){
-      return {tile:{type:'num', value:4}, scoreDelta:4};
+  function resetAll(){
+    // 초기화
+    grid = createEmpty();
+    tiles.clear();
+    blocked.clear();
+    selectedId = null;
+    turn = 0; turnsUntilSpawn = TURNS_PER_SPAWN;
+
+    // 사용불가 슬롯 2~3개
+    const toBlock = BLOCKED_MIN + Math.floor(Math.random()*(BLOCKED_MAX-BLOCKED_MIN+1));
+    let tries=0;
+    while(blocked.size < toBlock && tries<200){
+      const r = Math.floor(Math.random()*ROWS), c = Math.floor(Math.random()*COLS);
+      if(blocked.has(key(r,c))) { tries++; continue; }
+      blocked.add(key(r,c));
     }
-    if(a.type==='wild' && b.type==='num'){
-      return {tile:{type:'num', value:b.value*2}, scoreDelta:b.value*2};
-    }
-    if(b.type==='wild' && a.type==='num'){
-      return {tile:{type:'num', value:a.value*2}, scoreDelta:a.value*2};
-    }
-    if(a.type==='num' && b.type==='num' && a.value===b.value){
-      return {tile:{type:'num', value:a.value*2}, scoreDelta:a.value*2};
-    }
-    return {tile:a, scoreDelta:0};
+
+    drawBoard();
+
+    // 초기 타일 생성(3연결 억제 보정 포함)
+    for(let i=0;i<INITIAL_TILES;i++) addRandomTile();
+    squashImmediateTriples(50);
+    updateUI();
   }
 
-  /**
-   * 한 줄(좌로 슬라이드 기준)을 처리.
-   * 반환: { line, gained, mergedAt }
-   * - mergedAt: 병합 결과 타일이 놓인 인덱스 배열 (0~SIZE-1)
-   */
-  function slideLine(line){
-    const arr = line.filter(x=>x); // 압축
-    const out = [];
-    let gained = 0;
-    const mergedAt = [];
-    for(let i=0;i<arr.length;i++){
-      if(i<arr.length-1 && canMerge(arr[i], arr[i+1])){
-        const {tile, scoreDelta} = mergeResult(arr[i], arr[i+1]);
-        out.push(tile);
-        mergedAt.push(out.length-1); // 방금 넣은 위치
-        gained += scoreDelta;
-        i++; // 다음 하나 스킵
-      } else {
-        out.push(arr[i]);
-      }
-    }
-    while(out.length<SIZE) out.push(null);
-    return {line:out, gained, mergedAt};
-  }
+  // 이벤트
+  document.getElementById('resetBtn').addEventListener('click', ()=> resetAll());
 
-  // 보드 회전 (시계 90°)
-  function rotateBoard(times){
-    for(let t=0;t<times;t++){
-      const nb = Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>null));
-      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
-        nb[c][SIZE-1-r] = board[r][c];
-      }
-      board = nb;
-    }
-  }
-
-  // 회전 좌표 → 원래 좌표로 역변환
-  function unrotateCoord(Rr, Rc, rot){
-    if(rot===0) return [Rr, Rc];
-    if(rot===1) return [SIZE-1 - Rc, Rr];
-    if(rot===2) return [SIZE-1 - Rr, SIZE-1 - Rc];
-    // rot===3
-    return [Rc, SIZE-1 - Rr];
-  }
-
-  function keyRC(r,c){ return r+','+c; }
-
-  function move(dir){
-    if(moving) return false;
-    moving = true;
-
-    let rot = 0;
-    if(dir==='up') rot = 3;
-    else if(dir==='right') rot = 2;
-    else if(dir==='down') rot = 1;
-
-    rotateBoard(rot);
-
-    let totalGained=0, anyMoved=false;
-    // 이번 이동에서 팝 애니메이션 줄 좌표 수집
-    const mergedCoordsThisMove = [];
-
-    for(let r=0;r<SIZE;r++){
-      const before = board[r].slice();
-      const {line, gained, mergedAt} = slideLine(before);
-      board[r] = line;
-
-      // 이동 여부 체크
-      if(!arraysEqual(before, line)) anyMoved = true;
-
-      // 병합 좌표(회전 좌표계 기준 r, cIndex)를 모아서 나중에 역변환
-      if(mergedAt.length){
-        for(const cIndex of mergedAt){
-          mergedCoordsThisMove.push([r, cIndex]);
-        }
-      }
-      totalGained += gained;
-    }
-
-    // 병합 좌표를 원래 좌표계로 변환해서 popCoords에 추가
-    for(const [Rr,Rc] of mergedCoordsThisMove){
-      const [or, oc] = unrotateCoord(Rr, Rc, rot);
-      popCoords.add(keyRC(or, oc));
-    }
-
-    rotateBoard((4-rot)%4);
-
-    if(anyMoved){
-      decayRocks();
-      if(totalGained>0){
-        score += totalGained;
-        gauge = Math.min(GAUGE_MAX, gauge + 1);
-        flashToast('+'+totalGained);
-        if(gauge>=GAUGE_MAX){
-          pendingWild = true;
-          gauge = 0;
-        }
-      }else{
-        if(Math.random()<0.25 && gauge>0) gauge -= 1;
-      }
-      spawnRandom();
-      render();
-
-      if(isGameOver()){
-        best = Math.max(best, score);
-        updateHUD();
-        showGameOver();
-      }
-    }
-
-    moving = false;
-    return anyMoved;
-  }
-
-  function arraysEqual(a,b){
-    if(a.length!==b.length) return false;
-    for(let i=0;i<a.length;i++){
-      const A=a[i], B=b[i];
-      if(!A && !B) continue;
-      if(!A || !B) return false;
-      // 타입 & 값 비교
-      if(A.type!==B.type) return false;
-      if(A.type==='num' && A.value!==B.value) return false;
-      if(A.type==='rock' && A.life!==B.life) return false;
-    }
-    return true;
-  }
-
-  function decayRocks(){
-    forEachCell((r,c,t)=>{
-      if(t && t.type==='rock'){
-        t.life--;
-        if(t.life<=0){
-          board[r][c] = {type:'num', value:2};
-        }
-      }
-    });
-  }
-
-  function isGameOver(){
-    if(emptyCells().length>0) return false;
-    for(let r=0;r<SIZE;r++){
-      for(let c=0;c<SIZE;c++){
-        const a = board[r][c];
-        for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
-          const nr=r+dr, nc=c+dc;
-          if(nr<0||nc<0||nr>=SIZE||nc>=SIZE) continue;
-          const b = board[nr][nc];
-          if(canMerge(a,b)) return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  // 입력 (스와이프 & 키)
-  let tStart=null;
-  boardEl.addEventListener('touchstart', (e)=>{
-    if(e.touches.length!==1) return;
-    tStart = {x:e.touches[0].clientX, y:e.touches[0].clientY};
-  }, {passive:true});
-  boardEl.addEventListener('touchmove', (e)=>{ e.preventDefault(); }, {passive:false});
-  boardEl.addEventListener('touchend', (e)=>{
-    if(!tStart) return;
-    const dx = (e.changedTouches[0].clientX - tStart.x);
-    const dy = (e.changedTouches[0].clientY - tStart.y);
-    const absX = Math.abs(dx), absY = Math.abs(dy);
-    if(Math.max(absX,absY) < 20){ tStart=null; return; }
-    if(absX>absY) move(dx>0?'right':'left'); else move(dy>0?'down':'up');
-    tStart=null;
-  });
-
-  window.addEventListener('keydown', (e)=>{
-    const k = e.key;
-    if(k==='ArrowLeft') move('left');
-    else if(k==='ArrowRight') move('right');
-    else if(k==='ArrowUp') move('up');
-    else if(k==='ArrowDown') move('down');
-  });
-
-  function flashToast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(flashToast._t);
-    flashToast._t = setTimeout(()=> toastEl.classList.remove('show'), 700);
-  }
-
-  function showGameOver(){
-    finalScoreEl.textContent = `점수: ${score} (최고 ${Math.max(best, score)})`;
-    overEl.style.display = 'flex';
-  }
-  function hideGameOver(){ overEl.style.display='none'; }
-
-  btnNew.addEventListener('click', ()=>{ hideGameOver(); newBoard(); });
-  againBtn.addEventListener('click', ()=>{ hideGameOver(); newBoard(); });
-  shareBtn.addEventListener('click', async ()=>{
-    const txt = `하이퍼캐주얼 머지 점수: ${score} (최고 ${Math.max(best, score)}) 💥`;
-    try{
-      await navigator.clipboard.writeText(txt);
-      flashToast('복사됨!');
-    }catch{ alert(txt); }
-  });
-
-  newBoard();
-
-  // 디버그
-  window.__dump = ()=>console.log(JSON.parse(JSON.stringify(board)));
+  // 시작
+  resetAll();
 })();
 </script>
 </body>
