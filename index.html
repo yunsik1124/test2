@@ -14,12 +14,13 @@
   body{
     margin:0;background:#0b0f14;color:#e8f0ff;font-family:system-ui,Segoe UI,Arial,sans-serif;
     display:flex;flex-direction:column;align-items:center;min-height:100vh;gap:10px;padding:12px;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   }
   h1{font-size:16px;margin:6px 0 0;opacity:.9}
   #ui{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.8}
   #board-wrap{position:relative;width:var(--board-w);height:var(--board-h)}
   #board{
-    position:absolute;left:0;top:0;
+    position:absolute;left:0;top:0; z-index:10;
     display:grid;grid-template-columns:repeat(var(--cols), var(--cell));
     grid-template-rows:repeat(var(--rows), var(--cell));
     gap:var(--gap);
@@ -29,13 +30,8 @@
     background:#111723;border:1px solid #1c2433;border-radius:10px;
     display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
   }
-  .cell.blocked{
-    background:#202733;
-  }
-  .cell.blocked::after{
-    content:"✕";
-    color:#8090a6;font-size:18px;opacity:.6;
-  }
+  .cell.blocked{ background:#202733; }
+  .cell.blocked::after{ content:"✕"; color:#8090a6;font-size:18px;opacity:.6; }
   .tile{
     position:absolute;left:0;top:0;width:var(--cell);height:var(--cell);
     display:flex;align-items:center;justify-content:center;
@@ -50,7 +46,7 @@
   .tile[data-v="4"]{background:#ffb3b3}
   .tile[data-v="5"]{background:#d4b5ff}
   .tile[data-v="6"]{background:#ffdfdf}
-  .tile.selected{outline:3px solid #66ffd1; outline-offset:-3px; z-index:10}
+  .tile.selected{outline:3px solid #66ffd1; outline-offset:-3px; z-index:20}
 
   /* 스폰 & 도착(매칭 실패) 공용 ‘띠용’ */
   @keyframes pop {
@@ -72,7 +68,10 @@
   .fade-out{transition:opacity .18s ease, transform .18s ease; opacity:0; transform:scale(.6)}
 
   /* 경로 라인 (단일 얇은 선, 끊김 없음) */
-  #path-layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+  #path-layer{
+    position:absolute;left:0;top:0;width:100%;height:100%;
+    pointer-events:none; z-index:30;
+  }
   .path-stroke{
     fill:none; stroke:#e8f0ff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
     filter: drop-shadow(0 0 2px rgba(232,240,255,.6));
@@ -80,7 +79,6 @@
   }
   .path-fade{opacity:0}
 
-  /* 툴팁 */
   .hint{font-size:12px;opacity:.7;margin-top:2px}
   button{
     background:#1a2533;color:#e8f0ff;border:1px solid #2a394f;border-radius:8px;padding:8px 10px;
@@ -115,6 +113,12 @@
   const turnEl = document.getElementById('turn');
   const spawnInEl = document.getElementById('spawnIn');
 
+  // ✅ 안전한 ID 생성 폴백
+  const genId = () => {
+    try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch(e){}
+    return 't-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  };
+
   // 상태
   let grid = createEmpty();
   let blocked = new Set(); // "r,c"
@@ -132,7 +136,6 @@
   }
 
   function cellCenterPx(r,c){
-    // 보드 내 좌표 px
     const styles = getComputedStyle(document.documentElement);
     const cell = parseInt(styles.getPropertyValue('--cell'));
     const gap = parseInt(styles.getPropertyValue('--gap'));
@@ -158,7 +161,6 @@
         cell.className = 'cell';
         if(blocked.has(key(r,c))) cell.classList.add('blocked');
         cell.dataset.r = r; cell.dataset.c = c;
-        cell.addEventListener('click', ()=> onCellClick(r,c));
         boardEl.appendChild(cell);
       }
     }
@@ -169,12 +171,19 @@
     });
   }
 
+  // ✅ 셀 클릭 이벤트 위임(겹침 이슈 방지)
+  boardEl.addEventListener('click', (e)=>{
+    const cell = e.target.closest('.cell');
+    if(!cell || !boardEl.contains(cell)) return;
+    onCellClick(+cell.dataset.r, +cell.dataset.c);
+  });
+
   function makeTileEl(t){
     const el = document.createElement('div');
     el.className = 'tile pop';
     el.textContent = t.v;
     el.dataset.v = t.v;
-    el.style.zIndex = 5;
+    el.style.zIndex = 15;
     el.addEventListener('click', (e)=>{ e.stopPropagation(); onTileClick(t.id); });
     return el;
   }
@@ -199,7 +208,7 @@
     if(!pos) return false;
     const [r,c] = pos;
     const v = value ?? randomChoice(NEW_TILE_VALUES);
-    const id = crypto.randomUUID();
+    const id = genId();                // ✅ 폴백 사용
     const tile = {id,r,c,v,el:null};
     grid[r][c] = id;
     tiles.set(id, tile);
@@ -294,7 +303,6 @@
     const t = tiles.get(selectedId);
     if(!t) return;
 
-    // 경로 존재해야 함(빈칸만 통과)
     const path = bfsPath(t.r, t.c, r, c);
     if(!path){ pulseDenied(); return; }
 
@@ -305,7 +313,6 @@
   }
 
   function pulseDenied(){
-    // 간단한 거부 피드백(선택 타일 살짝 흔들기)
     if(!selectedId) return;
     const el = tiles.get(selectedId)?.el;
     if(!el) return;
@@ -318,18 +325,14 @@
   }
 
   function drawPathPolyline(path){
-    // path: [[r,c],...]; SVG polyline으로 단일 선
-    // px -> % 좌표로 변환해 viewBox=0 0 boardW boardH 대신, clientBBox 사용 없이 간단 변환
     const styles = getComputedStyle(document.documentElement);
     const cell = parseInt(styles.getPropertyValue('--cell'));
     const gap = parseInt(styles.getPropertyValue('--gap'));
     const W = COLS*(cell) + (COLS-1)*gap;
     const H = ROWS*(cell) + (ROWS-1)*gap;
 
-    // SVG 크기를 고정 픽셀 좌표계로
     pathLayer.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-    // 좌표들
     const pts = path.map(([r,c])=>{
       const {x,y} = cellCenterPx(r,c);
       return `${x},${y}`;
@@ -340,54 +343,48 @@
     pl.setAttribute('class','path-stroke');
     pathLayer.appendChild(pl);
 
-    // 1.6s 유지 후 페이드아웃 -> 제거
     setTimeout(()=> pl.classList.add('path-fade'), 1600);
     setTimeout(()=> pl.remove(), 2100);
   }
 
   function performMoveWithPath(t, path){
-    // 시각 경로 라인 먼저 그리기
     drawPathPolyline(path);
-
-    // 실제 이동: 애니메이션으로 목적지까지 translate
     const [destR, destC] = path[path.length-1];
 
-    // 논리 그리드 갱신(목적지 차지)
     grid[t.r][t.c] = null;
     grid[destR][destC] = t.id;
 
-    // 비활성화 중복 클릭 방지
     boardEl.style.pointerEvents = 'none';
 
-    // 타일 이동 애니메이션(연속 경로를 한 번에)
     const {x,y} = gridToPx(destR,destC);
     t.el.style.transition = 'transform .22s cubic-bezier(.2, .9, .2, 1)';
     t.el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1)`;
 
-    const done = () => {
+    const onDone = () => {
       t.r = destR; t.c = destC;
-      // 이동 후 매칭 검사
       const cluster = clusterSame(destR,destC);
       if(cluster.length >= 3){
-        // 즉시 머지
         doMerge(destR,destC, cluster);
       }else{
-        // 매칭 실패: 생성과 동일한 스케일 액션
-        t.el.classList.remove('pop'); void t.el.offsetWidth; // reflow
+        t.el.classList.remove('pop'); void t.el.offsetWidth;
         t.el.classList.add('pop');
       }
-      // 턴 처리
       afterTurn();
-      // 선택 해제
       deselect();
       boardEl.style.pointerEvents = '';
-      t.el.removeEventListener('transitionend', done);
+      t.el.removeEventListener('transitionend', onDone);
     };
-    t.el.addEventListener('transitionend', done, {once:true});
+
+    // ✅ transitionend 누락 대비 폴백
+    const failSafe = setTimeout(()=> onDone(), 320);
+
+    t.el.addEventListener('transitionend', ()=>{
+      clearTimeout(failSafe);
+      onDone();
+    }, {once:true});
   }
 
   function doMerge(destR,destC, cluster){
-    // dest를 제외한 나머지 제거 -> dest 값 +1 -> 이펙트
     const destId = grid[destR][destC];
     const baseV = tiles.get(destId).v;
 
@@ -398,10 +395,8 @@
       if(!tile) continue;
       tile.el.classList.add('fade-out');
       grid[r][c] = null;
-      // DOM 제거는 약간 지연
       setTimeout(()=>{ tile.el.remove(); tiles.delete(id); }, 180);
     }
-    // 도착 타일 값을 +1하고 바운스
     const destTile = tiles.get(destId);
     destTile.v = baseV + 1;
     destTile.el.dataset.v = destTile.v;
@@ -409,7 +404,6 @@
     destTile.el.classList.remove('merge-bounce'); void destTile.el.offsetWidth;
     destTile.el.classList.add('merge-bounce');
 
-    // 연쇄 머지(새 값으로 다시 3+가 되는지 루프)
     setTimeout(()=>{
       let changed = true;
       while(changed){
@@ -440,15 +434,12 @@
   function afterTurn(){
     turn++; turnsUntilSpawn--;
     if(turnsUntilSpawn<=0){
-      // 4~5개 스폰
       const count = 4 + Math.floor(Math.random()*2);
       for(let i=0;i<count;i++) addRandomTile();
       turnsUntilSpawn = TURNS_PER_SPAWN;
-      // 시작 시 3매칭 억제(최소 노력: 즉시 3+가 생기면 해당 스폰 롤백하고 다시 시도)
       squashImmediateTriples();
     }
     updateUI();
-    // 이동 가능성 체크 -> 게임오버
     if(!anyMoveAvailable()){
       setTimeout(()=> alert('이동 불가! 게임 오버'), 10);
     }
@@ -460,8 +451,6 @@
   }
 
   function squashImmediateTriples(maxTries=20){
-    // 생성 직후 즉시 3+ 클러스터가 생기지 않도록(초기 및 스폰 시)
-    // 간단한 재롤 방식
     for(let tries=0;tries<maxTries;tries++){
       let ok = true;
       outer: for(let r=0;r<ROWS;r++){
@@ -473,7 +462,6 @@
         }
       }
       if(ok) return;
-      // 하나 랜덤 선택해서 값 바꾸기
       const filled=[];
       for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]) filled.push([r,c]);
       if(!filled.length) return;
@@ -487,7 +475,6 @@
   }
 
   function anyMoveAvailable(){
-    // 어떤 타일이라도: 도착 가능한 빈칸 중, 목적지 인접 같은 숫자 ≥1 이고 경로 존재 -> 이동 가능
     for(const t of tiles.values()){
       for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
         if(grid[r][c] || blocked.has(key(r,c))) continue;
@@ -500,14 +487,12 @@
   }
 
   function resetAll(){
-    // 초기화
     grid = createEmpty();
     tiles.clear();
     blocked.clear();
     selectedId = null;
     turn = 0; turnsUntilSpawn = TURNS_PER_SPAWN;
 
-    // 사용불가 슬롯 2~3개
     const toBlock = BLOCKED_MIN + Math.floor(Math.random()*(BLOCKED_MAX-BLOCKED_MIN+1));
     let tries=0;
     while(blocked.size < toBlock && tries<200){
@@ -518,16 +503,12 @@
 
     drawBoard();
 
-    // 초기 타일 생성(3연결 억제 보정 포함)
     for(let i=0;i<INITIAL_TILES;i++) addRandomTile();
     squashImmediateTriples(50);
     updateUI();
   }
 
-  // 이벤트
   document.getElementById('resetBtn').addEventListener('click', ()=> resetAll());
-
-  // 시작
   resetAll();
 })();
 </script>
