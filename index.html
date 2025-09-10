@@ -67,7 +67,7 @@
   @keyframes bump{ 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
   @keyframes merge{ 0%{transform:scale(0.95)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
 
-  /* 컨트롤바: 보드 바로 아래 */
+  /* 컨트롤바 */
   #controlBar{
     width:100%; max-width:480px; display:flex; gap:10px; justify-content:center; align-items:center;
     padding:10px 0 16px;
@@ -104,6 +104,8 @@
   .top1 .crown{color:gold; filter: drop-shadow(0 0 6px rgba(255,215,0,.35));}
   .top2 .crown{color:silver; filter: drop-shadow(0 0 6px rgba(192,192,192,.3));}
   .top3 .crown{color:#cd7f32; filter: drop-shadow(0 0 6px rgba(205,127,50,.3));}
+  /* 게임오버 전용 문구 */
+  #noMovesMsg{margin-top:8px;font-size:13px;color:var(--warn);}
 </style>
 </head>
 <body>
@@ -121,7 +123,6 @@
   <div id="board"></div>
 </div>
 
-<!-- 보드 바로 아래 버튼 (합의 기준 유지) -->
 <div id="controlBar">
   <button class="btn" id="btnNew">새 게임</button>
   <button class="btn" id="btnResetId">아이디 초기화</button>
@@ -130,12 +131,12 @@
 
 <div class="msg" id="toast"></div>
 
-<!-- 결과/랭킹 팝업 (합의: 다시 시작 / 돌아가기) -->
 <div id="resultPopup">
   <div id="resultBox">
     <h2 id="popupTitle">게임 오버</h2>
-    <h3 id="popupTitle">이동 가능한 소환수가 없습니다.</h3>
     <p id="finalScore"></p>
+    <!-- 게임오버 전용 메시지 -->
+    <p id="noMovesMsg" style="display:none;">이동 가능한 소환수가 없습니다.</p>
     <div id="rankHeader"><h3 style="margin:0;font-size:16px;">랭킹 TOP 100</h3></div>
     <div id="rankings"><div style="padding:10px">랭킹을 불러오는중...</div></div>
     <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
@@ -151,14 +152,13 @@
   /* ====== 설정 ====== */
   const GAS_URL="https://script.google.com/macros/s/AKfycbwvZAdCC4KLXx4DjVwnVWaTFAih0JfOEn0-_hxg7kqeuzU5cuOLEt0qED-HNIS3_mgm/exec";
   const COLS=5, ROWS=7;
-  const INIT_TILES = 12;                 // 초기 소환 수
-  const BLOCK_MIN = 2, BLOCK_MAX = 3;    // 사용불가(-1) 슬롯 수
-  const SPAWN_EVERY = 3;                 // 3턴마다 소환
-  const SPAWN_BATCH = 3;                 // 기본 소환 개수
-  const MEGA_INTERVAL = 5;               // 5번째마다 대소환(2배)
-  const PALETTE = ["#3498db","#2ecc71","#9b59b6","#e67e22","#e74c3c","#f1c40f","#1abc9c","#34495e","#ff6b6b","#8e44ad"];
+  const INIT_TILES=12;
+  const BLOCK_MIN=2, BLOCK_MAX=3;
+  const SPAWN_EVERY=3;
+  const SPAWN_BATCH=3;
+  const MEGA_INTERVAL=5;
+  const PALETTE=["#3498db","#2ecc71","#9b59b6","#e67e22","#e74c3c","#f1c40f","#1abc9c","#34495e","#ff6b6b","#8e44ad"];
 
-  /* ====== 상태 ====== */
   let grid=[], turn=0, untilSpawn=SPAWN_EVERY, spawnCount=0, selected=null, history=[], gameOverShown=false;
   const board=document.getElementById('board');
   const elTurn=document.getElementById('turn'), elNext=document.getElementById('nextSpawn'), elMega=document.getElementById('megaLeft');
@@ -166,80 +166,75 @@
   const popup=document.getElementById('resultPopup'), finalScore=document.getElementById('finalScore'), popupTitle=document.getElementById('popupTitle');
   const idView=document.getElementById('idView');
   const rankingsEl=document.getElementById('rankings');
+  const noMovesMsg=document.getElementById('noMovesMsg');
 
-  /* ====== 플레이어 아이디 ====== */
-  let playerId = localStorage.getItem("mergePlayerId");
+  /* ====== 아이디 ====== */
+  let playerId=localStorage.getItem("mergePlayerId");
   function askPlayerId(force=false){
-    if(!playerId || force){
-      let input = "";
+    if(!playerId||force){
+      let input="";
       while(!input){
-        input = prompt("플레이어 아이디를 입력하세요:");
+        input=prompt("플레이어 아이디를 입력하세요:");
         if(input===null){ input=""; }
       }
-      playerId = input.trim();
-      localStorage.setItem("mergePlayerId", playerId);
+      playerId=input.trim();
+      localStorage.setItem("mergePlayerId",playerId);
       info(`아이디 설정됨: ${playerId}`);
     }
-    idView.textContent = "ID: " + playerId;
+    idView.textContent="ID: "+playerId;
   }
 
   /* ====== 유틸 ====== */
-  function cloneGrid(g){ return g.map(r=>r.slice()); }
-  function inBounds(r,c){ return r>=0&&r<ROWS&&c>=0&&c<COLS; }
-  function isEmpty(r,c){ return grid[r][c]===0; }
-  function isBlocked(r,c){ return grid[r][c]===-1; }
-  function isTile(r,c){ return grid[r][c]>0; }
-  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
-  function listEmpty(){ const out=[]; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]===0) out.push({r,c}); return out; }
-  function randomValue(){ return [1,1,1,1,3,3,9][(Math.random()*7)|0]; }
-  function info(t,k){ toast.textContent=t; toast.style.color = k==='err' ? 'var(--err)' : (k==='warn' ? 'var(--warn)' : 'var(--fg)'); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1200); }
+  function cloneGrid(g){return g.map(r=>r.slice());}
+  function inBounds(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
+  function isEmpty(r,c){return grid[r][c]===0;}
+  function isBlocked(r,c){return grid[r][c]===-1;}
+  function isTile(r,c){return grid[r][c]>0;}
+  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}}
+  function listEmpty(){const out=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===0)out.push({r,c});return out;}
+  function randomValue(){return [1,1,1,1,3,3,9][(Math.random()*7)|0];}
+  function info(t,k){toast.textContent=t;toast.style.color=k==='err'?'var(--err)':(k==='warn'?'var(--warn)':'var(--fg)');toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1200);}
 
-  /* ====== 색상 ====== */
-  function setTileColors(el, val){
-    const idx = val===1 ? 0 : Math.max(1, Math.round(Math.log(val)/Math.log(3)));
-    const color = PALETTE[idx % PALETTE.length];
-    el.style.background = color;
-    el.style.color = "#fff";
-    el.style.borderColor = "#000";
+  function setTileColors(el,val){
+    const idx=val===1?0:Math.max(1,Math.round(Math.log(val)/Math.log(3)));
+    const color=PALETTE[idx%PALETTE.length];
+    el.style.background=color;el.style.color="#fff";el.style.borderColor="#000";
   }
 
-  /* ====== DOM 렌더 ====== */
   function drawCell(r,c,opt={}){
     const idx=r*COLS+c, cell=board.children[idx];
     cell.classList.toggle('blocked',isBlocked(r,c));
-    const prev=cell.querySelector('.tile'); if(prev) prev.remove(); // 잔상 제거
+    const prev=cell.querySelector('.tile');if(prev)prev.remove();
     const v=grid[r][c];
     if(v>0){
       const t=document.createElement('div');
-      t.className='tile';
-      t.textContent=v;
-      t.dataset.val=v;
-      if(opt.spawn) t.classList.add('spawn');
-      setTileColors(t, v);
-      cell.appendChild(t);
+      t.className='tile';t.textContent=v;t.dataset.val=v;
+      if(opt.spawn)t.classList.add('spawn');
+      setTileColors(t,v);cell.appendChild(t);
     }
   }
   function renderAll(spawn=false){
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawCell(r,c,{spawn:spawn&&isTile(r,c)});
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)drawCell(r,c,{spawn:spawn&&isTile(r,c)});
     elTurn.textContent=String(turn);
     elNext.textContent=String(untilSpawn);
     elMega.textContent=String(MEGA_INTERVAL-(spawnCount%MEGA_INTERVAL||MEGA_INTERVAL));
   }
   function highlightSelection(){
-    for(const cell of board.children){ const t=cell.querySelector('.tile'); if(t) t.classList.remove('sel'); }
-    if(selected){ const tile=board.children[selected.r*COLS+selected.c].querySelector('.tile'); if(tile) tile.classList.add('sel'); }
+    for(const cell of board.children){const t=cell.querySelector('.tile');if(t)t.classList.remove('sel');}
+    if(selected){const tile=board.children[selected.r*COLS+selected.c].querySelector('.tile');if(tile)tile.classList.add('sel');}
   }
 
-  /* ====== 초기화 / 새게임 ====== */
+  /* ====== 초기화 ====== */
   document.getElementById('btnNew').addEventListener('click',()=>newGame());
-  document.getElementById('btnRestart').addEventListener('click',()=>{ popup.classList.remove('show'); newGame(); });
-  document.getElementById('btnBack').addEventListener('click',()=>{ popup.classList.remove('show'); }); // 팝업만 닫기
-  document.getElementById('btnResetId').addEventListener('click',()=>{ localStorage.removeItem("mergePlayerId"); playerId=null; idView.textContent = "ID: -"; askPlayerId(true); });
+  document.getElementById('btnRestart').addEventListener('click',()=>{popup.classList.remove('show');newGame();});
+  document.getElementById('btnBack').addEventListener('click',()=>{popup.classList.remove('show');});
+  document.getElementById('btnResetId').addEventListener('click',()=>{localStorage.removeItem("mergePlayerId");playerId=null;idView.textContent="ID: -";askPlayerId(true);});
   document.getElementById('btnRankManual').addEventListener('click',async ()=>{
     popupTitle.textContent="랭킹";
     finalScore.textContent="";
-    rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
-    popup.classList.add('show');         // 팝업만 열기 (게임 영향 X)
+    noMovesMsg.style.display="none"; // 랭킹일 땐 문구 숨김
+    rankingsEl.innerHTML="<div style='padding:10px'>랭킹을 불러오는중...</div>";
+    popup.classList.add('show');
     await loadRanking();
   });
 
@@ -247,302 +242,117 @@
   function init(){
     askPlayerId();
     board.innerHTML='';
-    for(let r=0;r<ROWS;r++){
-      for(let c=0;c<COLS;c++){
-        const cell=document.createElement('div');
-        cell.className='cell';
-        cell.dataset.r=r; cell.dataset.c=c;
-        cell.addEventListener('click', onTapCell);
-        board.appendChild(cell);
-      }
-    }
+    for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){const cell=document.createElement('div');cell.className='cell';cell.dataset.r=r;cell.dataset.c=c;cell.addEventListener('click',onTapCell);board.appendChild(cell);}}
     newGame();
   }
-
-  function makeGrid(){ return Array.from({length:ROWS},()=>Array(COLS).fill(0)); }
+  function makeGrid(){return Array.from({length:ROWS},()=>Array(COLS).fill(0));}
 
   function newGame(){
     popupTitle.textContent="게임 오버";
     grid=makeGrid();
-    // 사용불가 슬롯 2~3개
-    placeRandomBlocks(-1, BLOCK_MIN + ((Math.random()*(BLOCK_MAX-BLOCK_MIN+1))|0));
-    // 초기 타일(3매칭 자동 생성을 최대한 회피)
-    placeRandomTilesAvoidingTriples(INIT_TILES, 400);
+    placeRandomBlocks(-1,BLOCK_MIN+((Math.random()*(BLOCK_MAX-BLOCK_MIN+1))|0));
+    placeRandomTilesAvoidingTriples(INIT_TILES,400);
     renderAll(true);
-    requestAnimationFrame(()=>{ resolveAutoMerges(); saveSnapshot(); });
-    turn=0; untilSpawn=SPAWN_EVERY; spawnCount=0; selected=null; gameOverShown=false;
-    elTurn.textContent='0'; elNext.textContent=String(SPAWN_EVERY);
+    requestAnimationFrame(()=>{resolveAutoMerges();saveSnapshot();});
+    turn=0;untilSpawn=SPAWN_EVERY;spawnCount=0;selected=null;gameOverShown=false;
+    elTurn.textContent='0';elNext.textContent=String(SPAWN_EVERY);
     popup.classList.remove('show');
     checkGameOverSoon();
   }
 
   /* ====== 소환 ====== */
-  function placeRandomBlocks(v,count){
-    const E=listEmpty(); shuffle(E);
-    for(let i=0;i<count&&i<E.length;i++) grid[E[i].r][E[i].c]=v;
-  }
+  function placeRandomBlocks(v,count){const E=listEmpty();shuffle(E);for(let i=0;i<count&&i<E.length;i++)grid[E[i].r][E[i].c]=v;}
   function placeRandomTilesAvoidingTriples(count,maxTry=200){
-    let placed=0, tries=0;
-    while(placed<count && tries<maxTry){
-      const E=listEmpty(); if(!E.length) break;
-      const p=E[(Math.random()*E.length)|0], v=randomValue();
+    let placed=0,tries=0;
+    while(placed<count&&tries<maxTry){
+      const E=listEmpty();if(!E.length)break;
+      const p=E[(Math.random()*E.length)|0],v=randomValue();
       grid[p.r][p.c]=v;
-      if(findAnyGroupGE3()){ grid[p.r][p.c]=0; } else { placed++; }
+      if(findAnyGroupGE3()){grid[p.r][p.c]=0;}else{placed++;}
       tries++;
     }
-    if(placed<count) placeRandomTiles(count-placed);
+    if(placed<count)placeRandomTiles(count-placed);
   }
-  function placeRandomTiles(count){
-    const E=listEmpty(); shuffle(E);
-    for(let i=0;i<count&&i<E.length;i++) grid[E[i].r][E[i].c]=randomValue();
-  }
+  function placeRandomTiles(count){const E=listEmpty();shuffle(E);for(let i=0;i<count&&i<E.length;i++)grid[E[i].r][E[i].c]=randomValue();}
   function spawnBatch(){
-    // 5번째마다 대소환(2배)
     spawnCount++;
-    if(spawnCount % MEGA_INTERVAL === 0){
-      info("🌟 대소환! 블록 2배 소환!");
-      for(let i=0;i<SPAWN_BATCH*2;i++) spawnOne();
-    } else {
-      for(let i=0;i<SPAWN_BATCH;i++) spawnOne();
-    }
+    if(spawnCount%MEGA_INTERVAL===0){info("🌟 대소환! 블록 2배 소환!");for(let i=0;i<SPAWN_BATCH*2;i++)spawnOne();}
+    else{for(let i=0;i<SPAWN_BATCH;i++)spawnOne();}
     elMega.textContent=String(MEGA_INTERVAL-(spawnCount%MEGA_INTERVAL||MEGA_INTERVAL));
   }
-  function spawnOne(){
-    const E=listEmpty(); if(!E.length) return false;
-    const p=E[(Math.random()*E.length)|0];
-    grid[p.r][p.c]=randomValue();
-    drawCell(p.r,p.c,{spawn:true});
-    resolveAutoMerges();
-    return true;
-  }
+  function spawnOne(){const E=listEmpty();if(!E.length)return false;const p=E[(Math.random()*E.length)|0];grid[p.r][p.c]=randomValue();drawCell(p.r,p.c,{spawn:true});resolveAutoMerges();return true;}
 
   /* ====== 입력/이동 ====== */
   function onTapCell(){
-    const r=+this.dataset.r, c=+this.dataset.c;
-    if(isTile(r,c)){ selected={r,c}; highlightSelection(); return; }
-    if(isEmpty(r,c) && selected){
-      const from={...selected}, to={r,c}, val=grid[from.r][from.c];
-
-      // 경로: 빈 슬롯을 통해서만 (직교, 꺾임 허용, 중간 칸은 빈칸만)
-      const path=findPathViaEmpties(from,to);
-      if(!path){ info('경로 막힘','err'); return; }
-
-      // 도착지는 같은 숫자에 인접해야 이동 가능(2-매칭 이동 허용)
-      if(!destAdjacentSame(to,val)){ info('옆에 같은 숫자 필요','warn'); return; }
-
-      // 이동으로 형성되는 그룹 크기
-      const gsize=groupSizeIfMoved(from,to,val);
-      if(gsize<2){ info('이동 불가','err'); return; }
-
-      // 이미 붙어 있는 2개 쌍은 분리 불가(단, 이동 결과 3매칭이 되면 허용)
+    const r=+this.dataset.r,c=+this.dataset.c;
+    if(isTile(r,c)){selected={r,c};highlightSelection();return;}
+    if(isEmpty(r,c)&&selected){
+      const from={...selected},to={r,c},val=grid[from.r][from.c];
+      const path=findPathViaEmpties(from,to);if(!path){info('경로 막힘','err');return;}
+      if(!destAdjacentSame(to,val)){info('옆에 같은 숫자 필요','warn');return;}
+      const gsize=groupSizeIfMoved(from,to,val);if(gsize<2){info('이동 불가','err');return;}
       const currentGroup=floodSame(from.r,from.c,val);
-      if(currentGroup.length===2 && gsize<3){ info('이동 불가','err'); return; }
-
-      // 이동
+      if(currentGroup.length===2&&gsize<3){info('이동 불가','err');return;}
       moveTile(from,to);
-
-      // 3개 이상이면 즉시 머지
-      if(gsize>=3) resolveAutoMerges(to);
-
-      // 턴 진행 + 주기 소환
-      turn++; untilSpawn--;
-      if(untilSpawn===0){ spawnBatch(); untilSpawn=SPAWN_EVERY; }
+      if(gsize>=3)resolveAutoMerges(to);
+      turn++;untilSpawn--;if(untilSpawn===0){spawnBatch();untilSpawn=SPAWN_EVERY;}
       saveSnapshot();
-      elTurn.textContent=String(turn); elNext.textContent=String(untilSpawn);
-
-      selected=null; highlightSelection();
+      elTurn.textContent=String(turn);elNext.textContent=String(untilSpawn);
+      selected=null;highlightSelection();
       checkGameOverSoon();
     }
   }
-
-  function moveTile(from,to){
-    const v=grid[from.r][from.c];
-    grid[from.r][from.c]=0; grid[to.r][to.c]=v;
-    drawCell(from.r,from.c); drawCell(to.r,to.c);
-    const tCell=board.children[to.r*COLS+to.c].querySelector('.tile');
-    if(tCell){ tCell.classList.add('bump'); setTimeout(()=>tCell.classList.remove('bump'),200); }
-  }
+  function moveTile(from,to){const v=grid[from.r][from.c];grid[from.r][from.c]=0;grid[to.r][to.c]=v;drawCell(from.r,from.c);drawCell(to.r,to.c);const tCell=board.children[to.r*COLS+to.c].querySelector('.tile');if(tCell){tCell.classList.add('bump');setTimeout(()=>tCell.classList.remove('bump'),200);}}
 
   /* ====== 경로/그룹 ====== */
   function findPathViaEmpties(from,to){
-    const q=[from],
-      prev=Array.from({length:ROWS},()=>Array(COLS).fill(null)),
-      vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+    const q=[from],prev=Array.from({length:ROWS},()=>Array(COLS).fill(null)),vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
     vis[from.r][from.c]=true;
     const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(q.length){
-      const cur=q.shift();
-      for(const [dr,dc] of dirs){
-        const nr=cur.r+dr, nc=cur.c+dc;
-        if(!inBounds(nr,nc)||vis[nr][nc]) continue;
-        if(nr===to.r && nc===to.c){
-          if(!isEmpty(nr,nc)) continue; // 도착칸은 빈칸이어야
-        } else if(isBlocked(nr,nc)||isTile(nr,nc)){
-          continue; // 중간칸은 빈칸만 가능
-        }
-        vis[nr][nc]=true; prev[nr][nc]=cur;
-        if(nr===to.r && nc===to.c){
-          const path=[]; let x={r:nr,c:nc};
-          while(x){ path.push(x); x=prev[x.r][x.c]; }
-          path.reverse();
-          return path;
-        }
-        q.push({r:nr,c:nc});
-      }
-    }
-    return null;
+    while(q.length){const cur=q.shift();for(const [dr,dc] of dirs){const nr=cur.r+dr,nc=cur.c+dc;if(!inBounds(nr,nc)||vis[nr][nc])continue;if(nr===to.r&&nc===to.c){if(!isEmpty(nr,nc))continue;}else if(isBlocked(nr,nc)||isTile(nr,nc)){continue;}vis[nr][nc]=true;prev[nr][nc]=cur;if(nr===to.r&&nc===to.c){const path=[];let x={r:nr,c:nc};while(x){path.push(x);x=prev[x.r][x.c];}path.reverse();return path;}q.push({r:nr,c:nc});}}return null;
   }
-
-  function destAdjacentSame(to,val){
-    return [[1,0],[-1,0],[0,1],[0,-1]]
-      .some(([dr,dc])=>inBounds(to.r+dr,to.c+dc) && grid[to.r+dr][to.c+dc]===val);
-  }
-
+  function destAdjacentSame(to,val){return [[1,0],[-1,0],[0,1],[0,-1]].some(([dr,dc])=>inBounds(to.r+dr,to.c+dc)&&grid[to.r+dr][to.c+dc]===val);}
   function floodSame(sr,sc,val,g=grid){
-    const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false)),
-          q=[{r:sr,c:sc}], out=[];
+    const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false)),q=[{r:sr,c:sc}],out=[];
     vis[sr][sc]=true;
-    while(q.length){
-      const {r,c}=q.shift();
-      out.push({r,c});
-      for(const [dr,dc] of [[1,0],[0,1],[-1,0],[0,-1]]){
-        const nr=r+dr,nc=c+dc;
-        if(inBounds(nr,nc)&&!vis[nr][nc]&&g[nr][nc]===val){
-          vis[nr][nc]=true; q.push({r:nr,c:nc});
-        }
-      }
-    }
+    while(q.length){const {r,c}=q.shift();out.push({r,c});for(const [dr,dc] of [[1,0],[0,1],[-1,0],[0,-1]]){const nr=r+dr,nc=c+dc;if(inBounds(nr,nc)&&!vis[nr][nc]&&g[nr][nc]===val){vis[nr][nc]=true;q.push({r:nr,c:nc});}}}
     return out;
   }
-
-  function groupSizeIfMoved(from,to,val){
-    const tmp=cloneGrid(grid);
-    tmp[from.r][from.c]=0; tmp[to.r][to.c]=val;
-    return floodSame(to.r,to.c,val,tmp).length;
-  }
+  function groupSizeIfMoved(from,to,val){const tmp=cloneGrid(grid);tmp[from.r][from.c]=0;tmp[to.r][to.c]=val;return floodSame(to.r,to.c,val,tmp).length;}
 
   /* ====== 머지 ====== */
-  function findAnyGroupGE3(){
-    const seen=Array.from({length:ROWS},()=>Array(COLS).fill(false));
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      const v=grid[r][c]; if(v<=0||seen[r][c]) continue;
-      const comp=floodSame(r,c,v);
-      for(const p of comp) seen[p.r][p.c]=true;
-      if(comp.length>=3) return {val:v,group:comp};
-    }
-    return null;
-  }
-
+  function findAnyGroupGE3(){const seen=Array.from({length:ROWS},()=>Array(COLS).fill(false));for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const v=grid[r][c];if(v<=0||seen[r][c])continue;const comp=floodSame(r,c,v);for(const p of comp)seen[p.r][p.c]=true;if(comp.length>=3)return{val:v,group:comp};}return null;}
   function resolveAutoMerges(forcePivot=null){
     let merged=false;
-    while(true){
-      const f=findAnyGroupGE3(); if(!f) break;
-      const {val,group}=f;
-      const pivot=forcePivot || group[0];
-      const absorb=group.filter(p=>(p.r!==pivot.r||p.c!==pivot.c)).slice(0,2);
-      for(const p of absorb){ grid[p.r][p.c]=0; drawCell(p.r,p.c); }
-      grid[pivot.r][pivot.c]=val*3;
-      const tCell = board.children[pivot.r*COLS+pivot.c].querySelector('.tile');
-      if(tCell){ tCell.classList.add('merge'); setTimeout(()=>tCell.classList.remove('merge'),240); }
-      drawCell(pivot.r,pivot.c);
-      merged=true;
-      forcePivot=null;
-    }
-    if(merged) saveSnapshot();
+    while(true){const f=findAnyGroupGE3();if(!f)break;const {val,group}=f;const pivot=forcePivot||group[0];const absorb=group.filter(p=>(p.r!==pivot.r||p.c!==pivot.c)).slice(0,2);for(const p of absorb){grid[p.r][p.c]=0;drawCell(p.r,p.c);}grid[pivot.r][pivot.c]=val*3;const tCell=board.children[pivot.r*COLS+pivot.c].querySelector('.tile');if(tCell){tCell.classList.add('merge');setTimeout(()=>tCell.classList.remove('merge'),240);}drawCell(pivot.r,pivot.c);merged=true;forcePivot=null;}if(merged)saveSnapshot();
   }
 
-  /* ====== 게임오버 판정 ====== */
-  function legalMoveExistsForTile(r,c){
-    const v=grid[r][c];
-    const currentGroup=floodSame(r,c,v);
-    for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){
-      if(!isEmpty(rr,cc)) continue;
-      const to={r:rr,c:cc};
-      const path=findPathViaEmpties({r,c},to); if(!path) continue;
-      if(!destAdjacentSame(to,v)) continue;
-      const gsize=groupSizeIfMoved({r,c},to,v);
-      if(gsize<2) continue;
-      if(currentGroup.length===2 && gsize<3) continue;
-      return true;
-    }
-    return false;
-  }
-  function hasAnyMoves(){
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-      if(grid[r][c]>0 && legalMoveExistsForTile(r,c)) return true;
-    }
-    return false;
-  }
-  function checkGameOverSoon(){
-    setTimeout(()=>{
-      if(!gameOverShown && !hasAnyMoves()){
-        gameOverShown=true;
-        const total=grid.flat().filter(v=>v>0).reduce((a,b)=>a+b,0);
-        showResult(total);
-      }
-    },30);
-  }
+  /* ====== 게임오버 ====== */
+  function legalMoveExistsForTile(r,c){const v=grid[r][c];const currentGroup=floodSame(r,c,v);for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){if(!isEmpty(rr,cc))continue;const to={r:rr,c:cc};const path=findPathViaEmpties({r,c},to);if(!path)continue;if(!destAdjacentSame(to,v))continue;const gsize=groupSizeIfMoved({r,c},to,v);if(gsize<2)continue;if(currentGroup.length===2&&gsize<3)continue;return true;}return false;}
+  function hasAnyMoves(){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c]>0&&legalMoveExistsForTile(r,c))return true;}return false;}
+  function checkGameOverSoon(){setTimeout(()=>{if(!gameOverShown&&!hasAnyMoves()){gameOverShown=true;const total=grid.flat().filter(v=>v>0).reduce((a,b)=>a+b,0);showResult(total);}},30);}
 
   /* ====== 히스토리 ====== */
-  function saveSnapshot(){ history.push({grid:cloneGrid(grid),turn,untilSpawn}); if(history.length>50) history.shift(); }
+  function saveSnapshot(){history.push({grid:cloneGrid(grid),turn,untilSpawn});if(history.length>50)history.shift();}
 
   /* ====== 결과/랭킹 ====== */
   async function showResult(total){
     popupTitle.textContent="게임 오버";
-    finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
-    // 점수 저장(응답 기다림 없음)
-    try{
-      await fetch(`${GAS_URL}?action=submit&id=${encodeURIComponent(playerId)}&score=${encodeURIComponent(total)}`, {mode:'no-cors'});
-    }catch(e){}
-    // 팝업 + 랭킹 로딩
-    rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
+    finalScore.textContent=`${playerId}의 최종 점수: ${total}`;
+    noMovesMsg.style.display="block"; // 게임오버 시 문구 표시
+    try{await fetch(`${GAS_URL}?action=submit&id=${encodeURIComponent(playerId)}&score=${encodeURIComponent(total)}`,{mode:'no-cors'});}catch(e){}
+    rankingsEl.innerHTML="<div style='padding:10px'>랭킹을 불러오는중...</div>";
     popup.classList.add('show');
     await loadRanking();
   }
-
-  async function loadRanking(){
-    try{
-      const res = await fetch(`${GAS_URL}?action=get`, {cache:'no-cache'});
-      let data=[]; try{ data = await res.json(); }catch(e){ }
-      renderRanking(Array.isArray(data) ? data.slice(0,100) : []);
-    }catch(e){ renderRanking([]); }
-  }
-
+  async function loadRanking(){try{const res=await fetch(`${GAS_URL}?action=get`,{cache:'no-cache'});let data=[];try{data=await res.json();}catch(e){}renderRanking(Array.isArray(data)?data.slice(0,100):[]);}catch(e){renderRanking([]);}}
   function renderRanking(rows){
-    rankingsEl.innerHTML = "";
-    if(!rows || rows.length===0){
-      const empty=document.createElement('div');
-      empty.style.padding='10px';
-      empty.textContent='랭킹 데이터를 불러오지 못했습니다.';
-      rankingsEl.appendChild(empty);
-      return;
-    }
-    rows.forEach((row,i)=>{
-      const item=document.createElement('div');
-      item.className='rank-item' + (i===0?' top1': i===1?' top2': i===2?' top3':'');
-      const left=document.createElement('div'); left.className='left';
-      const crown=document.createElement('span'); crown.className='crown'; crown.textContent = (i<3?'👑':'');
-      left.appendChild(crown);
-      const name=document.createElement('span'); name.textContent = `${i+1}. ${row.id ?? row.name ?? 'unknown'}`;
-      left.appendChild(name);
-      const score=document.createElement('span'); score.textContent = `${row.score ?? row.point ?? 0}`;
-      item.appendChild(left); item.appendChild(score);
-      rankingsEl.appendChild(item);
-    });
+    rankingsEl.innerHTML="";if(!rows||rows.length===0){const empty=document.createElement('div');empty.style.padding='10px';empty.textContent='랭킹 데이터를 불러오지 못했습니다.';rankingsEl.appendChild(empty);return;}
+    rows.forEach((row,i)=>{const item=document.createElement('div');item.className='rank-item'+(i===0?' top1':i===1?' top2':i===2?' top3':'');const left=document.createElement('div');left.className='left';const crown=document.createElement('span');crown.className='crown';crown.textContent=(i<3?'👑':'');left.appendChild(crown);const name=document.createElement('span');name.textContent=`${i+1}. ${row.id??row.name??'unknown'}`;left.appendChild(name);const score=document.createElement('span');score.textContent=`${row.score??row.point??0}`;item.appendChild(left);item.appendChild(score);rankingsEl.appendChild(item);});
   }
 
-  /* ====== 시작 ====== */
-  function setTileColorsInit(){
-    // no-op (이미 setTileColors에서 처리)
-  }
-  function newGameBoot(){
-    // no-op
-  }
-
-  /* ====== 시작 시퀀스 ====== */
   newGame();
 
 })();</script>
 </body>
 </html>
-
