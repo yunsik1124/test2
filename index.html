@@ -2,474 +2,337 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>5x7 머지 게임</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>5x7 머지 퍼즐</title>
 <style>
   :root{
-    --cols: 5; --rows: 7;
-    --cell: 64px; --gap: 8px;
+    --cols:5; --rows:7;
+    --cell:72px; /* 모바일 세로형 */
+    --gap:8px;
     --board-w: calc(var(--cols)*var(--cell) + (var(--cols)-1)*var(--gap));
     --board-h: calc(var(--rows)*var(--cell) + (var(--rows)-1)*var(--gap));
-    --bg: #0b0f14; --fg:#e8f0ff; --muted:#7f8da3;
-    --tile:#1a2230; --tile2:#243044; --accent:#59ffa1; --warn:#ff8a65;
+    --bg:#0b0f14; --fg:#e8f0ff; --muted:#7f8da3;
+    --tile:#18202b; --blocked:#161922;
+    --accent:#46d3ff; --ok:#67ff9a; --warn:#ffcc4d; --err:#ff6b6b;
   }
-  *{box-sizing:border-box}
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{height:100%}
   body{
-    margin:0;background:var(--bg);color:var(--fg);
+    margin:0; background:var(--bg); color:var(--fg);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px;
-    -webkit-tap-highlight-color: transparent;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
   }
-  header{width:var(--board-w);display:flex;justify-content:space-between;align-items:center;gap:8px}
-  h1{font-size:16px;margin:0;color:var(--muted);font-weight:600}
-  .controls{display:flex;gap:8px;align-items:center}
-  button{
-    background:#1d283a;color:var(--fg);border:1px solid #2e3b53;border-radius:10px;
-    padding:10px 14px;font-weight:600;cursor:pointer;transition:.15s transform,.15s opacity;
+  header{
+    width:100%; max-width:480px; padding:12px 14px;
+    position:sticky; top:0; z-index:2;
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+    background:linear-gradient(180deg, rgba(11,15,20,0.95), rgba(11,15,20,0.6) 70%, transparent);
+    backdrop-filter: blur(6px);
   }
-  button:active{transform:scale(.98)}
-  .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#162033;border:1px solid #2a3a53;color:#b8c5db}
-  #boardWrap{
-    position:relative;width:var(--board-w);height:var(--board-h);
+  .stat{font-size:12px; color:var(--muted); display:flex; gap:12px; align-items:center}
+  .idtag{padding:2px 6px; border:1px solid #2a3443; border-radius:8px; color:#cfe5ff; background:#121722;}
+  #version{font-size:11px; color:#6f7f95;}
+  .btn{
+    appearance:none; border:1px solid #2a3443; background:#121722; color:var(--fg);
+    padding:8px 12px; border-radius:10px; font-weight:600; cursor:pointer;
+    transition:transform .05s ease-out, background .2s;
   }
+  .btn:active{ transform: scale(0.98) }
+  .row{display:flex; gap:8px; align-items:center}
+
+  #boardWrap{width:100%; display:flex; align-items:center; justify-content:center; padding:14px 0 28px; position:relative;}
   #board{
-    position:absolute;inset:0;
-    display:grid;
-    grid-template-columns: repeat(var(--cols), var(--cell));
-    grid-template-rows: repeat(var(--rows), var(--cell));
-    gap: var(--gap);
+    width:var(--board-w); height:var(--board-h);
+    display:grid; grid-template-columns:repeat(var(--cols), var(--cell));
+    grid-template-rows:repeat(var(--rows), var(--cell));
+    gap:var(--gap); touch-action: manipulation; position:relative;
   }
   .cell{
     width:var(--cell); height:var(--cell);
-    border-radius:14px; background:#0f141e; border:1px dashed #23314855;
-    display:flex; align-items:center; justify-content:center; position:relative;
-    overflow:visible;
+    background:#101827; border:1px solid #1c2736; border-radius:14px;
+    position:relative; display:flex; align-items:center; justify-content:center; overflow:visible;
   }
+  .cell::after{ content:""; position:absolute; inset:0; border-radius:14px; pointer-events:none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
   .cell.blocked{
-    background: #1c0f12;
-    border:1px solid #3b1b21;
-    box-shadow: inset 0 0 0 2px #3b1b21aa;
+    background:var(--blocked);
+    background-image: repeating-linear-gradient(135deg, #1f2533 0 8px, #141925 8px 16px);
+    border-color:#20283a;
   }
   .tile{
-    width:calc(var(--cell) - 6px); height:calc(var(--cell) - 6px);
-    border-radius:12px; display:flex; align-items:center; justify-content:center;
-    background: linear-gradient(180deg, var(--tile), var(--tile2));
-    border:1px solid #3b4b66;
-    box-shadow: 0 6px 16px #00000055, inset 0 0 0 2px #ffffff0d;
-    font-weight:900; font-size:20px; letter-spacing:.5px;
-    transform: scale(1); transition: transform .12s;
-    user-select:none;
+    position:absolute; inset:4px; border-radius:12px;
+    border:1px solid #2a3443;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:22px; letter-spacing:0.2px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    transition: transform .15s ease, background .2s ease, border-color .2s ease, color .2s ease;
+    user-select:none; -webkit-user-select:none;
   }
-  .tile.selected{outline: 3px solid #63b3ff; transform: scale(1.05)}
-  .tile.pop{animation: pop .22s ease-out}
-  @keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
-  .tile.merge{animation: merge .28s ease-in-out}
-  @keyframes merge{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .tile.sel{ outline:2px solid var(--accent); outline-offset:-2px; transform: scale(1.03); }
+  .tile.spawn{ animation: pop .22s ease-out; }
+  .tile.bump{ animation: bump .18s ease-out; }
+  .tile.merge{ animation: merge .22s ease-in-out; }
+  @keyframes pop{ from{ transform: scale(0.6); opacity:0 } to{ transform: scale(1); opacity:1 } }
+  @keyframes bump{ 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+  @keyframes merge{ 0%{transform:scale(0.95)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
 
-  /* 플로팅 토큰 */
-  .floatToken{
-    position:absolute; pointer-events:none; font-weight:800; font-size:14px;
-    background:#0f1b2a; border:1px solid #2b3a52; color:#cfe3ff;
-    padding:4px 8px; border-radius:999px; opacity:0; transform:translate(-50%,-50%);
-    animation: floatUp 2s ease-out forwards;
+  .msg{
+    position:fixed; left:50%; top:56px; transform:translateX(-50%);
+    background:#111a28; border:1px solid #223043; padding:8px 12px; border-radius:10px;
+    font-size:13px; color:#cfe5ff; opacity:0; transition:opacity .2s;
   }
-  @keyframes floatUp{
-    0%{opacity:0; transform:translate(-50%,-20%); filter:blur(1px)}
-    10%{opacity:1}
-    100%{opacity:0; transform:translate(-50%,-120%); filter:blur(3px)}
-  }
+  .msg.show{ opacity:1 }
 
-  /* SVG 라인 */
-  #fx{
-    position:absolute; inset:0; pointer-events:none;
-  }
-  .fadeLine{stroke:#75c6ff; stroke-width:3; stroke-linecap:round; opacity:1;
-    filter: drop-shadow(0 0 4px #75c6ff88);
-    animation: fadeout 2s ease-out forwards;
-  }
-  @keyframes fadeout{to{opacity:0}}
-
-  /* 하단 도움말 */
-  .help{width:var(--board-w); color:#9db0c9; font-size:12px; line-height:1.5}
-  .help code{background:#0f1929; padding:2px 6px; border-radius:6px; border:1px solid #1f2d46}
+  /* 결과 팝업 + 랭킹 */
+  #resultPopup { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.65); z-index:999; visibility:hidden; opacity:0; transition:opacity .25s; }
+  #resultPopup.show{ visibility:visible; opacity:1; }
+  #resultBox { background:#161c29; padding:24px; border-radius:16px; text-align:center; min-width:280px;
+    box-shadow:0 10px 28px rgba(0,0,0,0.6); }
+  #resultBox h2{margin:0 0 12px;font-size:20px;}
+  #resultBox p{margin:6px 0;font-size:14px;color:var(--muted);}
+  #resultBox .btn{margin-top:12px;}
+  #rankHeader{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px;}
+  #rankings{margin-top:10px; max-height:320px; overflow-y:auto; text-align:left; border:1px solid #2a3443; border-radius:10px;}
+  .rank-item{display:flex; justify-content:space-between; gap:10px; padding:6px 10px; border-bottom:1px solid #222a3b; font-size:14px;}
+  .rank-item:last-child{border-bottom:none}
+  .rank-item .left{display:flex; align-items:center; gap:8px;}
+  .crown{font-size:16px; line-height:1}
+  .top1 .crown{filter: drop-shadow(0 0 6px rgba(255,215,0,.4));}
+  .top2 .crown{filter: drop-shadow(0 0 6px rgba(192,192,192,.35));}
+  .top3 .crown{filter: drop-shadow(0 0 6px rgba(205,127,50,.35));}
 </style>
 </head>
 <body>
-  <header>
-    <h1>5×7 머지</h1>
-    <div class="controls">
-      <span class="pill">턴: <b id="turn">0</b></span>
-      <span class="pill">다음 스폰까지: <b id="spawnIn">5</b></span>
-      <button id="resetBtn">리셋</button>
+<header>
+  <div class="row">
+    <div class="stat">
+      <span class="idtag" id="idView">ID: -</span>
+      <span>턴: <b id="turn">0</b></span>
+      <span>다음 스폰: <b id="nextSpawn">3</b></span>
+      <span id="version">v1.0.0</span>
     </div>
-  </header>
-
-  <div id="boardWrap">
-    <svg id="fx"></svg>
-    <div id="board" aria-label="game board"></div>
   </div>
-
-  <div class="help">
-    <p>규칙</p>
-    <ul>
-      <li>같은 숫자 <b>반경 1칸</b>에 붙도록 <b>직선(가로/세로)</b>으로만 이동할 수 있어. 경로 중간은 전부 빈칸이어야 함.</li>
-      <li>같은 숫자 3개 이상이 붙으면 <b>병합</b>되고 수가 <b>3배</b>가 돼.</li>
-      <li>매 <b>5턴</b>마다 새 블록이 <b>4~5개</b> 랜덤 등장.</li>
-      <li>리셋할 때마다 <b>사용불가 슬롯</b>이 3~4칸 랜덤 배치.</li>
-      <li>더 이상 이동할 수 없으면 <b>게임 오버</b>.</li>
-    </ul>
-    <p><code>블록 → 빈칸</code> 순서로 탭(또는 클릭)해 이동해봐.</p>
+  <div class="row">
+    <button class="btn" id="btnNew">새 게임</button>
+    <button class="btn" id="btnResetId">아이디 초기화</button>
   </div>
+</header>
 
+<div id="boardWrap">
+  <div id="board"></div>
+</div>
+
+<div class="msg" id="toast"></div>
+
+<!-- 결과 팝업 -->
+<div id="resultPopup">
+  <div id="resultBox">
+    <h2>게임 오버</h2>
+    <h4>이동 가능한 블럭이 없습니다.</h4>
+    <p id="finalScore"></p>
+    <div id="rankHeader">
+      <h3 style="margin:0;font-size:16px;">랭킹 TOP 100</h3>
+    </div>
+    <div id="rankings"></div>
+    <button class="btn" id="btnRestart">다시 시작</button>
+  </div>
+</div>
 <script>
-(() => {
-  const COLS = 5, ROWS = 7;
-  const BOARD = document.getElementById('board');
-  const FX = document.getElementById('fx');
-  const turnEl = document.getElementById('turn');
-  const spawnInEl = document.getElementById('spawnIn');
-  const resetBtn = document.getElementById('resetBtn');
+(()=>{
+  const GAS_URL="https://script.google.com/macros/s/AKfycby6XECWI5KSP0LcRFo_aYAKbX6C6w4izELK3nrgTlJBOdQRfnp-a0GNUCXjUmhAk_bc/exec"; 
+  const COLS=5, ROWS=7;
+  const INIT_TILES = 12;
+  const BLOCK_MIN = 2, BLOCK_MAX = 3;
+  const SPAWN_EVERY = 3;
+  const SPAWN_BATCH = 3;
+  const PALETTE = ["#3498db","#2ecc71","#9b59b6","#e67e22","#e74c3c",
+    "#f1c40f","#1abc9c","#34495e","#ff6b6b","#8e44ad"];
 
-  /** 그리드: {val:number|null, blocked:boolean} */
-  let grid, turn, toNextSpawn, selected = null;
+  let grid=[], turn=0, untilSpawn=SPAWN_EVERY, selected=null, history=[], gameOverShown=false;
+  const board=document.getElementById('board');
+  const elTurn=document.getElementById('turn'), elNext=document.getElementById('nextSpawn');
+  const toast=document.getElementById('toast');
+  const popup=document.getElementById('resultPopup'), finalScore=document.getElementById('finalScore');
+  const idView=document.getElementById('idView');
+  const rankingsEl=document.getElementById('rankings');
 
-  const rand = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
-  const idx = (r,c)=> r*COLS+c;
-  const inBounds = (r,c)=> r>=0 && r<ROWS && c>=0 && c<COLS;
-  const neighbors4 = (r,c)=> [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc])=>inBounds(rr,cc));
-
-  function init(reseedObstacles=true){
-    grid = Array.from({length:ROWS}, _ => Array.from({length:COLS}, _ => ({val:null, blocked:false})));
-    turn = 0; toNextSpawn = 5;
-    if(reseedObstacles){
-      const blocks = rand(3,4);
-      let placed=0;
-      while(placed<blocks){
-        const r = rand(0,ROWS-1), c = rand(0,COLS-1);
-        if(!grid[r][c].blocked && grid[r][c].val===null){
-          grid[r][c].blocked = true; placed++;
-        }
+  let playerId = localStorage.getItem("mergePlayerId");
+  function askPlayerId(force=false){
+    if(!playerId || force){
+      let input = "";
+      while(!input){
+        input = prompt("플레이어 아이디를 입력하세요:");
+        if(input===null){ input=""; }
       }
-    }
-    // 초기 블록 몇 개 배치
-    seedRandomTiles(rand(6,8));
-    render();
-    updateHUD();
-  }
-
-  function seedRandomTiles(n){
-    const empties = emptyCells();
-    shuffle(empties);
-    const count = Math.min(n, empties.length);
-    for(let i=0;i<count;i++){
-      const [r,c] = empties[i];
-      grid[r][c].val = pickStartValue();
-      spawnPopAt(r,c);
-    }
-    avoidInitialTriples();
-  }
-
-  function pickStartValue(){
-    // 시작 값은 1,2,3에 가중치
-    const bag = [1,1,1,2,2,3];
-    return bag[rand(0,bag.length-1)];
-  }
-
-  function avoidInitialTriples(){
-    // 시작 시 동일 숫자 3+ 인접 군집이 생기면 값을 재뽑아 약하게 섞기
-    let changed = true; let guard = 0;
-    while(changed && guard++<10){
-      changed=false;
-      for(let r=0;r<ROWS;r++){
-        for(let c=0;c<COLS;c++){
-          const v = grid[r][c].val;
-          if(v==null) continue;
-          const size = floodCount(r,c,v);
-          if(size>=3){
-            grid[r][c].val = pickStartValue(); // 한 곳만 살짝 섞기
-            changed=true;
-          }
-        }
-      }
+      playerId = input.trim();
+      localStorage.setItem("mergePlayerId", playerId);
+      idView.textContent = "ID: " + playerId;
+      info(`아이디 설정됨: ${playerId}`);
+    } else {
+      idView.textContent = "ID: " + playerId;
     }
   }
 
-  function floodCount(sr,sc,val){
-    const q=[[sr,sc]]; const seen=new Set([idx(sr,sc)]);
-    let cnt=0;
-    while(q.length){
-      const [r,c]=q.pop(); cnt++;
-      for(const [rr,cc] of neighbors4(r,c)){
-        if(!seen.has(idx(rr,cc)) && grid[rr][cc].val===val) { seen.add(idx(rr,cc)); q.push([rr,cc]); }
-      }
-    }
-    return cnt;
-  }
+  document.getElementById('btnNew').addEventListener('click',()=>newGame());
+  document.getElementById('btnRestart').addEventListener('click',()=>{ popup.classList.remove('show'); newGame(); });
+  document.getElementById('btnResetId').addEventListener('click',()=>{ localStorage.removeItem("mergePlayerId"); playerId=null; idView.textContent = "ID: -"; askPlayerId(true); });
 
-  function emptyCells(){
-    const res=[];
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      if(!grid[r][c].blocked && grid[r][c].val===null) res.push([r,c]);
-    }
-    return res;
-  }
-
-  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rand(0,i);[a[i],a[j]]=[a[j],a[i]]} return a;}
-
-  function render(){
-    BOARD.innerHTML='';
-    BOARD.style.setProperty('--cols', COLS);
-    BOARD.style.setProperty('--rows', ROWS);
+  init();
+  function init(){
+    askPlayerId();
+    board.innerHTML='';
     for(let r=0;r<ROWS;r++){
       for(let c=0;c<COLS;c++){
-        const cell = document.createElement('div');
-        cell.className='cell'+(grid[r][c].blocked?' blocked':'');
+        const cell=document.createElement('div');
+        cell.className='cell';
         cell.dataset.r=r; cell.dataset.c=c;
-        if(grid[r][c].val!=null){
-          const t = document.createElement('div');
-          t.className='tile';
-          t.textContent = grid[r][c].val;
-          if(selected && selected.r==r && selected.c==c) t.classList.add('selected');
-          cell.appendChild(t);
-        }
-        cell.addEventListener('click', onCellClick);
-        BOARD.appendChild(cell);
+        cell.addEventListener('click', onTapCell);
+        board.appendChild(cell);
       }
     }
+    newGame();
   }
 
-  function centerOf(rc){
-    const rect = BOARD.getBoundingClientRect();
-    const cellSize = parseFloat(getComputedStyle(BOARD).getPropertyValue('grid-template-columns').split(' ')[0]);
-    const gap = parseFloat(getComputedStyle(BOARD).gap) || parseFloat(getComputedStyle(BOARD).rowGap);
-    const [r,c] = rc;
-    const x = c*(cellSize+gap)+cellSize/2;
-    const y = r*(cellSize+gap)+cellSize/2;
-    return {x,y};
+  function newGame(){
+    grid=makeGrid();
+    placeRandomBlocks(-1, BLOCK_MIN + ((Math.random()*(BLOCK_MAX-BLOCK_MIN+1))|0));
+    placeRandomTilesAvoidingTriples(INIT_TILES, 400);
+    renderAll(true);
+    requestAnimationFrame(()=>{ resolveAutoMerges(); saveSnapshot(); });
+    turn=0; untilSpawn=SPAWN_EVERY; selected=null; gameOverShown=false;
+    elTurn.textContent='0'; elNext.textContent=String(SPAWN_EVERY);
+    popup.classList.remove('show');
+    checkGameOverSoon();
   }
 
-  function onCellClick(e){
-    const r = +e.currentTarget.dataset.r;
-    const c = +e.currentTarget.dataset.c;
-    const cell = grid[r][c];
+  function makeGrid(){ return Array.from({length:ROWS},()=>Array(COLS).fill(0)); }
+  function cloneGrid(g){ return g.map(r=>r.slice()); }
+  function inBounds(r,c){ return r>=0&&r<ROWS&&c>=0&&c<COLS; }
+  function isEmpty(r,c){ return grid[r][c]===0; }
+  function isBlocked(r,c){ return grid[r][c]===-1; }
+  function isTile(r,c){ return grid[r][c]>0; }
 
-    if(cell.blocked) return;
-
-    if(cell.val!=null){
-      // 선택 토글
-      if(selected && selected.r===r && selected.c===c){
-        selected=null; render(); return;
-      }
-      selected = {r,c};
-      render();
-      return;
+  function placeRandomBlocks(v,count){ const E=listEmpty(); shuffle(E); for(let i=0;i<count&&i<E.length;i++) grid[E[i].r][E[i].c]=v; }
+  function listEmpty(){ const out=[]; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]===0) out.push({r,c}); return out; }
+  function placeRandomTilesAvoidingTriples(count,maxTry=200){
+    let placed=0, tries=0;
+    while(placed<count && tries<maxTry){
+      const E=listEmpty(); if(!E.length) break;
+      const p=E[(Math.random()*E.length)|0], v=randomValue();
+      grid[p.r][p.c]=v;
+      if(findAnyGroupGE3()){ grid[p.r][p.c]=0; } else { placed++; }
+      tries++;
     }
-
-    // 빈칸 클릭: 선택된 블록이 있어야 함
-    if(!selected) return;
-    const {r:sr,c:sc} = selected;
-    if(!canMove(sr,sc,r,c)) {
-      flashPath(sr,sc,r,c,false);
-      shakeAt(r,c);
-      return;
-    }
-    performMove(sr,sc,r,c);
+    if(placed<count) placeRandomTiles(count-placed);
   }
+  function placeRandomTiles(count){ const E=listEmpty(); shuffle(E); for(let i=0;i<count&&i<E.length;i++) grid[E[i].r][E[i].c]=randomValue(); }
+  function randomValue(){ return [1,1,1,1,3,3,9][(Math.random()*7)|0]; }
+  function spawnBatch(){ for(let i=0;i<SPAWN_BATCH;i++) spawnOne(); }
+  function spawnOne(){ const E=listEmpty(); if(!E.length) return false; const p=E[(Math.random()*E.length)|0]; grid[p.r][p.c]=randomValue(); drawCell(p.r,p.c,{spawn:true}); resolveAutoMerges(); return true; }
 
-  function pathClear(sr,sc,dr,dc){
-    if(sr===dr){
-      const c1 = Math.min(sc,dc)+1, c2=Math.max(sc,dc)-1;
-      for(let c=c1;c<=c2;c++){ if(grid[sr][c].val!=null || grid[sr][c].blocked) return false; }
-      return true;
-    } else if(sc===dc){
-      const r1 = Math.min(sr,dr)+1, r2=Math.max(sr,dr)-1;
-      for(let r=r1;r<=r2;r++){ if(grid[r][sc].val!=null || grid[r][sc].blocked) return false; }
-      return true;
-    }
-    return false; // 직선만 허용
+  function renderAll(spawn=false){ for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawCell(r,c,{spawn:spawn&&isTile(r,c)}); elTurn.textContent=String(turn); elNext.textContent=String(untilSpawn); }
+
+  function setTileColors(el, val){
+    const idx = val===1 ? 0 : Math.max(1, Math.round(Math.log(val)/Math.log(3)));
+    const color = PALETTE[idx % PALETTE.length];
+    const isBright = isLight(color);
+    el.style.background = color;
+    el.style.color = isBright ? "#000" : "#fff";
+    el.style.borderColor = shade(color, -20);
   }
+  function isLight(hex){ const c = hex.replace('#',''); const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16); const l = 0.2126*r + 0.7152*g + 0.0722*b; return l > 160; }
+  function shade(hex, amt){ let c = hex.replace('#',''); let r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16); r=Math.max(0,Math.min(255,r+amt)); g=Math.max(0,Math.min(255,g+amt)); b=Math.max(0,Math.min(255,b+amt)); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 
-  function destNextToSame(dr,dc,val, sr,sc){
-    // 목적지 기준 상하좌우 중에 같은 숫자 존재해야 함 (이동 후 상태 가정: src는 비게 됨)
-    for(const [rr,cc] of neighbors4(dr,dc)){
-      if(rr===sr && cc===sc) continue; // 소스와 직접 맞닿는 경우라도 이동 후 소스는 비어있음
-      if(grid[rr][cc].val===val) return true;
-    }
-    return false;
-  }
+  function drawCell(r,c,opt={}){ const idx=r*COLS+c, cell=board.children[idx]; cell.classList.toggle('blocked',isBlocked(r,c)); const prev=cell.querySelector('.tile'); if(prev) prev.remove(); const v=grid[r][c]; if(v>0){ const t=document.createElement('div'); t.className='tile'; t.textContent=v; t.dataset.val=v; if(opt.spawn) t.classList.add('spawn'); setTileColors(t, v); cell.appendChild(t); } }
 
-  function canMove(sr,sc,dr,dc){
-    if(!(inBounds(sr,sc)&&inBounds(dr,dc))) return false;
-    if(grid[dr][dc].blocked || grid[dr][dc].val!=null) return false;
-    if(!pathClear(sr,sc,dr,dc)) return false;
-    const v = grid[sr][sc].val;
-    if(v==null) return false;
-    if(!destNextToSame(dr,dc,v,sr,sc)) return false;
-    return true;
-  }
+  function highlightSelection(){ for(const cell of board.children){ const t=cell.querySelector('.tile'); if(t) t.classList.remove('sel'); } if(selected){ const tile=board.children[selected.r*COLS+selected.c].querySelector('.tile'); if(tile) tile.classList.add('sel'); } }
 
-  function performMove(sr,sc,dr,dc){
-    const v = grid[sr][sc].val;
-    grid[sr][sc].val = null;
-    grid[dr][dc].val = v;
-    selected = null;
-
-    // 이펙트: 라인 + 플로팅 토큰
-    flashPath(sr,sc,dr,dc,true);
-    floatTokenAtMid(sr,sc,dr,dc, v);
-
-    render();
-    // 병합 판정
-    const merged = tryMergeFrom(dr,dc);
-    // 이동 후 매칭이 안될 때: 생성 pop과 같은 액션
-    if(!merged) spawnPopAt(dr,dc);
-
-    // 턴 처리
-    advanceTurn();
-
-    // 게임오버 체크
-    if(!hasAnyValidMove()){
-      setTimeout(()=>alert('게임 오버! 이동 가능한 곳이 없어.'), 10);
+  function onTapCell(){
+    const r=+this.dataset.r, c=+this.dataset.c;
+    if(isTile(r,c)){ selected={r,c}; highlightSelection(); return; }
+    if(isEmpty(r,c) && selected){
+      const from={...selected}, to={r,c}, val=grid[from.r][from.c];
+      const path=findPathViaEmpties(from,to);
+      if(!path){ info('경로 막힘','err'); return; }
+      if(!destAdjacentSame(to,val)){ info('옆에 같은 숫자 필요','warn'); return; }
+      const gsize=groupSizeIfMoved(from,to,val);
+      if(gsize<2){ info('이동 불가','err'); return; }
+      const currentGroup=floodSame(from.r,from.c,val);
+      if(currentGroup.length===2 && gsize<3){ info('붙은 쌍은 분리 불가','err'); return; }
+      moveTile(from,to);
+      if(gsize>=3) resolveAutoMerges(to);
+      turn++; untilSpawn--; if(untilSpawn===0){ spawnBatch(); untilSpawn=SPAWN_EVERY; }
+      saveSnapshot(); elTurn.textContent=String(turn); elNext.textContent=String(untilSpawn);
+      selected=null; highlightSelection(); checkGameOverSoon();
     }
   }
 
-  function tryMergeFrom(sr,sc){
-    const v = grid[sr][sc].val;
-    if(v==null) return false;
-    // 동일 값 연결 컴포넌트 찾기
-    const comp = [];
-    const q=[[sr,sc]]; const seen = new Set([idx(sr,sc)]);
+  function findPathViaEmpties(from,to){
+    const q=[from], prev=Array.from({length:ROWS},()=>Array(COLS).fill(null)), vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+    vis[from.r][from.c]=true;
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
     while(q.length){
-      const [r,c]=q.shift(); comp.push([r,c]);
-      for(const [rr,cc] of neighbors4(r,c)){
-        if(!seen.has(idx(rr,cc)) && grid[rr][cc].val===v) { seen.add(idx(rr,cc)); q.push([rr,cc]); }
-      }
-    }
-    if(comp.length>=3){
-      // 병합: 목적지에 합치고 나머지는 제거
-      for(const [r,c] of comp){
-        if(r===sr && c===sc) continue;
-        grid[r][c].val = null;
-      }
-      grid[sr][sc].val = v*3;
-      // 이펙트
-      mergePulseAt(sr,sc);
-      render();
-      return true;
-    }
-    return false;
-  }
-
-  function advanceTurn(){
-    turn++; turnEl.textContent = turn;
-    toNextSpawn--; if(toNextSpawn<=0){
-      spawnNewTiles(rand(4,5));
-      toNextSpawn = 5;
-    }
-    spawnInEl.textContent = toNextSpawn;
-  }
-
-  function spawnNewTiles(n){
-    const spots = emptyCells();
-    if(spots.length===0) return;
-    shuffle(spots);
-    const count = Math.min(n, spots.length);
-    for(let i=0;i<count;i++){
-      const [r,c]=spots[i];
-      grid[r][c].val = pickStartValue();
-      spawnPopAt(r,c);
-    }
-    render();
-  }
-
-  function hasAnyValidMove(){
-    for(let sr=0; sr<ROWS; sr++){
-      for(let sc=0; sc<COLS; sc++){
-        const v = grid[sr][sc].val;
-        if(v==null) continue;
-        // 가로선 검사
-        for(let dc=0; dc<COLS; dc++){
-          if(dc===sc) continue;
-          if(grid[sr][dc].val==null && !grid[sr][dc].blocked){
-            if(pathClear(sr,sc,sr,dc) && destNextToSame(sr,dc,v,sr,sc)) return true;
-          }
+      const cur=q.shift();
+      for(const [dr,dc] of dirs){
+        const nr=cur.r+dr, nc=cur.c+dc;
+        if(!inBounds(nr,nc)||vis[nr][nc]) continue;
+        if(nr===to.r && nc===to.c){ if(!isEmpty(nr,nc)) continue; }
+        else if(isBlocked(nr,nc)||isTile(nr,nc)){ continue; }
+        vis[nr][nc]=true; prev[nr][nc]=cur;
+        if(nr===to.r && nc===to.c){
+          const path=[]; let x={r:nr,c:nc};
+          while(x){ path.push(x); x=prev[x.r][x.c]; }
+          path.reverse();
+          return path;
         }
-        // 세로선 검사
-        for(let dr=0; dr<ROWS; dr++){
-          if(dr===sr) continue;
-          if(grid[dr][sc].val==null && !grid[dr][sc].blocked){
-            if(pathClear(sr,sc,dr,sc) && destNextToSame(dr,sc,v,sr,sc)) return true;
-          }
-        }
+        q.push({r:nr,c:nc});
       }
     }
-    return false;
+    return null;
   }
 
-  function updateHUD(){
-    turnEl.textContent = turn;
-    spawnInEl.textContent = toNextSpawn;
+  function moveTile(from,to){
+    const v=grid[from.r][from.c];
+    grid[from.r][from.c]=0; grid[to.r][to.c]=v;
+    drawCell(from.r,from.c); drawCell(to.r,to.c);
+    const tCell=board.children[to.r*COLS+to.c].querySelector('.tile');
+    if(tCell){ tCell.classList.add('bump'); setTimeout(()=>tCell.classList.remove('bump'),200); }
   }
 
-  /* ---------- FX ---------- */
-  function spawnPopAt(r,c){
-    // 렌더 전/후 모두 호출될 수 있어 안전하게 DOM 찾아서 pop 클래스 부여
-    requestAnimationFrame(()=>{
-      const tile = findTileEl(r,c);
-      if(tile){ tile.classList.remove('pop'); void tile.offsetWidth; tile.classList.add('pop'); }
-    });
-  }
-  function mergePulseAt(r,c){
-    requestAnimationFrame(()=>{
-      const tile = findTileEl(r,c);
-      if(tile){ tile.classList.remove('merge'); void tile.offsetWidth; tile.classList.add('merge'); }
-    });
-  }
-  function shakeAt(r,c){
-    const tile = findCellEl(r,c);
-    if(!tile) return;
-    tile.style.transition='transform .08s';
-    tile.style.transform='translateX(2px)';
-    setTimeout(()=>{tile.style.transform='translateX(-2px)'},80);
-    setTimeout(()=>{tile.style.transform='translateX(0)'},160);
-  }
-  function flashPath(sr,sc,dr,dc, ok){
-    if(!(sr===dr||sc===dc)) return; // 직선만
-    const {x:x1,y:y1} = centerOf([sr,sc]);
-    const {x:x2,y:y2} = centerOf([dr,dc]);
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-    line.setAttribute('class','fadeLine');
-    if(!ok) line.style.stroke = '#ff6b6b';
-    FX.appendChild(line);
-    setTimeout(()=> line.remove(), 2000);
-  }
-  function floatTokenAtMid(sr,sc,dr,dc, v){
-    const {x:x1,y:y1} = centerOf([sr,sc]);
-    const {x:x2,y:y2} = centerOf([dr,dc]);
-    const midx = (x1+x2)/2, midy = (y1+y2)/2;
-    const t = document.createElement('div');
-    t.className='floatToken';
-    t.style.left = midx+'px'; t.style.top = midy+'px';
-    t.textContent = `→ ${v}`;
-    document.getElementById('boardWrap').appendChild(t);
-    setTimeout(()=> t.remove(), 2000);
-  }
-  function findTileEl(r,c){
-    const cell = findCellEl(r,c);
-    return cell ? cell.querySelector('.tile') : null;
-  }
-  function findCellEl(r,c){
-    return BOARD.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+  function destAdjacentSame(to,val){ return [[1,0],[-1,0],[0,1],[0,-1]].some(([dr,dc])=>inBounds(to.r+dr,to.c+dc) && grid[to.r+dr][to.c+dc]===val); }
+  function floodSame(sr,sc,val,g=grid){ const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false)), q=[{r:sr,c:sc}], out=[]; vis[sr][sc]=true; while(q.length){ const {r,c}=q.shift(); out.push({r,c}); for(const [dr,dc] of [[1,0],[0,1],[-1,0],[0,-1]]){ const nr=r+dr,nc=c+dc; if(inBounds(nr,nc)&&!vis[nr][nc]&&g[nr][nc]===val){ vis[nr][nc]=true; q.push({r:nr,c:nc}); } } } return out; }
+  function groupSizeIfMoved(from,to,val){ const tmp=cloneGrid(grid); tmp[from.r][from.c]=0; tmp[to.r][to.c]=val; return floodSame(to.r,to.c,val,tmp).length; }
+
+  function resolveAutoMerges(forcePivot=null){ let merged=false; while(true){ const f=findAnyGroupGE3(); if(!f) break; const {val,group}=f; const pivot=forcePivot || group[0]; const absorb=group.filter(p=>(p.r!==pivot.r||p.c!==pivot.c)).slice(0,2); for(const p of absorb){ grid[p.r][p.c]=0; drawCell(p.r,p.c); } grid[pivot.r][pivot.c]=val*3; const tCell = board.children[pivot.r*COLS+pivot.c].querySelector('.tile'); if(tCell){ tCell.classList.add('merge'); setTimeout(()=>tCell.classList.remove('merge'),240); } drawCell(pivot.r,pivot.c); merged=true; forcePivot=null; } if(merged) saveSnapshot(); }
+
+  function findAnyGroupGE3(){ const seen=Array.from({length:ROWS},()=>Array(COLS).fill(false)); for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){ const v=grid[r][c]; if(v<=0||seen[r][c]) continue; const comp=floodSame(r,c,v); for(const p of comp) seen[p.r][p.c]=true; if(comp.length>=3) return {val:v,group:comp}; } return null; }
+
+  function legalMoveExistsForTile(r,c){ const v=grid[r][c]; const currentGroup=floodSame(r,c,v); for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){ if(!isEmpty(rr,cc)) continue; const to={r:rr,c:cc}; const path=findPathViaEmpties({r,c},to); if(!path) continue; if(!destAdjacentSame(to,v)) continue; const gsize=groupSizeIfMoved({r,c},to,v); if(gsize<2) continue; if(currentGroup.length===2 && gsize<3) continue; return true; } return false; }
+  function hasAnyMoves(){ for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ if(grid[r][c]>0 && legalMoveExistsForTile(r,c)) return true; } return false; }
+  function checkGameOverSoon(){ setTimeout(()=>{ if(!gameOverShown && !hasAnyMoves()){ gameOverShown=true; const total=grid.flat().filter(v=>v>0).reduce((a,b)=>a+b,0); showResult(total); } },30); }
+
+  function saveSnapshot(){ history.push({grid:cloneGrid(grid),turn,untilSpawn}); if(history.length>50) history.shift(); }
+  function info(t,k){ toast.textContent=t; toast.style.color = k==='err' ? 'var(--err)' : (k==='warn' ? 'var(--warn)' : 'var(--fg)'); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1200); }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
+
+  async function showResult(total){
+    finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
+    try{
+      await fetch(`${GAS_URL}?action=submit&id=${encodeURIComponent(playerId)}&score=${encodeURIComponent(total)}`, {mode:'no-cors'});
+      const res = await fetch(`${GAS_URL}?action=get`, {cache:'no-cache'});
+      let data=[]; try{ data = await res.json(); }catch(e){ }
+      renderRanking(Array.isArray(data) ? data.slice(0,100) : []);
+    }catch(e){ renderRanking([]); }
+    popup.classList.add('show');
   }
 
-  /* ---------- 이벤트 ---------- */
-  resetBtn.addEventListener('click', ()=>{ init(true); });
+  function renderRanking(rows){
+    rankingsEl.innerHTML = "";
+    if(!rows || rows.length===0){ const empty=document.createElement('div'); empty.style.padding='10px'; empty.textContent='랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return; }
+    rows.forEach((row,i)=>{ const item=document.createElement('div'); item.className='rank-item' + (i===0?' top1': i===1?' top2': i===2?' top3':''); const left=document.createElement('div'); left.className='left'; const crown=document.createElement('span'); crown.className='crown'; crown.textContent = i===0?'👑': i===1?'👑': i===2?'👑':''; left.appendChild(crown); const name=document.createElement('span'); name.textContent = `${i+1}. ${row.id ?? row.name ?? 'unknown'}`; left.appendChild(name); const score=document.createElement('span'); score.textContent = `${row.score ?? row.point ?? 0}`; item.appendChild(left); item.appendChild(score); rankingsEl.appendChild(item); });
+  }
 
-  /* ---------- 시작 ---------- */
-  init(true);
 })();
 </script>
 </body>
