@@ -180,7 +180,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.8</span>
+    <span id="version">v1.3.9</span>
   </div>
 </header>
 
@@ -771,20 +771,7 @@ function renderMiniBoard(state){
   }
 }
 
- 
-// 안내문이 떠 있는 상태에서 두 번째 클릭 시 닫힘
-document.addEventListener('click', (e) => {
-  if (!toast.classList.contains('show')) return; // 안 보이면 무시
-  if (e.target.closest('#toast')) return;        // 자기 자신 클릭 무시
-  if (toastTimer) clearTimeout(toastTimer);
-
-  setTimeout(() => {   // 👈 즉시 닫히지 않도록 딜레이
-    toast.classList.remove('show');
-    toastTimer = null;
-  }, 50);
-}, true);
-
-// 👇 여기 추가
+ // 👇 여기 추가
 function renderMiniPopup(state, id, score){
   let mini=document.getElementById('miniPopup');
   if(!mini){
@@ -877,10 +864,6 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
-
-
-
-
 
 
 
