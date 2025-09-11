@@ -984,8 +984,30 @@
             });
 
         })();
+        const bgm = new Audio("bgm.mp3");
+bgm.loop = true;
+bgm.volume = 0.5;
+
+// iOS 때문에 최초엔 유저 터치 필요
+document.body.addEventListener("touchstart", () => {
+    if (bgm.paused) bgm.play();
+}, { once: true });
+
+// 탭 상태 감지
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        // 앱/브라우저 내려갔을 때
+        bgm.pause();
+    } else {
+        // 다시 들어왔을 때 자동 재생
+        bgm.play().catch(err => {
+            console.log("재생 실패:", err);
+        });
+    }
+});
     </script>
 </body>
 
 </html>
+
 
