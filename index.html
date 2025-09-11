@@ -244,12 +244,15 @@
             font-weight: bold;
             color: #ffcc4d;
             opacity: 0;
+            min-width: 320px; /* 좌우 사이즈 늘림 */
+            max-width: 90vw; /* 화면이 좁을 때도 꽉 차지 않게 제한 */
             white-space: pre-line;
             transition: opacity .5s ease;
             z-index: 1000;
             pointer-events: none;
             line-height: 1.8;
         }
+
 
             .msg.show {
                 opacity: 1
@@ -611,7 +614,7 @@
                     const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
                     const reasons = [];
                     const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
-                    if (!destAdjacentSame(to, val)) reasons.push("옆에 같은 숫자가 있어야 합니다.");
+                   
                     const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
                     const currentGroup = floodSame(from.r, from.c, val);
                     if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
