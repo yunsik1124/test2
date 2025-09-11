@@ -25,11 +25,21 @@
   }
   header{
     width:100%; max-width:480px; padding:12px 14px;
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    display:flex; 
+    flex-direction:column;   /* 세로 배치 */
+    align-items:center; 
+    justify-content:center;
+    gap:6px;
     background:linear-gradient(180deg, rgba(11,15,20,0.95), rgba(11,15,20,0.6) 70%, transparent);
     backdrop-filter: blur(6px);
   }
+ #title {
+  font-size:18px;
+  font-weight:700;
+  color:#fff;
+}
   .stat{font-size:12px; color:var(--muted); display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  justify-content:center;  /* 👈 stat도 가운데 */
   .idtag{padding:2px 6px; border:1px solid #2a3443; border-radius:8px; color:#cfe5ff; background:#121722;}
   #version{font-size:11px; color:#6f7f95;}
 
@@ -149,11 +159,12 @@
 <body>
 <header>
   <div class="stat">
+     <div id="title">3개의 몬스터를 합치세요.</div>   <!-- 새 타이틀 -->
     <span class="idtag" id="idView">ID: -</span>
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.2.9</span>
+    <span id="version">v1.3.0</span>
   </div>
 </header>
 
@@ -612,6 +623,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
