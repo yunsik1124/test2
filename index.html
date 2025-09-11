@@ -163,32 +163,45 @@
   #resultBox .btn{margin-top:12px;}
   #rankHeader{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px;}
   #rankings{margin-top:10px; max-height:320px; overflow-y:auto; text-align:left; border:1px solid #2a3443; border-radius:10px;}
-  .rank-item {
-  display:flex; 
-  justify-content:space-between; 
-  align-items:center;   /* 👈 추가 */
-  gap:10px; 
-  padding:6px 10px; 
-  border-bottom:1px solid #222a3b; 
-  font-size:14px;
-}
-    .rank-item .right {
-        display: flex;
-        align-items: center;
-        gap: 6px;
+    .rank-item {
+        display: grid;
+        grid-template-columns: 1fr auto; /* 왼쪽=이름, 오른쪽=버튼+점수 */
+        align-items: center; /* y축 중앙 고정 */
+        padding: 6px 10px;
+        border-bottom: 1px solid #222a3b;
+        font-size: 14px;
+        gap: 10px;
     }
 
-    .rank-item .score {
-        display: inline-block;
-        width: 60px; /* 점수 칸 고정 폭 (자리수 맞춤) */
-        text-align: right; /* 숫자 오른쪽 정렬 */
-    }
+        .rank-item .left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rank-item .right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rank-item .score {
+            min-width: 60px; /* 숫자 칸 고정 */
+            text-align: right; /* 숫자 오른쪽 정렬 */
+        }
+
+        .rank-item .btn {
+            font-size: 12px;
+            padding: 2px 6px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            top: -6px; /* 👈 버튼을 글자보다 살짝 위로 올림 */
+        }
 
 
-
-
-  .rank-item:last-child{border-bottom:none}
-  .rank-item .left{display:flex; align-items:center; gap:8px;}
   .crown{font-size:16px; line-height:1}
   .top1 .crown{color:gold; filter: drop-shadow(0 0 6px rgba(255,215,0,.35));}
   .top2 .crown{color:silver; filter: drop-shadow(0 0 6px rgba(192,192,192,.3));}
@@ -205,7 +218,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.9</span>
+    <span id="version">v1.4.0</span>
   </div>
 </header>
 
@@ -266,7 +279,7 @@ function preloadImages(urls) {
 
 
   /* ====== 설정 ====== */
-  const GAS_URL="https://script.google.com/macros/s/AKfycbwvZAdCC4KLXx4DjVwnVWaTFAih0JfOEn0-_hxg7kqeuzU5cuOLEt0qED-HNIS3_mgm/exec";
+    const GAS_URL ="https://script.google.com/macros/s/AKfycbzdvX2sII9CetZq4SHnThBLZSM9T9VHLw1Oqo6RvQbWrf_xBITGMqmfdzFFYIWd6Qrn/exec";
   const COLS=5, ROWS=7;
   const INIT_TILES=12;
   const BLOCK_MIN=2, BLOCK_MAX=3;
@@ -470,6 +483,14 @@ document.getElementById('btnRankManual').addEventListener('click', ()=>{
                 alert("아직 최고 기록이 없습니다.");
             }
         });
+        document.getElementById('btnNew').addEventListener('click', () => {
+            newGame();
+        });
+
+        document.getElementById('btnResetId').addEventListener('click', () => {
+            askPlayerId(true);
+        });
+
     }
 
 
@@ -579,7 +600,21 @@ if(reasons.length > 0){
     checkGameOverSoon();
   }
 }
-
+    async function loadRanking() {
+        try {
+            const res = await fetch(`${GAS_URL}?mode=ranking`, { cache: "no-cache" });
+            let data = [];
+            try {
+                data = await res.json();
+            } catch (e) {
+                console.error("❌ JSON 파싱 실패:", e);
+            }
+            renderRanking(Array.isArray(data) ? data.slice(0, 100) : []);
+        } catch (e) {
+            console.error("❌ 랭킹 fetch 실패:", e);
+            renderRanking([]);
+        }
+    }
 
   function moveTile(from,to){
     const v=grid[from.r][from.c];
@@ -698,45 +733,46 @@ function destAdjacentSame(to,val){
   /* ====== 히스토리 ====== */
   function saveSnapshot(){history.push({grid:cloneGrid(grid),turn,untilSpawn});if(history.length>50)history.shift();}
 
-  /* ====== 결과/랭킹 ====== */
-  async function showResult(total){
-  popupTitle.textContent = "게임 오버";
-  finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
-  noMovesMsg.style.display = "block";
-   // 마지막 상태 저장
-lastGameState = cloneGrid(grid);
-   // 최고 기록 갱신
-if(total > bestScore){
-  bestScore = total;
-  bestGameState = cloneGrid(grid);
-  localStorage.setItem("mergeBestScore", bestScore);
-  localStorage.setItem("mergeBestState", JSON.stringify(bestGameState));
-}
+    // ===== 게임오버 결과 저장 =====
+    async function showResult(total) {
+        popupTitle.textContent = "게임 오버";
+        finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
+        noMovesMsg.style.display = "block";
+
+        lastGameState = cloneGrid(grid);
+
+        if (total > bestScore) {
+            bestScore = total;
+            bestGameState = cloneGrid(grid);
+            localStorage.setItem("mergeBestScore", bestScore);
+            localStorage.setItem("mergeBestState", JSON.stringify(bestGameState));
+        }
+
+        rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
+        popup.classList.add('show');
+
+        try {
+            await fetch(GAS_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    secret: "TEST2",
+                    name: playerId,
+                    score: total,
+                    state: grid   // stringify 말고 그대로
+                }),
+                mode: "no-cors"   // 꼭 추가
+            });
+            console.log("✅ 저장 요청 보냄");
+        } catch (e) {
+            console.error("❌ POST 오류:", e);
+        }
+
+        loadRanking();
+    }
 
 
-
-  // ✅ 팝업 먼저 표시
-  rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
-  popup.classList.add('show');
-
-  // ✅ 점수 전송은 비동기
-  try {
-   fetch(`${GAS_URL}?action=submit&id=${encodeURIComponent(playerId)}&score=${encodeURIComponent(total)}&state=${encodeURIComponent(JSON.stringify(grid))}`, {mode:'no-cors'});
-
-  } catch(e) {}
-
-  // ✅ 랭킹 로딩도 비동기로
-  loadRanking();
-}
-
-
-  async function loadRanking(){
-    try{
-      const res=await fetch(`${GAS_URL}?action=get`,{cache:'no-cache'});
-      let data=[];try{data=await res.json();}catch(e){}
-      renderRanking(Array.isArray(data)?data.slice(0,100):[]);
-    }catch(e){renderRanking([]);}
-  }
+    // ===== 랭킹 렌더링 =====
     function renderRanking(rows) {
         rankingsEl.innerHTML = "";
         if (!rows || rows.length === 0) {
@@ -751,49 +787,53 @@ if(total > bestScore){
             const item = document.createElement('div');
             item.className = 'rank-item' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '');
 
-            // 왼쪽 (순위 + 이름)
+            // 왼쪽
             const left = document.createElement('div');
             left.className = 'left';
-
             const crown = document.createElement('span');
             crown.className = 'crown';
             crown.textContent = (i < 3 ? '👑' : '');
             left.appendChild(crown);
-
             const name = document.createElement('span');
-            name.textContent = `${i + 1}. ${row.id ?? row.name ?? 'unknown'}`;
+            name.textContent = `${i + 1}. ${row.name}`;
             left.appendChild(name);
 
-            // 오른쪽 (보기 + 점수)
+            // 오른쪽
             const right = document.createElement('div');
             right.className = 'right';
 
-            // 1~3위만 버튼 먼저 추가
             if (i < 3) {
                 const btn = document.createElement('button');
                 btn.textContent = "보기";
                 btn.className = "btn";
-                btn.style.padding = "2px 6px";
-                btn.style.fontSize = "12px";
-                btn.addEventListener('click', () => {
-                    if (row.state) {
-                        try {
-                            const state = JSON.parse(row.state);
-                            renderMiniPopup(state, row.id || "unknown", row.score || 0);
-                        } catch (e) {
-                            alert("저장된 보드 데이터를 불러올 수 없습니다.");
+                btn.addEventListener('click', async () => {
+                    try {
+                        if (row.state) {
+                            // ✅ 랭킹에 state가 있으면 바로 사용
+                            const parsed = JSON.parse(row.state);
+                            renderMiniPopup(parsed, row.name, row.score);
+                        } else {
+                            // ✅ 없으면 fallback: last 모드 호출
+                            const res = await fetch(`${GAS_URL}?mode=last&name=${encodeURIComponent(row.name)}`);
+                            const data = await res.json();
+                            if (data.state) {
+                                const parsed = JSON.parse(data.state);
+                                renderMiniPopup(parsed, data.name, data.score);
+                            } else {
+                                alert("저장된 전적이 없습니다.");
+                            }
                         }
-                    } else {
-                        alert("저장된 전적이 없습니다.");
+                    } catch (e) {
+                        console.error("❌ last fetch 오류:", e);
+                        alert("전적을 불러올 수 없습니다.");
                     }
                 });
                 right.appendChild(btn);
             }
 
-            // 점수는 항상 오른쪽 끝
             const score = document.createElement('span');
             score.className = 'score';
-            score.textContent = `${row.score ?? row.point ?? 0}`;
+            score.textContent = `${row.score}`;
             right.appendChild(score);
 
             item.appendChild(left);
