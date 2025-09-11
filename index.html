@@ -391,7 +391,7 @@
             <span>턴: <b id="turn">0</b></span>
             <span>다음 소환: <b id="nextSpawn">3</b></span>
             <span>대소환 남음: <b id="megaLeft">5</b></span>
-            <span id="version">v1.4.0</span>
+            <span id="version">v1.4.1</span>
         </div>
     </header>
     <div id="boardWrap">
@@ -457,12 +457,12 @@
 
             // 루프 & 볼륨
             sounds.bgm.loop = true;
-            sounds.bgm.volume = 0.8;
-            sounds.move.volume = 0.7;
-            sounds.click.volume = 0.7;
-            sounds.toast.volume = 0.7;
-            sounds.gameover.volume = 0.8;
-            for (let k in sounds.blocks) sounds.blocks[k].volume = 0.8;
+            sounds.bgm.volume = 1;
+            sounds.move.volume = 1;
+            sounds.click.volume = 1;
+            sounds.toast.volume = 1;
+            sounds.gameover.volume = 1;
+            for (let k in sounds.blocks) sounds.blocks[k].volume = 1;
 
 
             /* ====== 기본 설정 ====== */
@@ -1009,6 +1009,7 @@ document.addEventListener("visibilitychange", () => {
 </body>
 
 </html>
+
 
 
 
