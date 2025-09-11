@@ -574,17 +574,23 @@ function destAdjacentSame(to,val){
 
   /* ====== 결과/랭킹 ====== */
   async function showResult(total){
-  popupTitle.textContent="게임 오버";
-  finalScore.textContent=`${playerId}의 최종 점수: ${total}`;
-  noMovesMsg.style.display="block"; // 게임오버 시 문구 표시
-  try{
-    await fetch(`${GAS_URL}?action=submit&id=${encodeURIComponent(playerId)}&score=${encodeURIComponent(total)}`,{mode:'no-cors'});
-  }catch(e){}
-  rankingsEl.innerHTML="<div style='padding:10px'>랭킹을 불러오는중...</div>";
-  
-  popup.classList.add('show');  // ✅ 먼저 팝업 보여줌
-  loadRanking();                // ✅ 비동기로 랭킹 로딩 시작
+  popupTitle.textContent = "게임 오버";
+  finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
+  noMovesMsg.style.display = "block";
+
+  // ✅ 팝업 먼저 표시
+  rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
+  popup.classList.add('show');
+
+  // ✅ 점수 전송은 비동기
+  try {
+    fetch(`${GAS_URL}?action=submit&id=${encodeURIComponent(playerId)}&score=${encodeURIComponent(total)}`, {mode:'no-cors'});
+  } catch(e) {}
+
+  // ✅ 랭킹 로딩도 비동기로
+  loadRanking();
 }
+
 
   async function loadRanking(){
     try{
@@ -626,6 +632,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
