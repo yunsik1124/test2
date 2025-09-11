@@ -150,6 +150,31 @@
 </div>
 <script>
 (()=>{
+  /* ====== 이미지 프리로드 ====== */
+function preloadImages(urls) {
+  return Promise.all(urls.map(src => new Promise(res => {
+    const img = new Image();
+    img.onload = res;
+    img.onerror = res;
+    img.src = src;
+  })));
+}
+    const IMAGE_URLS = [
+    "images/block-1.png",
+    "images/block-2.png",
+    "images/block-3.png",
+    "images/block-4.png",
+    "images/block-5.png",
+    "images/block-6.png",
+    "images/block-7.png",
+    "images/block-8.png",
+    "images/block-9.png",
+    "images/blocked.png",
+    "images/empty.png",
+    "images/bg.png"
+  ];
+
+
   /* ====== 설정 ====== */
   const GAS_URL="https://script.google.com/macros/s/AKfycbwvZAdCC4KLXx4DjVwnVWaTFAih0JfOEn0-_hxg7kqeuzU5cuOLEt0qED-HNIS3_mgm/exec";
   const COLS=5, ROWS=7;
@@ -289,6 +314,10 @@
   });
 
   init();
+  preloadImages(IMAGE_URLS).then(()=>{
+    console.log("✅ 모든 이미지 프리로드 완료");
+    init();
+  });
   function init(){
     askPlayerId();
     board.innerHTML='';
@@ -547,3 +576,4 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
