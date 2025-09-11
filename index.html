@@ -684,7 +684,7 @@ lastGameState = cloneGrid(grid);
       renderRanking(Array.isArray(data)?data.slice(0,100):[]);
     }catch(e){renderRanking([]);}
   }
- function renderRanking(rows){
+function renderRanking(rows){
   rankingsEl.innerHTML="";
   if(!rows||rows.length===0){
     const empty=document.createElement('div');
@@ -696,38 +696,42 @@ lastGameState = cloneGrid(grid);
   rows.forEach((row,i)=>{
     const item=document.createElement('div');
     item.className='rank-item'+(i===0?' top1':i===1?' top2':i===2?' top3':'');
-    
+
     const left=document.createElement('div');
     left.className='left';
-    
+
     const crown=document.createElement('span');
     crown.className='crown';
     crown.textContent=(i<3?'👑':'');
     left.appendChild(crown);
-    
+
     const name=document.createElement('span');
     name.textContent=`${i+1}. ${row.id??row.name??'unknown'}`;
     left.appendChild(name);
-    
+
     const score=document.createElement('span');
     score.textContent=`${row.score??row.point??0}`;
-    
+
     item.appendChild(left);
     item.appendChild(score);
 
-    // 👇 1~3위만 돌아보기 버튼 추가 (state가 있을 때만)
-    if(i < 3 && row.state){
+    // 👇 1~3위는 항상 돌아보기 버튼 표시
+    if(i < 3){
       const btn=document.createElement('button');
       btn.textContent="돌아보기";
       btn.className="btn";
       btn.style.padding="2px 6px";
       btn.style.fontSize="12px";
       btn.addEventListener('click',()=>{
-        try{
-          const state=JSON.parse(row.state);
-          renderMiniPopup(state, row.id||"unknown", row.score||0);
-        }catch(e){
-          alert("저장된 보드 데이터를 불러올 수 없습니다.");
+        if(row.state){
+          try{
+            const state=JSON.parse(row.state);
+            renderMiniPopup(state, row.id||"unknown", row.score||0);
+          }catch(e){
+            alert("저장된 보드 데이터를 불러올 수 없습니다.");
+          }
+        }else{
+          alert("저장된 전적이 없습니다.");
         }
       });
       item.appendChild(btn);
@@ -827,3 +831,5 @@ newGame();
 </script>
 </body>
 </html>
+
+
