@@ -34,17 +34,19 @@
   #version{font-size:11px; color:#6f7f95;}
 
   #boardWrap{width:100%; display:flex; align-items:center; justify-content:center; padding:14px 0 6px; position:relative;}
- #board{
+#board{
+  /* 화면 가로·세로 중 짧은 쪽에 맞춰 크기 계산 */
+  width: min(100vw, calc(100vh * (var(--cols) / var(--rows))));
+  height: min(100vh, calc(100vw * (var(--rows) / var(--cols))));
+  
   display:grid;
-  grid-template-columns: repeat(var(--cols), 1fr);  /* 셀 크기 → 자동 비율 */
+  grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
-  gap:var(--gap);
-  width:100%;                /* 화면 가로 100% */
-  max-width:480px;           /* 필요시 최대 폭 제한 */
-  aspect-ratio: var(--cols) / var(--rows); /* 보드 비율 유지 */
+  gap: var(--gap);
   touch-action: manipulation;
   position:relative;
 }
+
 
 .cell{
   aspect-ratio:1/1;    /* 셀은 항상 정사각형 */
@@ -594,6 +596,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
