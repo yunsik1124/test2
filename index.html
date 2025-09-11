@@ -993,14 +993,17 @@
         document.addEventListener("click", startBgm, { once: true });
 
         // 🔥 앱/탭 전환 시 BGM 제어
-        function pauseBgm() {
-            if (sounds.bgm && !sounds.bgm.paused) sounds.bgm.pause();
-        }
-        function resumeBgm() {
-            if (sounds.bgm) {
-                sounds.bgm.play().catch(err => console.log("재생 실패:", err));
-            }
-        }
+    function pauseBgm() {
+    if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) {
+        window.sounds.bgm.pause();
+    }
+}
+function resumeBgm() {
+    if (window.sounds && window.sounds.bgm) {
+        window.sounds.bgm.play().catch(err => console.log("재생 실패:", err));
+    }
+}
+
 
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) pauseBgm();
@@ -1017,6 +1020,7 @@
 </body>
 
 </html>
+
 
 
 
