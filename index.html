@@ -128,7 +128,7 @@
   }
   .btn:active{ transform: scale(0.98) }
 
- .msg {
+.msg {
   position:absolute;
   top:50%; left:50%;
   transform:translate(-50%,-50%);
@@ -140,8 +140,9 @@
   font-weight:bold;
   color:#ffcc4d;
   opacity:0;
-  transition:opacity .2s;
+  transition:opacity .6s;   /* ⏳ 노출 속도 느리게 */
   z-index:1000;
+  pointer-events:none;      /* 🚫 클릭 막지 않음 */
 }
   .msg.show{ opacity:1 }
 
@@ -642,3 +643,4 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
