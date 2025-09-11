@@ -180,7 +180,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.9</span>
+    <span id="version">v1.3.8</span>
   </div>
 </header>
 
@@ -684,34 +684,38 @@ lastGameState = cloneGrid(grid);
       renderRanking(Array.isArray(data)?data.slice(0,100):[]);
     }catch(e){renderRanking([]);}
   }
-  function renderRanking(rows){
-    rankingsEl.innerHTML="";
-    if(!rows||rows.length===0){
-      const empty=document.createElement('div');
-      empty.style.padding='10px';
-      empty.textContent='랭킹 데이터를 불러오지 못했습니다.';
-      rankingsEl.appendChild(empty);
-      return;
-    }
-    rows.forEach((row,i)=>{
-      const item=document.createElement('div');
-      item.className='rank-item'+(i===0?' top1':i===1?' top2':i===2?' top3':'');
-      const left=document.createElement('div');
-      left.className='left';
-      const crown=document.createElement('span');
-      crown.className='crown';
-      crown.textContent=(i<3?'👑':'');
-      left.appendChild(crown);
-      const name=document.createElement('span');
-      name.textContent=`${i+1}. ${row.id??row.name??'unknown'}`;
-      left.appendChild(name);
-      const score=document.createElement('span');
-      score.textContent=`${row.score??row.point??0}`;
-      item.appendChild(left);item.appendChild(score);
-      rankingsEl.appendChild(item);
-    });
+ function renderRanking(rows){
+  rankingsEl.innerHTML="";
+  if(!rows||rows.length===0){
+    const empty=document.createElement('div');
+    empty.style.padding='10px';
+    empty.textContent='랭킹 데이터를 불러오지 못했습니다.';
+    rankingsEl.appendChild(empty);
+    return;
   }
-    // 👇 1~3위만 버튼 추가 (state가 있을 때만)
+  rows.forEach((row,i)=>{
+    const item=document.createElement('div');
+    item.className='rank-item'+(i===0?' top1':i===1?' top2':i===2?' top3':'');
+    
+    const left=document.createElement('div');
+    left.className='left';
+    
+    const crown=document.createElement('span');
+    crown.className='crown';
+    crown.textContent=(i<3?'👑':'');
+    left.appendChild(crown);
+    
+    const name=document.createElement('span');
+    name.textContent=`${i+1}. ${row.id??row.name??'unknown'}`;
+    left.appendChild(name);
+    
+    const score=document.createElement('span');
+    score.textContent=`${row.score??row.point??0}`;
+    
+    item.appendChild(left);
+    item.appendChild(score);
+
+    // 👇 1~3위만 돌아보기 버튼 추가 (state가 있을 때만)
     if(i < 3 && row.state){
       const btn=document.createElement('button');
       btn.textContent="돌아보기";
@@ -729,68 +733,11 @@ lastGameState = cloneGrid(grid);
       item.appendChild(btn);
     }
 
- 
-    // 👇 1~3위만 열어보기 버튼 추가
-    if(i < 3 && row.state){
-      const btn=document.createElement('button');
-      btn.textContent="열어보기";
-      btn.className="btn";
-      btn.style.padding="2px 6px";
-      btn.style.fontSize="12px";
-      btn.addEventListener('click',()=>{
-        try{
-          const state=JSON.parse(row.state);
-          renderMiniPopup(state, row.id||"unknown", row.score||0);
-        }catch(e){
-          alert("저장된 보드 데이터를 불러올 수 없습니다.");
-        }
-      });
-      item.appendChild(btn);
-    }
-
-// 👇 여기 추가
-function renderMiniBoard(state){
-  let wrap = document.getElementById('lastBoard');
-  if(!wrap){
-    wrap = document.createElement('div');
-    wrap.id = 'lastBoard';
-    wrap.style.marginTop = '12px';
-    wrap.style.display = 'grid';
-    wrap.style.gridTemplateColumns = `repeat(${COLS}, 18px)`;
-    wrap.style.gridTemplateRows = `repeat(${ROWS}, 18px)`;
-    wrap.style.gap = '1px';
-    document.getElementById('resultBox').appendChild(wrap);
-  }
-  wrap.innerHTML = '';
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const cell=document.createElement('div');
-      cell.style.width='18px';
-      cell.style.height='18px';
-      cell.style.border='1px solid #222';
-      cell.style.background='#111';
-      const v = state[r][c];
-      if(v > 0){
-        const t=document.createElement('div');
-        t.style.width='100%';
-        t.style.height='100%';
-        if(TILE_IMAGES[v]) t.style.backgroundImage=`url(${TILE_IMAGES[v]})`;
-        t.style.backgroundSize='cover';
-        cell.appendChild(t);
-      } else if(v === -1){
-        const b=document.createElement('div');
-        b.style.width='100%';
-        b.style.height='100%';
-        b.style.backgroundImage="url('images/blocked.png')";
-        b.style.backgroundSize='cover';
-        cell.appendChild(b);
-      }
-      wrap.appendChild(cell);
-    }
-  }
+    rankingsEl.appendChild(item);
+  });
 }
 
- // 👇 여기 추가
+// 👇 미니 팝업 함수
 function renderMiniPopup(state, id, score){
   let mini=document.getElementById('miniPopup');
   if(!mini){
@@ -863,7 +810,6 @@ function renderMiniPopup(state, id, score){
   mini.appendChild(box);
 }
 
-
 // 안내문이 떠 있는 상태에서 두 번째 클릭 시 닫힘
 document.addEventListener('click', (e) => {
   if (!toast.classList.contains('show')) return;
@@ -876,23 +822,8 @@ document.addEventListener('click', (e) => {
   }, 50);
 }, true);
 
-
- 
-  newGame();
+newGame();
 })();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
