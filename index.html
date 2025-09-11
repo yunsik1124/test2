@@ -176,7 +176,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.5</span>
+    <span id="version">v1.3.6</span>
   </div>
 </header>
 
@@ -470,24 +470,55 @@ function info(t,k){
 
   /* ====== 입력/이동 ====== */
   function onTapCell(){
-    const r=+this.dataset.r,c=+this.dataset.c;
-    if(isTile(r,c)){selected={r,c};highlightSelection();return;}
-    if(isEmpty(r,c)&&selected){
-      const from={...selected},to={r,c},val=grid[from.r][from.c];
-      const path=findPathViaEmpties(from,to);if(!path){info('경로 막힘','err');return;}
-      if(!destAdjacentSame(to,val)){info('옆에 같은 숫자 필요','warn');return;}
-      const gsize=groupSizeIfMoved(from,to,val);if(gsize<2){info('이동 불가','err');return;}
-      const currentGroup=floodSame(from.r,from.c,val);
-      if(currentGroup.length===2&&gsize<3){info('이동 불가','err');return;}
-      moveTile(from,to);
-      if(gsize>=3) resolveAutoMerges(to);
-      turn++;untilSpawn--;if(untilSpawn===0){spawnBatch();untilSpawn=SPAWN_EVERY;}
-      saveSnapshot();
-      elTurn.textContent=String(turn);elNext.textContent=String(untilSpawn);
-      selected=null;highlightSelection();
-      checkGameOverSoon();
-    }
+  const r = +this.dataset.r, c = +this.dataset.c;
+  if(isTile(r,c)){
+    selected = {r,c};
+    highlightSelection();
+    return;
   }
+
+  if(isEmpty(r,c) && selected){
+    const from = {...selected}, to = {r,c}, val = grid[from.r][from.c];
+    const reasons = [];
+
+    // 1. 경로 확인
+    const path = findPathViaEmpties(from, to);
+    if(!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
+
+    // 2. 옆에 같은 숫자 필요
+    if(!destAdjacentSame(to, val)) reasons.push("옆에 같은 숫자가 있어야 합니다.");
+
+    // 3. 그룹 크기 확인
+    const gsize = groupSizeIfMoved(from, to, val);
+    if(gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
+
+    // 4. 두 개 붙음 예외
+    const currentGroup = floodSame(from.r, from.c, val);
+    if(currentGroup.length === 2 && gsize < 3) {
+      reasons.push("두 개만 붙어서 이동할 수 없습니다.");
+    }
+
+    // ❌ 이동 불가 처리
+    if(reasons.length > 0){
+      info(reasons.join(" / "), "err"); 
+      return;
+    }
+
+    // ✅ 이동 가능하면 실제 이동 처리
+    moveTile(from, to);
+    if(gsize >= 3) resolveAutoMerges(to);
+    turn++;
+    untilSpawn--;
+    if(untilSpawn===0){ spawnBatch(); untilSpawn=SPAWN_EVERY; }
+    saveSnapshot();
+    elTurn.textContent = String(turn);
+    elNext.textContent = String(untilSpawn);
+    selected = null;
+    highlightSelection();
+    checkGameOverSoon();
+  }
+}
+
   function moveTile(from,to){
     const v=grid[from.r][from.c];
     grid[from.r][from.c]=0;grid[to.r][to.c]=v;
@@ -665,6 +696,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
