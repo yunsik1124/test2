@@ -132,19 +132,21 @@
   position:absolute;
   top:50%; left:50%;
   transform:translate(-50%,-50%);
-  background:#111a28;
+  background:rgba(17,26,40,0.7);   /* 👈 투명도 70% 적용 */
   border:2px solid #223043;
   padding:16px 24px;
   border-radius:12px;
-  font-size:22px;
+  font-size:15px;
   font-weight:bold;
   color:#ffcc4d;
   opacity:0;
-  transition: opacity .2s ease;  /* 조금 더 길게 */
+  white-space:pre-line;            /* 👈 \n 줄바꿈 적용 */
+  transition:opacity .5s ease;
   z-index:1000;
-  pointer-events:none;      /* 🚫 클릭 막지 않음 */
+  pointer-events:none;
 }
-  .msg.show{ opacity:1 }
+.msg.show{ opacity:1 }
+
 
   /* 결과/랭킹 팝업 */
   #resultPopup { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
@@ -500,11 +502,11 @@ function info(t,k){
 
     // ❌ 이동 불가 처리
     if(reasons.length > 0){
-      info(reasons.join(" / "), "err"); 
+      info(reasons.join("\n"), "err");  // 한 줄씩 나열
       return;
     }
 
-    // ✅ 이동 가능하면 실제 이동 처리
+    // ✅ 이동 가능
     moveTile(from, to);
     if(gsize >= 3) resolveAutoMerges(to);
     turn++;
@@ -518,6 +520,7 @@ function info(t,k){
     checkGameOverSoon();
   }
 }
+
 
   function moveTile(from,to){
     const v=grid[from.r][from.c];
@@ -696,6 +699,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
