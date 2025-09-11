@@ -133,6 +133,12 @@
 </head>
 <body>
 <header>
+   <div id="gameWrap">
+    <header>...</header>
+    <div id="boardWrap">...</div>
+    <div id="controlBar">...</div>
+    <div id="resultPopup">...</div>
+  </div>
   <div class="stat">
     <span class="idtag" id="idView">ID: -</span>
     <span>턴: <b id="turn">0</b></span>
@@ -592,10 +598,31 @@ function destAdjacentSame(to,val){
   }
 
   newGame();
+   // ====== 화면 크기에 따라 gameWrap 자동 축소 ======
+  function resizeGameWrap(){
+    const wrap = document.getElementById("gameWrap");
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    // 기준 크기 (예: 보드 기준 480 x 720px)
+    const baseW = 480;
+    const baseH = 720;
+
+    // 화면 크기에 맞춰 자동 축소
+    const scale = Math.min(w / baseW, h / baseH);
+
+    wrap.style.transform = `scale(${scale})`;
+    wrap.style.transformOrigin = "top center";
+  }
+
+  window.addEventListener("resize", resizeGameWrap);
+  window.addEventListener("load", resizeGameWrap);
+
 })();
 </script>
 </body>
 </html>
+
 
 
 
