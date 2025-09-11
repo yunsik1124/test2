@@ -128,11 +128,21 @@
   }
   .btn:active{ transform: scale(0.98) }
 
-  .msg{
-    position:fixed; left:50%; top:56px; transform:translateX(-50%);
-    background:#111a28; border:1px solid #223043; padding:8px 12px; border-radius:10px;
-    font-size:13px; color:#cfe5ff; opacity:0; transition:opacity .2s;
-  }
+.msg{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  background:#111a28;
+  border:1px solid #223043;
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:13px;
+  color:#cfe5ff;
+  opacity:0;
+  transition:opacity .2s;
+  z-index: 1000; /* 보드 위에 보이도록 */
+}
   .msg.show{ opacity:1 }
 
   /* 결과/랭킹 팝업 */
@@ -165,7 +175,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.3</span>
+    <span id="version">v1.3.4</span>
   </div>
 </header>
 
@@ -632,6 +642,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
