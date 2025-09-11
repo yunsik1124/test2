@@ -711,6 +711,25 @@ lastGameState = cloneGrid(grid);
       rankingsEl.appendChild(item);
     });
   }
+    // 👇 1~3위만 버튼 추가 (state가 있을 때만)
+    if(i < 3 && row.state){
+      const btn=document.createElement('button');
+      btn.textContent="돌아보기";
+      btn.className="btn";
+      btn.style.padding="2px 6px";
+      btn.style.fontSize="12px";
+      btn.addEventListener('click',()=>{
+        try{
+          const state=JSON.parse(row.state);
+          renderMiniPopup(state, row.id||"unknown", row.score||0);
+        }catch(e){
+          alert("저장된 보드 데이터를 불러올 수 없습니다.");
+        }
+      });
+      item.appendChild(btn);
+    }
+
+ 
     // 👇 1~3위만 열어보기 버튼 추가
     if(i < 3 && row.state){
       const btn=document.createElement('button');
@@ -864,6 +883,7 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
 
 
