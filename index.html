@@ -694,13 +694,14 @@ function destAdjacentSame(to,val){
     });
   }
  
- // 👇 여기 추가
-  document.body.addEventListener('click', (e) => {
-    if (e.target.id === 'toast') return; // 자기 자신 클릭은 무시
-    if (toastTimer) clearTimeout(toastTimer);
-    toast.classList.remove('show');
-    toastTimer = null;
-  });
+ document.body.addEventListener('click', (e) => {
+  if (!toast.classList.contains('show')) return; // 안 보이면 무시
+  if (e.target.id === 'toast') return;           // 자기 자신 클릭은 무시
+  if (toastTimer) clearTimeout(toastTimer);
+  toast.classList.remove('show');
+  toastTimer = null;
+});
+
 
 
  
@@ -709,6 +710,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
