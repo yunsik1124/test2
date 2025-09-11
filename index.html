@@ -696,15 +696,18 @@ function destAdjacentSame(to,val){
     });
   }
  
- document.body.addEventListener('click', (e) => {
+// 안내문이 떠 있는 상태에서 두 번째 클릭 시 닫힘
+document.addEventListener('click', (e) => {
   if (!toast.classList.contains('show')) return; // 안 보이면 무시
-  if (e.target.id === 'toast') return;           // 자기 자신 클릭은 무시
+  if (e.target.closest('#toast')) return;        // 자기 자신 클릭 무시
   if (toastTimer) clearTimeout(toastTimer);
-  toast.classList.remove('show');
-  toastTimer = null;
-});
 
-info("테스트 안내문", "err");
+  setTimeout(() => {   // 👈 즉시 닫히지 않도록 딜레이
+    toast.classList.remove('show');
+    toastTimer = null;
+  }, 50);
+}, true);
+
 
  
   newGame();
@@ -712,6 +715,7 @@ info("테스트 안내문", "err");
 </script>
 </body>
 </html>
+
 
 
 
