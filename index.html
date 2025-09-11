@@ -497,7 +497,7 @@ function info(t,k){
     // 4. 두 개 붙음 예외
     const currentGroup = floodSame(from.r, from.c, val);
     if(currentGroup.length === 2 && gsize < 3) {
-      reasons.push("두 개만 붙어서 이동할 수 없습니다.");
+      reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
     }
 
     // ❌ 이동 불가 처리
@@ -715,6 +715,7 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
 
 
