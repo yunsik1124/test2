@@ -141,7 +141,7 @@
   color:#ffcc4d;
   opacity:0;
   white-space:pre-line;            /* 👈 \n 줄바꿈 적용 */
-  transition:opacity .3s ease;
+  transition:opacity .5s ease;
   z-index:1000;
   pointer-events:none;
 }
@@ -178,7 +178,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.6</span>
+    <span id="version">v1.3.7</span>
   </div>
 </header>
 
@@ -270,19 +270,18 @@ function info(t,k){
     k==='err' ? 'var(--err)' : 
     (k==='warn' ? 'var(--warn)' : 'var(--fg)');
 
-  // 연속 호출 방지: show 초기화 후 다시 추가
+  // show 재적용
   toast.classList.remove('show');
-  void toast.offsetWidth; // 리플로우 강제 (애니메이션 재시작용)
+  void toast.offsetWidth; 
   toast.classList.add('show');
 
-  // 이전 타이머 있으면 제거
+  // 타이머 초기화
   if(toastTimer) clearTimeout(toastTimer);
-
-  // 2초 후 사라지게
   toastTimer = setTimeout(()=>{
     toast.classList.remove('show');
     toastTimer = null;
-  }, 2000);
+  }, 2000);  // 2초 유지
+}00);
 }
   const popup=document.getElementById('resultPopup'), finalScore=document.getElementById('finalScore'), popupTitle=document.getElementById('popupTitle');
   const idView=document.getElementById('idView');
@@ -693,12 +692,23 @@ function destAdjacentSame(to,val){
       rankingsEl.appendChild(item);
     });
   }
+ 
+ // 👇 여기 추가
+  document.body.addEventListener('click', (e) => {
+    if (e.target.id === 'toast') return; // 자기 자신 클릭은 무시
+    if (toastTimer) clearTimeout(toastTimer);
+    toast.classList.remove('show');
+    toastTimer = null;
+  });
 
+
+ 
   newGame();
 })();
 </script>
 </body>
 </html>
+
 
 
 
