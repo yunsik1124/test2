@@ -54,28 +54,23 @@
   width:100%;
   display:flex;
   flex-direction:column;   /* 세로로 배치 */
-  align-items:center;
-  justify-content:center;
-  padding:14px 0 0;        /* 필요시 상단 패딩만 유지 */
-  position:relative;
-  
+  align-items:center;      /* 가운데 정렬 */
+  justify-content:flex-start;
+  gap:0px;                 /* 보드와 버튼 사이 간격 (원하면 0으로) */
 }
 
 
-#board{
-  /* 화면 가로·세로 중 짧은 쪽에 맞춰 크기 계산 */
+
+#board {
   width: min(100vw, calc(100vh * (var(--cols) / var(--rows))));
   height: min(100vh, calc(100vw * (var(--rows) / var(--cols))));
-  
   display:grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   gap: var(--gap);
-  touch-action: manipulation;
   position:relative;
-  transform: scale(0.8);         /* 보드를 80% 축소 */
-  transform-origin: top center;  /* 위쪽 가운데 기준으로 줄이기 */
-  margin: 0 auto;                /* 좌우 여백 균등하게 */
+  transform: scale(0.8);         /* 보드 축소 */
+  transform-origin: top center;  /* 위쪽을 기준으로 줄임 */
 }
 
 
@@ -125,7 +120,6 @@
   #controlBar{
     width:100%; max-width:480px; display:flex; gap:10px; justify-content:center; align-items:center;
     padding:10px 0 16px; 
-    margin-top: -170px;   /* 👈 버튼들을 위로 당김 */
   }
   .btn{
     appearance:none; border:1px solid #2a3443; background:#121722; color:var(--fg);
@@ -171,7 +165,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.3.1</span>
+    <span id="version">v1.3.2</span>
   </div>
 </header>
 
@@ -630,6 +624,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
