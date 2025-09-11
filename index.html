@@ -400,15 +400,7 @@ document.getElementById('btnRankManual').addEventListener('click', ()=>{
   loadRanking();
 });
 
-// 👇 여기 추가
-document.getElementById('btnViewLast').addEventListener('click', ()=>{
-  if(lastGameState){
-    renderMiniBoard(lastGameState);
-  } else {
-    alert("저장된 마지막 판이 없습니다.");
-  }
-});
- 
+
 
   // 최고 기록 불러오기
   const savedBestScore = localStorage.getItem("mergeBestScore");
@@ -847,6 +839,7 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
 
 
