@@ -457,12 +457,12 @@
 
             // 루프 & 볼륨
             sounds.bgm.loop = true;
-            sounds.bgm.volume = 1;
-            sounds.move.volume = 1;
-            sounds.click.volume = 1;
-            sounds.toast.volume = 1;
-            sounds.gameover.volume = 1;
-            for (let k in sounds.blocks) sounds.blocks[k].volume = 1;
+            sounds.bgm.volume = 0.8;
+            sounds.move.volume = 0.8;
+            sounds.click.volume = 0.8;
+            sounds.toast.volume = 0.8;
+            sounds.gameover.volume = 0.8;
+            for (let k in sounds.blocks) sounds.blocks[k].volume = 0.8;
 
 
             /* ====== 기본 설정 ====== */
@@ -984,31 +984,27 @@
             });
 
         })();
-        const bgm = new Audio("bgm.mp3");
-bgm.loop = true;
-bgm.volume = 0.5;
+        // 🎵 첫 클릭 시 BGM 시작 (정식 해결책)
+        document.addEventListener('click', () => {
+            if (sounds.bgm.paused) {
+                sounds.bgm.play().catch(() => console.log("🔇 bgm 시작 실패"));
+            }
+        }, { once: true });
 
-// iOS 때문에 최초엔 유저 터치 필요
-document.body.addEventListener("touchstart", () => {
-    if (bgm.paused) bgm.play();
-}, { once: true });
-
-// 탭 상태 감지
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-        // 앱/브라우저 내려갔을 때
-        bgm.pause();
-    } else {
-        // 다시 들어왔을 때 자동 재생
-        bgm.play().catch(err => {
-            console.log("재생 실패:", err);
+        // 🔥 탭 상태 감지 (배경으로 가면 소리 꺼지고, 돌아오면 다시 재생)
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                sounds.bgm.pause();
+            } else {
+                sounds.bgm.play().catch(err => console.log("재생 실패:", err));
+            }
         });
-    }
-});
+
     </script>
 </body>
 
 </html>
+
 
 
 
