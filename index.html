@@ -33,7 +33,7 @@
   .idtag{padding:2px 6px; border:1px solid #2a3443; border-radius:8px; color:#cfe5ff; background:#121722;}
   #version{font-size:11px; color:#6f7f95;}
 
-  #boardWrap{width:100%; display:flex; align-items:center; justify-content:center; padding:14px 0 6px; position:relative;}
+  #boardWrap{width:100%; display:flex; align-items:center; justify-content:center; padding:14px 0 1px; position:relative;}
 #board{
   /* 화면 가로·세로 중 짧은 쪽에 맞춰 크기 계산 */
   width: min(100vw, calc(100vh * (var(--cols) / var(--rows))));
@@ -45,7 +45,7 @@
   gap: var(--gap);
   touch-action: manipulation;
   position:relative;
-  transform: scale(0.9);         /* 보드를 90% 축소 */
+  transform: scale(0.85);         /* 보드를 90% 축소 */
   transform-origin: top center;  /* 위쪽 가운데 기준으로 줄이기 */
   margin: 0 auto;                /* 좌우 여백 균등하게 */
 }
@@ -141,7 +141,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.2.5</span>
+    <span id="version">v1.2.6</span>
   </div>
 </header>
 
@@ -599,6 +599,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
