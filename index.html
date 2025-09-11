@@ -41,7 +41,7 @@
   justify-content:center;
   padding:14px 0 0;        /* 필요시 상단 패딩만 유지 */
   position:relative;
-  gap:6px;                 /* 보드와 버튼 사이 살짝 간격 */
+  
 }
 
 
@@ -107,7 +107,8 @@
   /* 컨트롤바 */
   #controlBar{
     width:100%; max-width:480px; display:flex; gap:10px; justify-content:center; align-items:center;
-    padding:10px 0 16px;
+    padding:10px 0 16px; 
+    margin-top: -10px;   /* 👈 버튼들을 위로 당김 */
   }
   .btn{
     appearance:none; border:1px solid #2a3443; background:#121722; color:var(--fg);
@@ -152,7 +153,7 @@
     <span>턴: <b id="turn">0</b></span>
     <span>다음 소환: <b id="nextSpawn">3</b></span>
     <span>대소환 남음: <b id="megaLeft">5</b></span>
-    <span id="version">v1.2.8</span>
+    <span id="version">v1.2.9</span>
   </div>
 </header>
 
@@ -611,6 +612,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
