@@ -438,21 +438,32 @@
             /* ====== 🎵 사운드 로드 ====== */
             const sounds = {
                 bgm: new Audio("sounds/bgm.mp3"),
-                click: new Audio("sounds/click.mp3"),
                 move: new Audio("sounds/move.mp3"),
-                merge: new Audio("sounds/merge.mp3"),
+                click: new Audio("sounds/click.mp3"),
                 toast: new Audio("sounds/toast.mp3"),
-                gameover: new Audio("sounds/gameover.mp3")
+                gameover: new Audio("sounds/gameover.mp3"),
+                blocks: {
+                    3: new Audio("sounds/block-2.mp3"),
+                    9: new Audio("sounds/block-3.mp3"),
+                    27: new Audio("sounds/block-4.mp3"),
+                    81: new Audio("sounds/block-5.mp3"),
+                    243: new Audio("sounds/block-6.mp3"),
+                    729: new Audio("sounds/block-7.mp3"),
+                    2187: new Audio("sounds/block-8.mp3"),
+                    6561: new Audio("sounds/block-9.mp3")
+                }
             };
-            // BGM 반복
+
+
+            // 루프 & 볼륨
             sounds.bgm.loop = true;
             sounds.bgm.volume = 0.4;
-            // 효과음 볼륨
-            sounds.click.volume = 0.7;
             sounds.move.volume = 0.7;
-            sounds.merge.volume = 0.8;
-            sounds.toast.volume = 0.8;
-            sounds.gameover.volume = 0.9;
+            sounds.click.volume = 0.7;
+            sounds.toast.volume = 0.7;
+            sounds.gameover.volume = 0.8;
+            for (let k in sounds.blocks) sounds.blocks[k].volume = 0.8;
+
 
             /* ====== 기본 설정 ====== */
             const GAS_URL = "https://script.google.com/macros/s/AKfycbzdvX2sII9CetZq4SHnThBLZSM9T9VHLw1Oqo6RvQbWrf_xBITGMqmfdzFFYIWd6Qrn/exec";
@@ -598,6 +609,14 @@
                 });
                 document.getElementById('btnNew').addEventListener('click', () => { newGame(); });
                 document.getElementById('btnResetId').addEventListener('click', () => { askPlayerId(true); });
+
+                // 🔥 여기 추가
+                document.getElementById('btnRankManual').addEventListener('click', () => {
+                    popup.classList.add('show');  // 팝업을 강제로 보여주기
+                    rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
+                    loadRanking();
+                });
+
             }
 
             /* ====== 이동 ====== */
@@ -614,23 +633,23 @@
                     const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
                     const reasons = [];
                     const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
-                   
+
                     const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
                     const currentGroup = floodSame(from.r, from.c, val);
                     if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
                     if (reasons.length > 0) { info(reasons.join("\n"), "err"); return; }
 
                     moveTile(from, to);
-                    // 🎵 이동음
-                    sounds.move.currentTime = 0;
-                    sounds.move.play();
 
                     if (gsize >= 3) {
+                        // 🎵 머지 사운드 전용
                         resolveAutoMerges(to);
-                        // 🎵 머지음
-                        sounds.merge.currentTime = 0;
-                        sounds.merge.play();
+                    } else {
+                        // 🎵 이동 사운드 (머지 아닐 때만)
+                        sounds.move.currentTime = 0;
+                        sounds.move.play();
                     }
+
                     turn++; untilSpawn--;
                     if (untilSpawn === 0) { spawnBatch(); untilSpawn = SPAWN_EVERY; }
                     saveSnapshot();
@@ -768,14 +787,28 @@
                     const { val, group } = f;
                     const pivot = forcePivot || group[0];
                     const absorb = group.filter(p => (p.r !== pivot.r || p.c !== pivot.c)).slice(0, 2);
+
                     for (const p of absorb) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
                     grid[pivot.r][pivot.c] = val * 3;
+
                     const tCell = board.children[pivot.r * COLS + pivot.c].querySelector('.tile');
-                    if (tCell) { tCell.classList.add('merge'); setTimeout(() => tCell.classList.remove('merge'), 240); }
-                    drawCell(pivot.r, pivot.c); merged = true; forcePivot = null;
+                    if (tCell) {
+                        tCell.classList.add('merge');
+                        setTimeout(() => tCell.classList.remove('merge'), 240);
+                    }
+
+                    drawCell(pivot.r, pivot.c);
+                    merged = true; forcePivot = null;
+
+                    // 🎵 해당 레벨 효과음
+                    if (sounds.blocks[val * 3]) {
+                        sounds.blocks[val * 3].currentTime = 0;
+                        sounds.blocks[val * 3].play();
+                    }
                 }
                 if (merged) saveSnapshot();
             }
+
 
             /* ====== 게임오버 ====== */
             function legalMoveExistsForTile(r, c) {
