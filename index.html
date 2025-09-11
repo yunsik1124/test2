@@ -251,8 +251,6 @@
             z-index: 1000;
             pointer-events: none;
             line-height: 3;
-            /* 🔥 가운데 정렬 추가 */
-    text-align: center;
         }
 
 
@@ -438,7 +436,7 @@
             ];
 
             /* ====== 🎵 사운드 로드 ====== */
-            const sounds = {
+            window.sounds = {
                 bgm: new Audio("sounds/bgm.mp3"),
                 move: new Audio("sounds/move.mp3"),
                 click: new Audio("sounds/click.mp3"),
@@ -977,27 +975,31 @@
                 console.log("✅ 모든 이미지 프리로드 완료");
                 init();
 
-                // 🎵 첫 클릭 시 BGM 시작 (정식 해결책)
-                document.addEventListener('click', () => {
-                    if (sounds.bgm.paused) {
-                        sounds.bgm.play().catch(() => console.log("🔇 bgm 시작 실패"));
-                    }
-                }, { once: true });
+               
             });
-
         })();
-        // 🎵 첫 클릭 시 BGM 시작 (정식 해결책)
-        document.addEventListener('click', () => {
-            if (sounds.bgm.paused) {
-                sounds.bgm.play().catch(() => console.log("🔇 bgm 시작 실패"));
+        // 🎵 첫 터치/클릭 시 BGM 시작
+        function startBgm() {
+            if (sounds.bgm && sounds.bgm.paused) {
+                sounds.bgm.play().then(() => {
+                    console.log("🎶 BGM 시작됨");
+                }).catch(err => {
+                    console.log("🔇 BGM 시작 실패:", err);
+                });
             }
-        }, { once: true });
-        // 🔥 탭 상태 감지 (visibility + pagehide/pageshow 모두 사용)
+        }
+
+        document.addEventListener("touchstart", startBgm, { once: true });
+        document.addEventListener("click", startBgm, { once: true });
+
+        // 🔥 앱/탭 전환 시 BGM 제어
         function pauseBgm() {
-            if (!sounds.bgm.paused) sounds.bgm.pause();
+            if (sounds.bgm && !sounds.bgm.paused) sounds.bgm.pause();
         }
         function resumeBgm() {
-            sounds.bgm.play().catch(err => console.log("재생 실패:", err));
+            if (sounds.bgm) {
+                sounds.bgm.play().catch(err => console.log("재생 실패:", err));
+            }
         }
 
         document.addEventListener("visibilitychange", () => {
@@ -1008,12 +1010,13 @@
         window.addEventListener("pagehide", pauseBgm);
         window.addEventListener("pageshow", resumeBgm);
 
+        window.addEventListener("blur", pauseBgm);
+        window.addEventListener("focus", resumeBgm);
 
     </script>
 </body>
 
 </html>
-
 
 
 
