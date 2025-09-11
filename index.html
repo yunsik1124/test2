@@ -501,10 +501,12 @@ function info(t,k){
     }
 
     // ❌ 이동 불가 처리
-    if(reasons.length > 0){
-      info(reasons.join("\n"), "err");  // 한 줄씩 나열
-      return;
-    }
+if(reasons.length > 0){
+  console.log("info 실행:", reasons);  // 👉 콘솔에 찍히는지 확인
+  info(reasons.join("\n"), "err");     // 한 줄씩 나열
+  return;
+}
+
 
     // ✅ 이동 가능
     moveTile(from, to);
@@ -710,6 +712,7 @@ info("테스트 안내문", "err");
 </script>
 </body>
 </html>
+
 
 
 
