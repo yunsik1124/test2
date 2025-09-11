@@ -45,12 +45,15 @@
   gap: var(--gap);
   touch-action: manipulation;
   position:relative;
+  transform: scale(0.9);         /* 보드를 90% 축소 */
+  transform-origin: top center;  /* 위쪽 가운데 기준으로 줄이기 */
+  margin: 0 auto;                /* 좌우 여백 균등하게 */
 }
 
 
 .cell{
   aspect-ratio:1/1;    /* 셀은 항상 정사각형 */
-  background:#101827;
+    background: transparent;   /* << 이걸로 변경 */
   border:1px solid #1c2736;
   border-radius:14px;
   position:relative;
@@ -596,6 +599,7 @@ function destAdjacentSame(to,val){
 </script>
 </body>
 </html>
+
 
 
 
