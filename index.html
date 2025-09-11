@@ -172,6 +172,20 @@
   border-bottom:1px solid #222a3b; 
   font-size:14px;
 }
+    .rank-item .right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .rank-item .score {
+        display: inline-block;
+        width: 60px; /* 점수 칸 고정 폭 (자리수 맞춤) */
+        text-align: right; /* 숫자 오른쪽 정렬 */
+    }
+
+
+
 
   .rank-item:last-child{border-bottom:none}
   .rank-item .left{display:flex; align-items:center; gap:8px;}
@@ -421,56 +435,43 @@ document.getElementById('btnRankManual').addEventListener('click', ()=>{
 
   preloadImages(IMAGE_URLS).then(()=>{
     console.log("✅ 모든 이미지 프리로드 완료");
-
+    init();
   });
-  function init(){
-    askPlayerId();
-    board.innerHTML='';
-    for(let r=0;r<ROWS;r++){
-      for(let c=0;c<COLS;c++){
-        const cell=document.createElement('div');
-        cell.className='cell';
-        cell.dataset.r=r;
-        cell.dataset.c=c;
-        cell.addEventListener('click',onTapCell);
-        board.appendChild(cell);
-      }
+
+    function init() {
+        askPlayerId();
+        board.innerHTML = '';
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.r = r;
+                cell.dataset.c = c;
+                cell.addEventListener('click', onTapCell);
+                board.appendChild(cell);
+            }
+        }
+        newGame();
+
+        // ===== 결과 팝업 버튼 이벤트 연결 =====
+        document.getElementById('btnRestart').addEventListener('click', () => {
+            popup.classList.remove('show');
+            newGame();
+        });
+
+        document.getElementById('btnBack').addEventListener('click', () => {
+            popup.classList.remove('show');
+        });
+
+        document.getElementById('btnViewBest').addEventListener('click', () => {
+            if (bestGameState) {
+                renderMiniPopup(bestGameState, playerId, bestScore);
+            } else {
+                alert("아직 최고 기록이 없습니다.");
+            }
+        });
     }
-    newGame();
-  }
-function init(){
-  askPlayerId();
-  board.innerHTML='';
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const cell=document.createElement('div');
-      cell.className='cell';
-      cell.dataset.r=r;
-      cell.dataset.c=c;
-      cell.addEventListener('click',onTapCell);
-      board.appendChild(cell);
-    }
-  }
-  newGame();
 
-  // ===== 결과 팝업 버튼 이벤트 연결 =====
-  document.getElementById('btnRestart').addEventListener('click', ()=>{
-    popup.classList.remove('show');
-    newGame();
-  });
-
-  document.getElementById('btnBack').addEventListener('click', ()=>{
-    popup.classList.remove('show');
-  });
-
-  document.getElementById('btnViewBest').addEventListener('click', ()=>{
-    if(bestGameState){
-      renderMiniPopup(bestGameState, playerId, bestScore);
-    }else{
-      alert("아직 최고 기록이 없습니다.");
-    }
-  });
-}
 
  
   function makeGrid(){return Array.from({length:ROWS},()=>Array(COLS).fill(0));}
@@ -736,62 +737,71 @@ if(total > bestScore){
       renderRanking(Array.isArray(data)?data.slice(0,100):[]);
     }catch(e){renderRanking([]);}
   }
-function renderRanking(rows){
-  rankingsEl.innerHTML="";
-  if(!rows||rows.length===0){
-    const empty=document.createElement('div');
-    empty.style.padding='10px';
-    empty.textContent='랭킹 데이터를 불러오지 못했습니다.';
-    rankingsEl.appendChild(empty);
-    return;
-  }
-  rows.forEach((row,i)=>{
-    const item=document.createElement('div');
-    item.className='rank-item'+(i===0?' top1':i===1?' top2':i===2?' top3':'');
-
-    const left=document.createElement('div');
-    left.className='left';
-
-    const crown=document.createElement('span');
-    crown.className='crown';
-    crown.textContent=(i<3?'👑':'');
-    left.appendChild(crown);
-
-    const name=document.createElement('span');
-    name.textContent=`${i+1}. ${row.id??row.name??'unknown'}`;
-    left.appendChild(name);
-
-    const score=document.createElement('span');
-    score.textContent=`${row.score??row.point??0}`;
-
-    item.appendChild(left);
-    item.appendChild(score);
-
-    // 👇 1~3위는 항상 돌아보기 버튼 표시
-    if(i < 3){
-      const btn=document.createElement('button');
-      btn.textContent="보기";
-      btn.className="btn";
-      btn.style.padding="2px 6px";
-      btn.style.fontSize="12px";
-      btn.addEventListener('click',()=>{
-        if(row.state){
-          try{
-            const state=JSON.parse(row.state);
-            renderMiniPopup(state, row.id||"unknown", row.score||0);
-          }catch(e){
-            alert("저장된 보드 데이터를 불러올 수 없습니다.");
-          }
-        }else{
-          alert("저장된 전적이 없습니다.");
+    function renderRanking(rows) {
+        rankingsEl.innerHTML = "";
+        if (!rows || rows.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.padding = '10px';
+            empty.textContent = '랭킹 데이터를 불러오지 못했습니다.';
+            rankingsEl.appendChild(empty);
+            return;
         }
-      });
-      item.appendChild(btn);
+
+        rows.forEach((row, i) => {
+            const item = document.createElement('div');
+            item.className = 'rank-item' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '');
+
+            // 왼쪽 (순위 + 이름)
+            const left = document.createElement('div');
+            left.className = 'left';
+
+            const crown = document.createElement('span');
+            crown.className = 'crown';
+            crown.textContent = (i < 3 ? '👑' : '');
+            left.appendChild(crown);
+
+            const name = document.createElement('span');
+            name.textContent = `${i + 1}. ${row.id ?? row.name ?? 'unknown'}`;
+            left.appendChild(name);
+
+            // 오른쪽 (보기 + 점수)
+            const right = document.createElement('div');
+            right.className = 'right';
+
+            // 1~3위만 버튼 먼저 추가
+            if (i < 3) {
+                const btn = document.createElement('button');
+                btn.textContent = "보기";
+                btn.className = "btn";
+                btn.style.padding = "2px 6px";
+                btn.style.fontSize = "12px";
+                btn.addEventListener('click', () => {
+                    if (row.state) {
+                        try {
+                            const state = JSON.parse(row.state);
+                            renderMiniPopup(state, row.id || "unknown", row.score || 0);
+                        } catch (e) {
+                            alert("저장된 보드 데이터를 불러올 수 없습니다.");
+                        }
+                    } else {
+                        alert("저장된 전적이 없습니다.");
+                    }
+                });
+                right.appendChild(btn);
+            }
+
+            // 점수는 항상 오른쪽 끝
+            const score = document.createElement('span');
+            score.className = 'score';
+            score.textContent = `${row.score ?? row.point ?? 0}`;
+            right.appendChild(score);
+
+            item.appendChild(left);
+            item.appendChild(right);
+            rankingsEl.appendChild(item);
+        });
     }
 
-    rankingsEl.appendChild(item);
-  });
-}
 
 // 👇 미니 팝업 함수
 function renderMiniPopup(state, id, score){
@@ -817,11 +827,20 @@ function renderMiniPopup(state, id, score){
   box.style.textAlign='center';
   box.style.boxShadow='0 6px 20px rgba(0,0,0,0.6)';
 
-  const title=document.createElement('h3');
-  title.textContent=`${id} 최종 보드 (점수 ${score})`;
-  box.appendChild(title);
+    const title = document.createElement('h3');
+    title.textContent = `${id} 최종 보드 (점수 ${score})`;
+    box.appendChild(title);
 
-wrap.style.display='grid';
+    const wrap = document.createElement('div');   // 👈 wrap 선언 추가
+    wrap.style.display = 'grid';
+    wrap.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+    wrap.style.gridTemplateRows = `repeat(${ROWS}, 1fr)`;
+    wrap.style.gap = '4px';
+    wrap.style.width = '90%';
+    wrap.style.maxWidth = '420px';
+    wrap.style.aspectRatio = `${COLS}/${ROWS}`;
+    wrap.style.margin = '12px auto';
+
 wrap.style.gridTemplateColumns=`repeat(${COLS}, 1fr)`;
 wrap.style.gridTemplateRows=`repeat(${ROWS}, 1fr)`;
 wrap.style.gap='4px';
@@ -830,17 +849,40 @@ wrap.style.maxWidth='420px';     // 최대 너비 제한
 wrap.style.aspectRatio=`${COLS}/${ROWS}`;
 wrap.style.margin='12px auto';
 
-for(let r=0;r<ROWS;r++){
-  for(let c=0;c<COLS;c++){
-    const cell=document.createElement('div');
-    cell.style.width='100%';
-    cell.style.aspectRatio='1/1';  // 정사각형 유지
-    cell.style.border='1px solid #222';
-    cell.style.background='#111';
-    ...
-    wrap.appendChild(cell);
-  }
-}
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const cell = document.createElement('div');
+            cell.style.width = '100%';
+            cell.style.aspectRatio = '1/1';
+            cell.style.border = '1px solid #222';
+            cell.style.background = '#111';
+
+            const v = state[r][c];
+
+            if (v > 0 && TILE_IMAGES[v]) {
+                // 숫자 블록 → 해당 이미지
+                cell.style.backgroundImage = `url(${TILE_IMAGES[v]})`;
+                cell.style.backgroundSize = "contain";
+                cell.style.backgroundRepeat = "no-repeat";
+                cell.style.backgroundPosition = "center";
+            } else if (v === -1) {
+                // 막힌 칸
+                cell.style.backgroundImage = "url('images/blocked.png')";
+                cell.style.backgroundSize = "contain";
+                cell.style.backgroundRepeat = "no-repeat";
+                cell.style.backgroundPosition = "center";
+            } else {
+                // 빈 칸
+                cell.style.backgroundImage = "url('images/empty.png')";
+                cell.style.backgroundSize = "contain";
+                cell.style.backgroundRepeat = "no-repeat";
+                cell.style.backgroundPosition = "center";
+            }
+
+            wrap.appendChild(cell);
+        }
+    }
+
 
   box.appendChild(wrap);
 
@@ -870,12 +912,3 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
