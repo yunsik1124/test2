@@ -391,22 +391,15 @@ function info(t,k){
     }
   }
 
-  /* ====== 초기화 ====== */
-  document.getElementById('btnViewBest').addEventListener('click', ()=>{
-  if(bestGameState){
-    renderMiniPopup(bestGameState, playerId, bestScore);
-  }else{
-    alert("아직 최고 기록이 없습니다.");
-  }
+document.getElementById('btnRankManual').addEventListener('click', ()=>{
+  popupTitle.textContent="랭킹";
+  finalScore.textContent="";
+  noMovesMsg.style.display="none"; // 랭킹일 땐 문구 숨김
+  rankingsEl.innerHTML="<div style='padding:10px'>랭킹을 불러오는중...</div>";
+  popup.classList.add('show');
+  loadRanking();
 });
 
-    popupTitle.textContent="랭킹";
-    finalScore.textContent="";
-    noMovesMsg.style.display="none"; // 랭킹일 땐 문구 숨김
-    rankingsEl.innerHTML="<div style='padding:10px'>랭킹을 불러오는중...</div>";
-    popup.classList.add('show');
-    await loadRanking();
-  });
 // 👇 여기 추가
 document.getElementById('btnViewLast').addEventListener('click', ()=>{
   if(lastGameState){
@@ -854,4 +847,5 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
