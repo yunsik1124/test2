@@ -102,6 +102,7 @@
             gap: var(--gap);
             position: relative;
             margin: 0 auto;
+            overflow: visible;
         }
 
         .cell {
@@ -129,6 +130,17 @@
                 background: var(--blocked);
                 background-image: repeating-linear-gradient(135deg,#1f2533 0 8px,#141925 8px 16px);
                 border-color: #20283a;
+            }
+        
+            .cell.possible-move {
+                background-color: rgba(70, 211, 255, 0.2);
+                box-shadow: inset 0 0 12px rgba(70, 211, 255, 0.8);
+                border-radius: 14px;
+            }
+
+            .cell.path-highlight {
+                background-color: rgba(255, 204, 77, 0.3);
+                box-shadow: inset 0 0 8px rgba(255, 204, 77, 0.6);
             }
 
         .tile {
@@ -203,6 +215,18 @@
             100% {
                 transform: scale(1)
             }
+        }
+
+        .tile.moving {
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(70, 211, 255, 0.6);
+            transform: scale(1.1);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
         }
 
         #controlBar {
@@ -482,6 +506,7 @@
 
             let grid = [], turn = 0, untilSpawn = SPAWN_EVERY, spawnCount = 0, selected = null, history = [], gameOverShown = false;
             let lastGameState = null, bestScore = 0, bestGameState = null;
+            let isAnimating = false;  // 애니메이션 진행 중 플래그
 
             const board = document.getElementById('board');
             const elTurn = document.getElementById('turn'),
@@ -584,6 +609,41 @@
                     if (tile) tile.classList.add('sel');
                 }
             }
+            
+            /* ====== 이동 가능 위치 표시 기능 추가 ====== */
+                        function clearPossibleMoves() {
+                            // 모든 'possible-move' 클래스를 제거하여 하이라이트를 끔
+                            board.querySelectorAll('.possible-move').forEach(el => el.classList.remove('possible-move'));
+                            // 경로 하이라이트도 함께 제거
+                            board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
+                        }
+
+                        function showPossibleMoves(r, c) {
+                            // 선택한 블록의 정보를 가져옴
+                            const val = grid[r][c];
+                            const currentGroup = floodSame(r, c, val);
+
+                            // 모든 비어있는 칸을 순회하며 이동 가능 여부 확인
+                            for (let tr = 0; tr < ROWS; tr++) {
+                                for (let tc = 0; tc < COLS; tc++) {
+                                    if (!isEmpty(tr, tc)) continue;
+
+                                    const to = { r: tr, c: tc };
+                                    
+                                    // 기존 이동 로직의 유효성 검사 조건들을 그대로 사용
+                                    const path = findPathViaEmpties({ r, c }, to);
+                                    if (!path) continue;
+
+                                    const gsize = groupSizeIfMoved({ r, c }, to, val);
+                                    if (gsize < 2) continue;
+
+                                    if (currentGroup.length === 2 && gsize < 3) continue;
+
+                                    // 모든 조건을 통과하면 'possible-move' 클래스를 추가하여 하이라이트
+                                    board.children[tr * COLS + tc].classList.add('possible-move');
+                                }
+                            }
+                        }
 
             /* ====== 초기화 ====== */
             function init() {
@@ -618,19 +678,54 @@
 
             }
 
+            // 경로 하이라이트 함수들
+            function highlightPath(path) {
+                if (!path || path.length < 2) return;
+                
+                // 시작점과 끝점을 제외한 중간 경로만 하이라이트
+                for (let i = 1; i < path.length - 1; i++) {
+                    const cell = board.children[path[i].r * COLS + path[i].c];
+                    if (cell) {
+                        cell.classList.add('path-highlight');
+                    }
+                }
+            }
+
+            function clearPathHighlight() {
+                board.querySelectorAll('.path-highlight').forEach(el => {
+                    el.classList.remove('path-highlight');
+                });
+            }
+
             /* ====== 이동 ====== */
             function onTapCell() {
-                const r = +this.dataset.r, c = +this.dataset.c;
-                if (isTile(r, c)) {
-                    selected = { r, c }; highlightSelection();
-                    // 🎵 클릭음
-                    sounds.click.currentTime = 0;
-                    sounds.click.play();
-                    return;
-                }
-                if (isEmpty(r, c) && selected) {
-                    const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
-                    const reasons = [];
+                            // 애니메이션 진행 중에는 입력 무시
+                            if (isAnimating) return;
+                            
+                            const r = +this.dataset.r, c = +this.dataset.c;
+
+                            // 함수 시작 시, 이전 하이라이트를 모두 제거
+                            clearPossibleMoves();
+
+                            if (isTile(r, c)) {
+                                selected = { r, c };
+                                highlightSelection();
+                                
+                                // 선택된 블록 기준으로 이동 가능한 위치를 표시
+                                showPossibleMoves(r, c);
+                                
+                                // 🎵 클릭음
+                                sounds.click.currentTime = 0;
+                                sounds.click.play();
+                                return;
+                            }
+                            if (isEmpty(r, c) && selected) {
+                                const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
+                                const reasons = [];
+                    
+                    
+                    
+                    
                     const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
 
                     const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
@@ -638,33 +733,140 @@
                     if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
                     if (reasons.length > 0) { info(reasons.join("\n"), "err"); return; }
 
-                    moveTile(from, to);
+                    // 애니메이션 시작
+                    isAnimating = true;
+                    
+                    // 애니메이션으로 이동
+                    animateMoveTile(from, to, path, () => {
+                        // 애니메이션 완료 후 게임 로직 처리
+                        if (gsize >= 3) {
+                            // 🎵 머지 사운드 전용
+                            resolveAutoMerges(to);
+                        } else {
+                            // 🎵 이동 사운드 (머지 아닐 때만)
+                            sounds.move.currentTime = 0;
+                            sounds.move.play();
+                        }
 
-                    if (gsize >= 3) {
-                        // 🎵 머지 사운드 전용
-                        resolveAutoMerges(to);
-                    } else {
-                        // 🎵 이동 사운드 (머지 아닐 때만)
-                        sounds.move.currentTime = 0;
-                        sounds.move.play();
-                    }
-
-                    turn++; untilSpawn--;
-                    if (untilSpawn === 0) { spawnBatch(); untilSpawn = SPAWN_EVERY; }
-                    saveSnapshot();
-                    elTurn.textContent = String(turn);
-                    elNext.textContent = String(untilSpawn);
-                    selected = null; highlightSelection();
-                    checkGameOverSoon();
+                        turn++; untilSpawn--;
+                        if (untilSpawn === 0) { spawnBatch(); untilSpawn = SPAWN_EVERY; }
+                        saveSnapshot();
+                        elTurn.textContent = String(turn);
+                        elNext.textContent = String(untilSpawn);
+                        selected = null; 
+                        highlightSelection();
+                        clearPossibleMoves();
+                        
+                        // 애니메이션 완료
+                        isAnimating = false;
+                        
+                        checkGameOverSoon();
+                    });
                 }
             }
 
-            function moveTile(from, to) {
+            // 경로를 따라 애니메이션으로 이동하는 함수 (새로운 방식)
+            function animateMoveTile(from, to, path, callback) {
+                console.log('애니메이션 시작:', from, '→', to, '경로 길이:', path ? path.length : 0);
+                const v = grid[from.r][from.c];
+                const fromCell = board.children[from.r * COLS + from.c];
+                const fromTile = fromCell.querySelector('.tile');
+                
+                if (!fromTile || !path || path.length < 2) {
+                    moveTileInstant(from, to);
+                    if (callback) callback();
+                    return;
+                }
+
+                // 타일 복사본 생성
+                const animatingTile = fromTile.cloneNode(true);
+                animatingTile.classList.add('moving');
+                
+                // 경로 하이라이트
+                highlightPath(path);
+                
+                // 그리드 상태 업데이트
+                grid[from.r][from.c] = 0;
+                grid[to.r][to.c] = v;
+                
+                // 원본 타일을 즉시 숨기고 빈 셀로 표시
+                fromTile.style.visibility = 'hidden';
+                drawCell(from.r, from.c);
+                
+                // 보드에 애니메이션 타일 추가
+                board.appendChild(animatingTile);
+                
+                // 시작 위치 설정
+                setTilePosition(animatingTile, path[0]);
+                
+                // 경로를 따라 이동
+                animateStepByStep(animatingTile, path, 0, () => {
+                    // 애니메이션 완료
+                    animatingTile.remove();
+                    drawCell(to.r, to.c);
+                    clearPathHighlight();
+                    
+                    const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
+                    if (finalTile) { 
+                        finalTile.classList.add('bump'); 
+                        setTimeout(() => finalTile.classList.remove('bump'), 200); 
+                    }
+                    
+                    if (callback) callback();
+                });
+            }
+
+            // 타일을 특정 그리드 위치에 배치 (transform 방식)
+            function setTilePosition(tile, gridPos) {
+                const targetCell = board.children[gridPos.r * COLS + gridPos.c];
+                const rect = targetCell.getBoundingClientRect();
+                const boardRect = board.getBoundingClientRect();
+                
+                tile.style.position = 'absolute';
+                tile.style.left = (rect.left - boardRect.left) + 'px';
+                tile.style.top = (rect.top - boardRect.top) + 'px';
+                tile.style.width = targetCell.offsetWidth + 'px';
+                tile.style.height = targetCell.offsetHeight + 'px';
+                tile.style.transition = 'none';
+            }
+
+            // 단계별 이동 애니메이션 (transform 방식)
+            function animateStepByStep(tile, path, currentStep, callback) {
+                if (currentStep >= path.length - 1) {
+                    if (callback) callback();
+                    return;
+                }
+
+                const nextPos = path[currentStep + 1];
+                const targetCell = board.children[nextPos.r * COLS + nextPos.c];
+                const rect = targetCell.getBoundingClientRect();
+                const boardRect = board.getBoundingClientRect();
+                
+                // CSS transition 설정 (아주 조금 더 빠르게)
+                tile.style.transition = 'left 100ms ease-out, top 100ms ease-out';
+                
+                // 다음 위치로 이동
+                tile.style.left = (rect.left - boardRect.left) + 'px';
+                tile.style.top = (rect.top - boardRect.top) + 'px';
+                
+                // 다음 단계로 이동 (아주 조금 더 빠르게)
+                setTimeout(() => {
+                    animateStepByStep(tile, path, currentStep + 1, callback);
+                }, 100);
+            }
+
+            // 즉시 이동 (기존 로직)
+            function moveTileInstant(from, to) {
                 const v = grid[from.r][from.c];
                 grid[from.r][from.c] = 0; grid[to.r][to.c] = v;
                 drawCell(from.r, from.c); drawCell(to.r, to.c);
                 const tCell = board.children[to.r * COLS + to.c].querySelector('.tile');
                 if (tCell) { tCell.classList.add('bump'); setTimeout(() => tCell.classList.remove('bump'), 200); }
+            }
+
+            function moveTile(from, to) {
+                // 기본적으로 즉시 이동 (하위 호환성)
+                moveTileInstant(from, to);
             }
 
             /* ====== 경로 탐색 ====== */
