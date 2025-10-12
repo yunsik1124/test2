@@ -94,11 +94,12 @@
         }
 
         #board {
-            width: min(100vw, 540px);
+            width: 90vw;
+            max-width: 480px;
             aspect-ratio: 5/7;
             display: grid;
-            grid-template-columns: repeat(var(--cols), 1fr);
-            grid-template-rows: repeat(var(--rows), 1fr);
+            grid-template-columns: repeat(var(--cols),1fr);
+            grid-template-rows: repeat(var(--rows),1fr);
             gap: var(--gap);
             position: relative;
             margin: 0 auto;
@@ -179,7 +180,7 @@
             }
 
             .tile.moving {
-                z-index: 200;
+                z-index: 500;
                 pointer-events: none;
                 box-shadow: 0 4px 12px rgba(70, 211, 255, 0.6);
                 transform: scale(1.1);
@@ -235,16 +236,6 @@
             100% {
                 transform: scale(1)
             }
-        }
-
-        #controlBar {
-            width: 100%;
-            max-width: 480px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            align-items: center;
-            padding: 10px 0 16px;
         }
 
         .btn {
@@ -333,10 +324,6 @@
                 color: var(--muted);
             }
 
-            #resultBox .btn {
-                margin-top: 12px;
-            }
-
         #rankHeader {
             display: flex;
             align-items: center;
@@ -364,13 +351,7 @@
             gap: 10px;
         }
 
-            .rank-item .left {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-            }
-
-            .rank-item .right {
+            .rank-item .left, .rank-item .right {
                 display: flex;
                 align-items: center;
                 gap: 6px;
@@ -417,6 +398,175 @@
             font-size: 13px;
             color: var(--warn);
         }
+        /* ==== 하단 플로팅바 ==== */
+        body {
+            padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        }
+
+
+        .icon-btn {
+            width: 56px;
+            height: 56px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #121722;
+            border: 1px solid #2a3443;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform .06s ease, background .2s ease, box-shadow .2s ease;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+            .icon-btn:active {
+                transform: scale(0.97);
+            }
+
+            .icon-btn svg {
+                width: 28px;
+                height: 28px;
+                fill: none;
+                stroke: #cfe5ff;
+                stroke-width: 2;
+            }
+
+        /* 기존 pointer-events 관계를 단순화: 부모도 클릭 가능 */
+        #footerBar {
+            position: fixed;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            padding: 10px calc(16px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000; /* 충분히 높게 */
+            pointer-events: auto; /* 🔑 부모도 클릭 허용 */
+        }
+
+        /* 네모 박스 느낌 빼고, 단순 컨테이너로 */
+        .footer-glass {
+            display: flex; /* 🔑 grid → flex */
+            gap: var(--btn-gap, 14px); /* 가운데 div 없이 간격 유지 */
+            background: transparent; /* 네모 박스 제거 */
+            border: 0;
+            backdrop-filter: none;
+            border-radius: 0;
+            pointer-events: auto; /* 자식도 클릭 허용 */
+        }
+
+        /* 버튼은 그대로 */
+        .icon-btn {
+            width: var(--btn-size, 56px);
+            height: var(--btn-size, 56px);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #121722;
+            border: 1px solid #2a3443;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform .06s ease, background .2s ease, box-shadow .2s ease;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+            .icon-btn:active {
+                transform: scale(0.97);
+            }
+
+            .icon-btn svg {
+                width: 28px;
+                height: 28px;
+                fill: none;
+                stroke: #cfe5ff;
+                stroke-width: 2;
+            }
+
+
+        /* ==== 설정 팝업 ==== */
+        #settingsPopup {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.55);
+            z-index: 2000;
+        }
+
+            #settingsPopup.show {
+                display: flex;
+            }
+
+        .settings-box {
+            width: min(420px, 92vw);
+            background: radial-gradient(120% 140% at 50% 0%, #1a2333 0%, #121827 60%, #101523 100%);
+            border: 1px solid rgba(70, 211, 255, 0.15);
+            border-radius: 16px;
+            padding: 18px 14px;
+            box-shadow: 0 18px 36px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03);
+        }
+
+        .settings-title {
+            margin: 0 0 8px;
+            padding: 0 8px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #e9f2ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .settings-title .gear-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--accent);
+                box-shadow: 0 0 10px var(--accent);
+            }
+
+        .menu-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .menu-btn {
+            width: 100%;
+            text-align: left;
+            background: #111828;
+            border: 1px solid #253149;
+            color: #dbe7ff;
+            padding: 12px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform .05s ease, background .2s ease, border-color .2s ease;
+        }
+
+            .menu-btn:active {
+                transform: translateY(1px);
+            }
+
+            .menu-btn .sub {
+                display: block;
+                font-size: 11px;
+                color: #8ba1be;
+                margin-top: 4px;
+            }
+
+        .settings-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        #btnSettingsClose {
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
@@ -427,17 +577,12 @@
             <span>턴: <b id="turn">0</b></span>
             <span>다음 소환: <b id="nextSpawn">3</b></span>
             <span>대소환 남음: <b id="megaLeft">5</b></span>
-            <span id="version">v1.7.0</span>
+            <span id="version">v1.7.1</span>
         </div>
     </header>
 
     <div id="boardWrap">
         <div id="board"></div>
-        <div id="controlBar">
-            <button class="btn" id="btnNew">새 게임</button>
-            <button class="btn" id="btnResetId">아이디 초기화</button>
-            <button class="btn" id="btnRankManual">랭킹 불러오기</button>
-        </div>
     </div>
 
     <div class="msg" id="toast"></div>
@@ -454,6 +599,71 @@
                 <button class="btn" id="btnRestart">다시 시작</button>
                 <button class="btn" id="btnBack">돌아가기</button>
                 <button class="btn" id="btnViewBest">내 최고 기록 확인</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== 하단 플로팅바 ===== -->
+    <div id="footerBar">
+        <div class="footer-glass">
+            <!-- 왼쪽: 망치 -->
+            <button id="btnHammer" class="icon-btn" aria-label="망치 아이템">
+                <!-- Hammer SVG -->
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 3l7 7" />
+                    <path d="M13 4h4v4" />
+                    <path d="M2 22l8-8" />
+                    <path d="M5 21l6-6" />
+                </svg>
+            </button>
+
+            <!-- 가운데: 미니 스탯 -->
+            <div class="footer-center">
+                턴 <b id="turnMini">0</b> · 다음 소환 <b id="nextMini">3</b>
+            </div>
+
+            <!-- 오른쪽: 설정 -->
+            <button id="btnSettings" class="icon-btn" aria-label="설정">
+                <!-- Gear SVG -->
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+                    <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .3 1.7 1.7 0 0 0-.83 1.47V22a2 2 0 0 1-4 0v-.83A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.87-.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.3-1 1.7 1.7 0 0 0-1.47-.83H2a2 2 0 0 1 0-4h.83A1.7 1.7 0 0 0 4.6 7a1.7 1.7 0 0 0 .34-1.87l-.06-.06A2 2 0 1 1 7.71 2.24l.06.06A1.7 1.7 0 0 0 9 4.6c.3 0 .67-.1 1-.3.4-.27.66-.72.83-1.47V2a2 2 0 0 1 4 0v.83c.17.75.43 1.2.83 1.47.33.21.7.3 1 .3a1.7 1.7 0 0 0 1.47-.83l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c0 .3.1.67.3 1 .27.4.72.66 1.47.83H22a2 2 0 0 1 0 4h-.83c-.75.17-1.2.43-1.47.83-.21.33-.3.7-.3 1z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== 설정 팝업 ===== -->
+    <div id="settingsPopup" role="dialog" aria-modal="true">
+        <div class="settings-box">
+            <h3 class="settings-title"><span class="gear-dot"></span> 설정</h3>
+            <div class="menu-list">
+                <button class="menu-btn" id="mNew">
+                    새 게임
+                    <span class="sub">현재 진행중인 내용을 초기화하고 새로 시작</span>
+                </button>
+                <button class="menu-btn" id="mSave">
+                    게임 저장 (로컬)
+                    <span class="sub">브라우저 로컬 저장소에 현재 보드를 저장</span>
+                </button>
+                <button class="menu-btn" id="mLoad">
+                    불러오기 (로컬)
+                    <span class="sub">마지막으로 저장한 보드를 다시 불러옴</span>
+                </button>
+                <button class="menu-btn" id="mResetId">
+                    아이디 초기화
+                    <span class="sub">플레이어 ID를 다시 입력</span>
+                </button>
+                <button class="menu-btn" id="mRanking">
+                    랭킹 불러오기
+                    <span class="sub">랭킹 TOP 100을 확인</span>
+                </button>
+                <button class="menu-btn" id="mExit">
+                    나가기
+                    <span class="sub">인덱스 화면으로 이동</span>
+                </button>
+            </div>
+            <div class="settings-actions">
+                <button class="btn" id="btnSettingsClose">닫기</button>
             </div>
         </div>
     </div>
@@ -479,6 +689,7 @@
                 click: new Audio("sounds/click.mp3"),
                 toast: new Audio("sounds/toast.mp3"),
                 gameover: new Audio("sounds/gameover.mp3"),
+                mergeMove: new Audio("sounds/move.mp3"),
                 blocks: {
                     3: new Audio("sounds/block-2.mp3"),
                     9: new Audio("sounds/block-3.mp3"),
@@ -493,18 +704,29 @@
             sounds.bgm.loop = true;
             sounds.bgm.volume = 1;
             sounds.move.volume = 1;
+            sounds.mergeMove.volume = 1;
             sounds.click.volume = 1;
             sounds.toast.volume = 1;
             sounds.gameover.volume = 1;
             for (let k in sounds.blocks) sounds.blocks[k].volume = 1;
 
-            /* ====== 기본 설정 ====== */
+            /* ====== 기본 설정/상수 ====== */
             const GAS_URL = "https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec";
             const COLS = 5, ROWS = 7;
             const INIT_TILES = 12;
             const SPAWN_EVERY = 3;
             const SPAWN_BATCH = 3;
             const MEGA_INTERVAL = 5;
+
+            // 이동/머지 속도
+            const MOVE_SPEED = 80;    // 일반 이동
+            const MERGE_SPEED = 120;  // 그룹 흡수 이동
+
+            // 딜레이 상수
+            const MERGE_CHAIN_DELAY = 200;   // 연속 머지 간 간격
+            const SPAWN_TO_MERGE_DELAY = 200; // 스폰 후 자동 머지 전 대기
+
+            const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 
             const TILE_IMAGES = {
                 1: "images/block-1.png", 3: "images/block-2.png", 9: "images/block-3.png",
@@ -520,6 +742,9 @@
             const elTurn = document.getElementById('turn'),
                 elNext = document.getElementById('nextSpawn'),
                 elMega = document.getElementById('megaLeft');
+            const elTurnMini = document.getElementById('turnMini');
+            const elNextMini = document.getElementById('nextMini');
+
             const toast = document.getElementById('toast');
             let toastTimer = null;
 
@@ -527,7 +752,6 @@
                 toast.textContent = t;
                 toast.style.color = k === 'err' ? 'var(--err)' : (k === 'warn' ? 'var(--warn)' : 'var(--fg)');
                 toast.classList.remove('show'); void toast.offsetWidth; toast.classList.add('show');
-                try { sounds.toast.currentTime = 0; sounds.toast.play().catch(() => { }); } catch (e) { }
                 if (toastTimer) clearTimeout(toastTimer);
                 toastTimer = setTimeout(() => { toast.classList.remove('show'); toastTimer = null; }, 2000);
             }
@@ -557,19 +781,18 @@
 
             /* ====== 유틸 ====== */
             const key = (r, c) => `${r},${c}`;
-            function cloneGrid(g) { return g.map(r => r.slice()); }
-            function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
-            function isEmpty(r, c) { return grid[r][c] === 0; }
-            function isBlocked(r, c) { return grid[r][c] === -1; }
-            function isTile(r, c) { return grid[r][c] > 0; }
+            const cloneGrid = (g) => g.map(r => r.slice());
+            const inBounds = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+            const isEmpty = (r, c) => grid[r][c] === 0;
+            const isBlocked = (r, c) => grid[r][c] === -1;
+            const isTile = (r, c) => grid[r][c] > 0;
             function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[a[i], a[j]] = [a[j], a[i]]; } }
             function listEmpty() { const out = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === 0) out.push({ r, c }); return out; }
             function randomValue() { return [1, 1, 1, 1, 3, 3, 9][(Math.random() * 7) | 0]; }
 
             /* 깜빡임 방지 플레이스홀더 */
             function addEmptyPlaceholderAt(r, c) {
-                const cell = board.children[r * COLS + c];
-                if (!cell) return;
+                const cell = board.children[r * COLS + c]; if (!cell) return;
                 if (cell.querySelector('.placeholder')) return;
                 const ph = document.createElement('div');
                 ph.className = 'tile placeholder';
@@ -577,19 +800,22 @@
                 cell.appendChild(ph);
             }
             function removePlaceholderAt(r, c) {
-                const cell = board.children[r * COLS + c];
-                if (!cell) return;
-                const ph = cell.querySelector('.placeholder');
-                if (ph) ph.remove();
+                const cell = board.children[r * COLS + c]; if (!cell) return;
+                const ph = cell.querySelector('.placeholder'); if (ph) ph.remove();
             }
 
-            /* ====== 셀 & 렌더링 ====== */
+            /* ====== 렌더 잠금 ====== */
+            const renderLocks = new Set();
+            const lockCell = (r, c) => renderLocks.add(`${r},${c}`);
+            const unlockCell = (r, c) => renderLocks.delete(`${r},${c}`);
+            const isLocked = (r, c) => renderLocks.has(`${r},${c}`);
+
+            /* ====== 셀 렌더 ====== */
             function drawCell(r, c, opt = {}) {
+                if (!opt.force && isLocked(r, c)) return;
                 const idx = r * COLS + c, cell = board.children[idx];
                 cell.classList.toggle('blocked', isBlocked(r, c));
-                // 모든 타일류 정리(placeholder는 유지)
-                const tiles = cell.querySelectorAll('.tile:not(.placeholder)');
-                tiles.forEach(n => n.remove());
+                const tiles = cell.querySelectorAll('.tile:not(.placeholder)'); tiles.forEach(n => n.remove());
                 const v = grid[r][c];
                 if (v > 0) {
                     const t = document.createElement('div'); t.className = 'tile'; t.dataset.val = v;
@@ -597,9 +823,11 @@
                     if (TILE_IMAGES[v]) t.style.backgroundImage = `url(${TILE_IMAGES[v]})`;
                     cell.appendChild(t);
                 } else if (v === -1) {
-                    const b = document.createElement('div'); b.className = 'tile'; b.style.backgroundImage = "url('images/blocked.png')"; cell.appendChild(b);
+                    const b = document.createElement('div'); b.className = 'tile'; b.style.backgroundImage = "url('images/blocked.png')";
+                    cell.appendChild(b);
                 } else {
-                    const e = document.createElement('div'); e.className = 'tile'; e.style.backgroundImage = "url('images/empty.png')"; cell.appendChild(e);
+                    const e = document.createElement('div'); e.className = 'tile'; e.style.backgroundImage = "url('images/empty.png')";
+                    cell.appendChild(e);
                 }
             }
 
@@ -612,7 +840,11 @@
 
             function renderAll(spawn = false) {
                 for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) drawCell(r, c, { spawn: spawn && isTile(r, c) });
-                elTurn.textContent = String(turn); elNext.textContent = String(untilSpawn); updateMegaLeft();
+                elTurn.textContent = String(turn);
+                elNext.textContent = String(untilSpawn);
+                elTurnMini.textContent = String(turn);
+                elNextMini.textContent = String(untilSpawn);
+                updateMegaLeft();
             }
 
             function highlightSelection() {
@@ -625,7 +857,6 @@
                 board.querySelectorAll('.possible-move').forEach(el => el.classList.remove('possible-move'));
                 board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
             }
-
             function showPossibleMoves(r, c) {
                 const val = grid[r][c];
                 const currentGroup = floodSame(r, c, val);
@@ -633,25 +864,21 @@
                     for (let tc = 0; tc < COLS; tc++) {
                         if (!isEmpty(tr, tc)) continue;
                         const to = { r: tr, c: tc };
-                        const path = findPathViaEmpties({ r, c }, to);
-                        if (!path) continue;
-                        const gsize = groupSizeIfMoved({ r, c }, to, val);
-                        if (gsize < 2) continue;
+                        const path = findPathViaEmpties({ r, c }, to); if (!path) continue;
+                        const gsize = groupSizeIfMoved({ r, c }, to, val); if (gsize < 2) continue;
                         if (currentGroup.length === 2 && gsize < 3) continue;
                         board.children[tr * COLS + tc].classList.add('possible-move');
                     }
                 }
             }
+
             /* ====== 초기화 ====== */
             function init() {
                 askPlayerId();
 
                 const savedBest = Number(localStorage.getItem("mergeBestScore") || 0);
                 if (!Number.isNaN(savedBest)) bestScore = savedBest;
-                try {
-                    const savedState = localStorage.getItem("mergeBestState");
-                    if (savedState) bestGameState = JSON.parse(savedState);
-                } catch (e) { console.warn("best state parse fail", e); }
+                try { const savedState = localStorage.getItem("mergeBestState"); if (savedState) bestGameState = JSON.parse(savedState); } catch (e) { }
 
                 board.innerHTML = '';
                 for (let r = 0; r < ROWS; r++) {
@@ -670,13 +897,40 @@
                     if (bestGameState) { renderMiniPopup(bestGameState, playerId, bestScore); }
                     else alert("아직 최고 기록이 없습니다.");
                 });
-                document.getElementById('btnNew').addEventListener('click', () => { newGame(); });
-                document.getElementById('btnResetId').addEventListener('click', () => { askPlayerId(true); });
 
-                document.getElementById('btnRankManual').addEventListener('click', () => {
+                // ===== 하단 아이콘 / 설정 팝업 =====
+                const settingsPopup = document.getElementById('settingsPopup');
+                const openSettings = () => settingsPopup.classList.add('show');
+                const closeSettings = () => settingsPopup.classList.remove('show');
+
+                document.getElementById('btnHammer').addEventListener('click', () => {
+                    info("🔨 망치 아이템은 추후 업데이트 예정!", "warn");
+                });
+                document.getElementById('btnSettings').addEventListener('click', openSettings);
+                document.getElementById('btnSettingsClose').addEventListener('click', closeSettings);
+                settingsPopup.addEventListener('click', (e) => { if (e.target.id === 'settingsPopup') closeSettings(); });
+
+                // 메뉴 클릭
+                document.getElementById('mNew').addEventListener('click', () => { closeSettings(); newGame(); });
+                document.getElementById('mSave').addEventListener('click', () => {
+                    const ok = saveGameToLocal(); info(ok ? "💾 저장 완료!" : "저장 실패", ok ? undefined : "err");
+                });
+                document.getElementById('mLoad').addEventListener('click', () => {
+                    const ok = loadGameFromLocal();
+                    if (ok) { renderAll(true); info("📂 불러오기 완료!"); checkGameOverSoon(); }
+                    else info("불러올 데이터가 없습니다.", "warn");
+                    closeSettings();
+                });
+                document.getElementById('mResetId').addEventListener('click', () => { closeSettings(); askPlayerId(true); });
+                document.getElementById('mRanking').addEventListener('click', () => {
+                    closeSettings();
                     popup.classList.add('show');
                     rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
                     loadRanking();
+                });
+                document.getElementById('mExit').addEventListener('click', () => {
+                    closeSettings();
+                    window.location.href = "index.html"; // 필요 시 파일명 수정
                 });
             }
 
@@ -714,10 +968,16 @@
                     if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
                     if (reasons.length > 0) { info(reasons.join("\n"), "err"); return; }
 
-                    isAnimating = true; // 전체 파이프라인 잠금
+                    isAnimating = true;
 
                     animateMoveTile(from, to, path, async () => {
                         const pivotIfMerge = (gsize >= 3) ? to : null;
+
+                        try {
+                            if (gsize >= 3) { sounds.mergeMove.currentTime = 0; sounds.mergeMove.play().catch(() => { }); }
+                            else { sounds.move.currentTime = 0; sounds.move.play().catch(() => { }); }
+                        } catch (e) { }
+
                         await completeTurnPipeline(pivotIfMerge);
                     });
                 }
@@ -734,14 +994,11 @@
                     return;
                 }
 
-                // 이동 시작 전에 바닥 플레이스홀더 추가(깜빡임 방지)
                 addEmptyPlaceholderAt(from.r, from.c);
-
                 const animatingTile = fromTile.cloneNode(true);
                 animatingTile.classList.add('moving');
                 highlightPath(path);
 
-                // 논리 이동
                 grid[from.r][from.c] = 0;
                 grid[to.r][to.c] = v;
 
@@ -776,16 +1033,18 @@
                 tile.style.transition = 'none';
             }
 
-            function animateStepByStep(tile, path, currentStep, callback) {
+            function animateStepByStep(tile, path, currentStep, callback, speed = MOVE_SPEED) {
                 if (currentStep >= path.length - 1) { if (callback) callback(); return; }
                 const nextPos = path[currentStep + 1];
                 const targetCell = board.children[nextPos.r * COLS + nextPos.c];
                 const rect = targetCell.getBoundingClientRect();
                 const boardRect = board.getBoundingClientRect();
-                tile.style.transition = 'left 100ms ease-out, top 100ms ease-out';
+
+                tile.style.transition = `left ${speed}ms ease-out, top ${speed}ms ease-out`;
                 tile.style.left = (rect.left - boardRect.left) + 'px';
                 tile.style.top = (rect.top - boardRect.top) + 'px';
-                setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback); }, 100);
+
+                setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback, speed); }, speed);
             }
 
             function moveTileInstant(from, to) {
@@ -830,7 +1089,8 @@
             }
 
             function floodSame(sr, sc, val, g = grid) {
-                const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)), q = [{ r: sr, c: sc }], out = [];
+                const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)),
+                    q = [{ r: sr, c: sc }], out = [];
                 vis[sr][sc] = true;
                 while (q.length) {
                     const { r, c } = q.shift(); out.push({ r, c });
@@ -848,21 +1108,22 @@
                 return floodSame(to.r, to.c, val, tmp).length;
             }
 
-            /* ====== 보드 생성 & 새게임 ====== */
-            function makeGrid() { return Array.from({ length: ROWS }, () => Array(COLS).fill(0)); }
+            /* ====== 보드/새게임 ====== */
+            const makeGrid = () => Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 
             function newGame() {
                 popupTitle.textContent = "게임 오버";
                 grid = makeGrid();
 
-                const blockedCount = 3;
+                const blockedCount = 3; // 2~3 랜덤 가능
                 placeRandomBlocks(-1, blockedCount);
 
                 placeRandomTilesAvoidingTriples(INIT_TILES, 400);
                 renderAll(true);
-                // 시작 직후 자동 머지 금지(초기 배치에서 3개 회피 로직 사용)
+
                 turn = 0; untilSpawn = SPAWN_EVERY; spawnCount = 0; selected = null; gameOverShown = false;
                 elTurn.textContent = '0'; elNext.textContent = String(SPAWN_EVERY);
+                elTurnMini.textContent = '0'; elNextMini.textContent = String(SPAWN_EVERY);
                 updateMegaLeft();
                 popup.classList.remove('show');
                 checkGameOverSoon();
@@ -888,7 +1149,9 @@
                 const E = listEmpty(); shuffle(E);
                 for (let i = 0; i < count && i < E.length; i++) grid[E[i].r][E[i].c] = randomValue();
             }
-            function spawnBatch() {
+
+            async function spawnBatch() {
+                isAnimating = true;
                 spawnCount++;
                 if (spawnCount % MEGA_INTERVAL === 0) {
                     info("🌟 대소환! 블록 2배 소환!");
@@ -897,19 +1160,22 @@
                     for (let i = 0; i < SPAWN_BATCH; i++) spawnOne();
                 }
                 updateMegaLeft();
+                await sleep(SPAWN_TO_MERGE_DELAY);
+                await resolveAutoMergesAsync(null);
+                isAnimating = false;
             }
+
             function spawnOne() {
                 const E = listEmpty(); if (!E.length) return false;
                 const p = E[(Math.random() * E.length) | 0];
                 grid[p.r][p.c] = randomValue();
-                drawCell(p.r, p.c, { spawn: true }); // z-order 최상단
-                // 안전빵: spawn 클래스 보장
-                const t = board.children[p.r * COLS + p.c].querySelector('.tile'); if (t) t.classList.add('spawn');
+                drawCell(p.r, p.c, { spawn: true });
+                const t = board.children[p.r * COLS + p.c].querySelector('.tile');
+                if (t) t.classList.add('spawn');
                 return true;
             }
-            /* ====== 머지 (낮은 숫자 우선, 경로 따라 모션) ====== */
 
-            // 그룹 내부 4방향 경로 (같은 값의 그룹 칸만 통과, 대각선 금지)
+            /* ====== 머지 ====== */
             function findPathWithinGroup(from, to, groupSet) {
                 const q = [from], prev = new Map(), vis = new Set([key(from.r, from.c)]);
                 const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -929,8 +1195,6 @@
                 }
                 return null;
             }
-
-            // 폴백: 맨해튼(세로→가로) 직선 경로
             function manhattanFallbackPath(from, to) {
                 const path = [{ r: from.r, c: from.c }];
                 let r = from.r, c = from.c;
@@ -938,8 +1202,6 @@
                 while (c !== to.c) { c += (to.c > c ? 1 : -1); path.push({ r, c }); }
                 return path;
             }
-
-            // 현재 보드에서 "가장 낮은 값"의 3+ 그룹 하나 찾기
             function findLowestGroupGE3() {
                 const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
                 let best = null;
@@ -949,45 +1211,38 @@
                         if (v <= 0 || seen[r][c]) continue;
                         const comp = floodSame(r, c, v);
                         for (const p of comp) seen[p.r][p.c] = true;
-                        if (comp.length >= 3) {
-                            if (!best || v < best.val) best = { val: v, group: comp };
-                        }
+                        if (comp.length >= 3) { if (!best || v < best.val) best = { val: v, group: comp }; }
                     }
                 }
                 return best;
             }
 
-            // 그룹 머지 애니메이션(피벗으로 두 개가 길 따라 흡수)
             function animateGroupMerge(group, pivot, val) {
                 return new Promise((resolve) => {
-                    // 피벗 제외 2개 선택
                     const absorbers = group.filter(p => !(p.r === pivot.r && p.c === pivot.c)).slice(0, 2);
                     const gset = new Set(group.map(p => key(p.r, p.c)));
 
-                    // 각 흡수자 경로
                     const paths = absorbers.map(src => {
                         let path = findPathWithinGroup(src, pivot, gset);
                         if (!path || path.length < 2) path = manhattanFallbackPath(src, pivot);
                         return path;
                     });
 
-                    // 클론 + 플레이스홀더
+                    lockCell(pivot.r, pivot.c);
+
                     const clones = absorbers.map((src, i) => {
                         const cell = board.children[src.r * COLS + src.c];
                         const tile = cell.querySelector('.tile');
-                        addEmptyPlaceholderAt(src.r, src.c); // 깜빡임 방지
+                        addEmptyPlaceholderAt(src.r, src.c);
                         const clone = tile ? tile.cloneNode(true) : null;
                         if (tile) tile.style.visibility = 'hidden';
                         if (clone) {
-                            clone.classList.add('moving');
+                            clone.classList.add('moving'); clone.style.zIndex = 500;
                             board.appendChild(clone);
                             setTilePosition(clone, paths[i][0]);
                         }
                         return { src, clone };
                     });
-
-                    // 경로 하이라이트
-                    paths.forEach(p => highlightPath(p));
 
                     let finished = 0;
                     const onOneDone = () => { finished++; if (finished === paths.length) afterAllArrived(); };
@@ -995,80 +1250,78 @@
                     clones.forEach((pack, i) => {
                         const cl = pack.clone;
                         if (!cl) { onOneDone(); return; }
-                        animateStepByStep(cl, paths[i], 0, () => { onOneDone(); });
+                        animateStepByStep(cl, paths[i], 0, () => { onOneDone(); }, MERGE_SPEED);
                     });
 
-                    function afterAllArrived() {
-                        // 클론 제거 + placeholder 제거
+                    async function afterAllArrived() {
                         clones.forEach(p => { if (p.clone) p.clone.remove(); });
                         absorbers.forEach(p => removePlaceholderAt(p.r, p.c));
 
-                        // 실제 머지 적용
                         for (const p of absorbers) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
-                        grid[pivot.r][pivot.c] = val * 3; drawCell(pivot.r, pivot.c);
-
-                        clearPathHighlight();
+                        grid[pivot.r][pivot.c] = val * 3;
+                        drawCell(pivot.r, pivot.c, { force: true });
+                        unlockCell(pivot.r, pivot.c);
 
                         const tCell = board.children[pivot.r * COLS + pivot.c].querySelector('.tile');
                         if (tCell) { tCell.classList.add('merge'); setTimeout(() => tCell.classList.remove('merge'), 240); }
-                        try {
-                            if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); }
-                        } catch (e) { }
+
+                        try { if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); } } catch (e) { }
 
                         resolve();
                     }
                 });
             }
 
-            // 연쇄 머지: "항상 낮은 숫자부터" 한 번에 하나씩 처리
             async function resolveAutoMergesAsync(forcePivot = null) {
+                let currentPivot = forcePivot ? { ...forcePivot } : null;
+
                 while (true) {
-                    let pick;
-                    if (forcePivot) {
-                        // 강제 피벗이 속한 그룹을 우선(낮은 숫자 예외 없이, 첫 스텝만)
-                        const val = grid[forcePivot.r][forcePivot.c];
+                    if (currentPivot) {
+                        const val = grid[currentPivot.r][currentPivot.c];
                         if (val > 0) {
-                            const group = floodSame(forcePivot.r, forcePivot.c, val);
+                            const group = floodSame(currentPivot.r, currentPivot.c, val);
                             if (group.length >= 3) {
-                                await animateGroupMerge(group, forcePivot, val);
+                                await animateGroupMerge(group, currentPivot, val);
                                 saveSnapshot();
-                                forcePivot = null;
-                                continue; // 다시 스캔
+                                await sleep(MERGE_CHAIN_DELAY);
+                                currentPivot = { r: currentPivot.r, c: currentPivot.c };
+                                continue;
                             }
                         }
-                        forcePivot = null;
                     }
-                    pick = findLowestGroupGE3();
+                    const pick = findLowestGroupGE3();
                     if (!pick) break;
+
                     const { val, group } = pick;
-                    const pivot = group[0]; // 그룹 내 임의(일관성 위해 첫 요소)
+                    const pivot = group[0];
                     await animateGroupMerge(group, pivot, val);
                     saveSnapshot();
+                    await sleep(MERGE_CHAIN_DELAY);
+                    currentPivot = { r: pivot.r, c: pivot.c };
                 }
             }
 
-            // 한 턴 파이프라인: (1) 머지 → (2) 필요 시 스폰 → (3) 다시 머지
             async function completeTurnPipeline(pivotOrNull) {
                 await resolveAutoMergesAsync(pivotOrNull);
 
-                // 턴/스폰 처리
                 turn++; untilSpawn--;
                 if (untilSpawn === 0) {
-                    spawnBatch();          // 스폰 먼저
-                    await resolveAutoMergesAsync(null); // 스폰으로 생긴 신규 머지도 수행
+                    await spawnBatch();
                     untilSpawn = SPAWN_EVERY;
                 }
 
-                // UI, 선택 초기화
                 updateMegaLeft();
                 saveSnapshot();
                 elTurn.textContent = String(turn);
                 elNext.textContent = String(untilSpawn);
+                elTurnMini.textContent = String(turn);
+                elNextMini.textContent = String(untilSpawn);
                 selected = null; highlightSelection(); clearPossibleMoves();
 
-                isAnimating = false; // 전체 파이프라인 해제
+                isAnimating = false;
                 checkGameOverSoon();
             }
+
             /* ====== 게임오버 ====== */
             function legalMoveExistsForTile(r, c) {
                 const v = grid[r][c]; const currentGroup = floodSame(r, c, v);
@@ -1145,7 +1398,8 @@
             function renderRanking(rows) {
                 rankingsEl.innerHTML = "";
                 if (!rows || rows.length === 0) {
-                    const empty = document.createElement('div'); empty.style.padding = '10px'; empty.textContent = '랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return;
+                    const empty = document.createElement('div'); empty.style.padding = '10px';
+                    empty.textContent = '랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return;
                 }
                 rows.forEach((row, i) => {
                     const item = document.createElement('div');
@@ -1212,13 +1466,40 @@
                 mini.appendChild(box);
             }
 
-            /* ====== 기타 이벤트 ====== */
+            /* ====== 토스트 닫기 ====== */
             document.addEventListener('click', (e) => {
                 if (!toast.classList.contains('show')) return;
                 if (e.target.closest('#toast')) return;
                 if (toastTimer) clearTimeout(toastTimer);
                 setTimeout(() => { toast.classList.remove('show'); toastTimer = null; }, 50);
             }, true);
+            /* ====== 저장/불러오기 ====== */
+            function saveGameToLocal() {
+                try {
+                    const saveObj = { grid, turn, untilSpawn, spawnCount, bestScore, playerId };
+                    localStorage.setItem("mergeSave", JSON.stringify(saveObj));
+                    return true;
+                } catch (e) { console.error("save fail", e); return false; }
+            }
+
+            function loadGameFromLocal() {
+                try {
+                    const raw = localStorage.getItem("mergeSave");
+                    if (!raw) return false;
+                    const obj = JSON.parse(raw);
+                    if (!obj || !Array.isArray(obj.grid)) return false;
+
+                    grid = obj.grid.map(row => row.slice());
+                    turn = Number(obj.turn) || 0;
+                    untilSpawn = Number(obj.untilSpawn) || SPAWN_EVERY;
+                    spawnCount = Number(obj.spawnCount) || 0;
+                    bestScore = Number(obj.bestScore) || bestScore;
+                    if (obj.playerId) { playerId = obj.playerId; localStorage.setItem("mergePlayerId", playerId); }
+                    updateMegaLeft();
+                    selected = null; highlightSelection(); clearPossibleMoves();
+                    return true;
+                } catch (e) { console.error("load fail", e); return false; }
+            }
 
             /* ====== 시작 ====== */
             preloadImages(IMAGE_URLS).then(() => { init(); });
