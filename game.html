@@ -2,15 +2,13 @@
 <html lang="ko">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>3매칭</title>
     <style>
         :root {
             --cols: 5;
             --rows: 7;
-            --gap: 6px; /* 기본 gap(px). JS에서 상황에 맞게 갱신됨 */
-            --appW: 480px; /* 앱(=보드 상한) 폭. JS에서 조정 */
+            --gap: 1vw;
             --bg: #0b0f14;
             --fg: #e8f0ff;
             --muted: #7f8da3;
@@ -41,22 +39,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            overflow: auto; /* 잘림 방지 안전장치 */
-        }
-
-        /* === 레이아웃: 모든 구성원을 #app으로 묶고, 폭은 --appW로 제어 === */
-        #app {
-            width: var(--appW);
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        header, #boardWrap, #controlBar {
-            width: 100%;
-            max-width: var(--appW);
         }
 
         header {
+            width: 100%;
+            max-width: 480px;
             padding: 12px 14px;
             display: flex;
             flex-direction: column;
@@ -98,6 +85,7 @@
         }
 
         #boardWrap {
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -105,8 +93,8 @@
         }
 
         #board {
-            width: 100%; /* ← 핵심: 앱 폭에 100% */
-            max-width: var(--appW); /* 상한은 앱 폭 */
+            width: 90vw;
+            max-width: 480px;
             aspect-ratio: 5/7;
             display: grid;
             grid-template-columns: repeat(var(--cols),1fr);
@@ -135,24 +123,24 @@
                 inset: 0;
                 border-radius: 14px;
                 pointer-events: none;
-                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03)
+                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
             }
 
             .cell.blocked {
                 background: var(--blocked);
                 background-image: repeating-linear-gradient(135deg,#1f2533 0 8px,#141925 8px 16px);
-                border-color: #20283a
+                border-color: #20283a;
             }
 
             .cell.possible-move {
-                background-color: rgba(70,211,255,0.2);
-                box-shadow: inset 0 0 12px rgba(70,211,255,0.8);
-                border-radius: 14px
+                background-color: rgba(70, 211, 255, 0.2);
+                box-shadow: inset 0 0 12px rgba(70, 211, 255, 0.8);
+                border-radius: 14px;
             }
 
             .cell.path-highlight {
-                background-color: rgba(255,204,77,0.3);
-                box-shadow: inset 0 0 8px rgba(255,204,77,0.6)
+                background-color: rgba(255, 204, 77, 0.3);
+                box-shadow: inset 0 0 8px rgba(255, 204, 77, 0.6);
             }
 
         .tile {
@@ -174,19 +162,19 @@
                 border: 3px solid var(--accent);
                 transform: scale(1.1);
                 box-shadow: 0 0 15px var(--accent),0 0 25px rgba(70,211,255,0.7);
-                z-index: 10
+                z-index: 10;
             }
 
             .tile.spawn {
-                animation: pop .22s ease-out
+                animation: pop .22s ease-out;
             }
 
             .tile.bump {
-                animation: bump .18s ease-out
+                animation: bump .18s ease-out;
             }
 
             .tile.merge {
-                animation: merge .22s ease-in-out
+                animation: merge .22s ease-in-out;
             }
 
         @keyframes pop {
@@ -232,7 +220,7 @@
         .tile.moving {
             z-index: 100;
             pointer-events: none;
-            box-shadow: 0 4px 12px rgba(70,211,255,0.6);
+            box-shadow: 0 4px 12px rgba(70, 211, 255, 0.6);
             transform: scale(1.1);
             border: 2px solid var(--accent);
             border-radius: 12px;
@@ -242,6 +230,8 @@
         }
 
         #controlBar {
+            width: 100%;
+            max-width: 480px;
             display: flex;
             gap: 10px;
             justify-content: center;
@@ -258,7 +248,7 @@
             border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform .05s ease-out, background .2s;
+            transition: transform .05s ease-out,background .2s;
         }
 
             .btn:active {
@@ -278,7 +268,7 @@
             font-weight: bold;
             color: #ffcc4d;
             opacity: 0;
-            min-width: clamp(220px,80vw,420px);
+            min-width: 420px;
             max-width: 90vw;
             white-space: pre-line;
             transition: opacity .5s ease;
@@ -293,7 +283,7 @@
             }
 
         #startMsg.hide {
-            display: none
+            display: none;
         }
 
         #resultPopup {
@@ -326,17 +316,17 @@
 
             #resultBox h2 {
                 margin: 0 0 8px;
-                font-size: 20px
+                font-size: 20px;
             }
 
             #resultBox p {
                 margin: 6px 0;
                 font-size: 14px;
-                color: var(--muted)
+                color: var(--muted);
             }
 
             #resultBox .btn {
-                margin-top: 12px
+                margin-top: 12px;
             }
 
         #rankHeader {
@@ -344,7 +334,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-top: 10px
+            margin-top: 10px;
         }
 
         #rankings {
@@ -353,7 +343,7 @@
             overflow-y: auto;
             text-align: left;
             border: 1px solid #2a3443;
-            border-radius: 10px
+            border-radius: 10px;
         }
 
         .rank-item {
@@ -363,24 +353,24 @@
             padding: 6px 10px;
             border-bottom: 1px solid #222a3b;
             font-size: 14px;
-            gap: 10px
+            gap: 10px;
         }
 
             .rank-item .left {
                 display: flex;
                 align-items: center;
-                gap: 6px
+                gap: 6px;
             }
 
             .rank-item .right {
                 display: flex;
                 align-items: center;
-                gap: 6px
+                gap: 6px;
             }
 
             .rank-item .score {
                 min-width: 60px;
-                text-align: right
+                text-align: right;
             }
 
             .rank-item .btn {
@@ -391,7 +381,7 @@
                 align-items: center;
                 justify-content: center;
                 position: relative;
-                top: -6px
+                top: -6px;
             }
 
         .crown {
@@ -417,46 +407,34 @@
         #noMovesMsg {
             margin-top: 8px;
             font-size: 13px;
-            color: var(--warn)
-        }
-
-        @media (orientation:landscape) {
-            #title {
-                font-size: 21px
-            }
-
-            .stat {
-                font-size: 11px;
-                gap: 8px
-            }
+            color: var(--warn);
         }
     </style>
 </head>
 <body>
-    <!-- 모든 UI 구성원을 하나로 묶는 래퍼 -->
-    <div id="app">
-        <header>
-            <div id="title">3개의 몬스터를 합치세요</div>
-            <div class="stat">
-                <span class="idtag" id="idView">ID: -</span>
-                <span>턴: <b id="turn">0</b></span>
-                <span>다음 소환: <b id="nextSpawn">3</b></span>
-                <span>대소환 남음: <b id="megaLeft">5</b></span>
-                <span id="version">v1.5.0</span>
-            </div>
-        </header>
-        <div id="boardWrap">
-            <div id="board"></div>
-            <div id="controlBar">
-                <button class="btn" id="btnNew">새 게임</button>
-                <button class="btn" id="btnResetId">아이디 초기화</button>
-                <button class="btn" id="btnRankManual">랭킹 불러오기</button>
-            </div>
+    <header>
+        <div id="title">3개의 몬스터를 합치세요</div>
+        <div class="stat">
+            <span class="idtag" id="idView">ID: -</span>
+            <span>턴: <b id="turn">0</b></span>
+            <span>다음 소환: <b id="nextSpawn">3</b></span>
+            <span>대소환 남음: <b id="megaLeft">5</b></span>
+            <span id="version">v1.5.0</span>
         </div>
-        <div class="msg" id="toast"></div>
-        <div class="msg show" id="startMsg">몬스터 탭!</div>
+    </header>
+
+    <div id="boardWrap">
+        <div id="board"></div>
+        <div id="controlBar">
+            <button class="btn" id="btnNew">새 게임</button>
+            <button class="btn" id="btnResetId">아이디 초기화</button>
+            <button class="btn" id="btnRankManual">랭킹 불러오기</button>
+        </div>
     </div>
-    <!-- 팝업은 화면 전체 fixed 레이어라 #app 바깥 -->
+
+    <!-- 중복 제거: #toast 하나만 -->
+    <div class="msg" id="toast"></div>
+    <div class="msg show" id="startMsg">몬스터 탭!</div>
     <div id="resultPopup">
         <div id="resultBox">
             <h2 id="popupTitle">게임 오버</h2>
@@ -471,14 +449,15 @@
             </div>
         </div>
     </div>
-
     <script>
         (() => {
-
             /* ====== 이미지 프리로드 ====== */
             function preloadImages(urls) {
                 return Promise.all(urls.map(src => new Promise(res => {
-                    const img = new Image(); img.onload = res; img.onerror = res; img.src = src;
+                    const img = new Image();
+                    img.onload = res;
+                    img.onerror = res;
+                    img.src = src;
                 })));
             }
             const IMAGE_URLS = [
@@ -507,7 +486,11 @@
                 }
             };
             sounds.bgm.loop = true;
-            sounds.bgm.volume = 1; sounds.move.volume = 1; sounds.click.volume = 1; sounds.toast.volume = 1; sounds.gameover.volume = 1;
+            sounds.bgm.volume = 1;
+            sounds.move.volume = 1;
+            sounds.click.volume = 1;
+            sounds.toast.volume = 1;
+            sounds.gameover.volume = 1;
             for (let k in sounds.blocks) sounds.blocks[k].volume = 1;
 
             /* ====== 기본 설정 ====== */
@@ -518,6 +501,7 @@
             const SPAWN_BATCH = 3;
             const MEGA_INTERVAL = 5;
 
+            // 블럭 이미지 매핑
             const TILE_IMAGES = {
                 1: "images/block-1.png", 3: "images/block-2.png", 9: "images/block-3.png",
                 27: "images/block-4.png", 81: "images/block-5.png", 243: "images/block-6.png",
@@ -539,6 +523,7 @@
                 toast.textContent = t;
                 toast.style.color = k === 'err' ? 'var(--err)' : (k === 'warn' ? 'var(--warn)' : 'var(--fg)');
                 toast.classList.remove('show'); void toast.offsetWidth; toast.classList.add('show');
+                // 🎵 안내문구음
                 try { sounds.toast.currentTime = 0; sounds.toast.play().catch(() => { }); } catch (e) { }
                 if (toastTimer) clearTimeout(toastTimer);
                 toastTimer = setTimeout(() => { toast.classList.remove('show'); toastTimer = null; }, 2000);
@@ -576,6 +561,7 @@
             function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[a[i], a[j]] = [a[j], a[i]]; } }
             function listEmpty() { const out = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === 0) out.push({ r, c }); return out; }
             function randomValue() { return [1, 1, 1, 1, 3, 3, 9][(Math.random() * 7) | 0]; }
+
             /* ====== 셀 & 렌더링 ====== */
             function drawCell(r, c, opt = {}) {
                 const idx = r * COLS + c, cell = board.children[idx];
@@ -589,19 +575,34 @@
                     if (TILE_IMAGES[v]) t.style.backgroundImage = `url(${TILE_IMAGES[v]})`;
                     cell.appendChild(t);
                 } else if (v === -1) {
-                    const b = document.createElement('div'); b.className = 'tile'; b.style.backgroundImage = "url('images/blocked.png')"; cell.appendChild(b);
+                    const b = document.createElement('div');
+                    b.className = 'tile';
+                    b.style.backgroundImage = "url('images/blocked.png')";
+                    cell.appendChild(b);
                 } else {
-                    const e = document.createElement('div'); e.className = 'tile'; e.style.backgroundImage = "url('images/empty.png')"; cell.appendChild(e);
+                    const e = document.createElement('div');
+                    e.className = 'tile';
+                    e.style.backgroundImage = "url('images/empty.png')";
+                    cell.appendChild(e);
                 }
             }
 
-            // 대소환 남음 UI 갱신
+            // 대소환 남음 UI 갱신 (이동/턴 기준)
             function updateMegaLeft() {
+                // 이번 대소환 이후 몇 배치가 지났는지
                 const batchesSinceLastMega = spawnCount % MEGA_INTERVAL;
+
+                // 다음 대소환까지 남은 배치 수(현재 배치 포함)
+                // 방금 대소환 직후(spawnCount%MEGA_INTERVAL===0)에도 MEGA_INTERVAL로 표기
                 const remBatches = (MEGA_INTERVAL - batchesSinceLastMega) || MEGA_INTERVAL;
+
+                // 현재 배치에서 다음 스폰 배치까지 남은 이동 수: untilSpawn
+                // 대소환까지 총 남은 이동 수 = (남은 배치-1)*SPAWN_EVERY + untilSpawn
                 const movesLeft = (remBatches - 1) * SPAWN_EVERY + untilSpawn;
+
                 elMega.textContent = String(movesLeft);
             }
+
 
             function renderAll(spawn = false) {
                 for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
@@ -612,13 +613,16 @@
             }
 
             function highlightSelection() {
-                for (const cell of board.children) { const t = cell.querySelector('.tile'); if (t) t.classList.remove('sel'); }
+                for (const cell of board.children) {
+                    const t = cell.querySelector('.tile'); if (t) t.classList.remove('sel');
+                }
                 if (selected) {
                     const tile = board.children[selected.r * COLS + selected.c].querySelector('.tile');
                     if (tile) tile.classList.add('sel');
                 }
             }
 
+            /* ====== 이동 가능 위치 표시 ====== */
             function clearPossibleMoves() {
                 board.querySelectorAll('.possible-move').forEach(el => el.classList.remove('possible-move'));
                 board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
@@ -631,8 +635,10 @@
                     for (let tc = 0; tc < COLS; tc++) {
                         if (!isEmpty(tr, tc)) continue;
                         const to = { r: tr, c: tc };
-                        const path = findPathViaEmpties({ r, c }, to); if (!path) continue;
-                        const gsize = groupSizeIfMoved({ r, c }, to, val); if (gsize < 2) continue;
+                        const path = findPathViaEmpties({ r, c }, to);
+                        if (!path) continue;
+                        const gsize = groupSizeIfMoved({ r, c }, to, val);
+                        if (gsize < 2) continue;
                         if (currentGroup.length === 2 && gsize < 3) continue;
                         board.children[tr * COLS + tc].classList.add('possible-move');
                     }
@@ -643,6 +649,7 @@
             function init() {
                 askPlayerId();
 
+                // 최고 기록 복원
                 const savedBest = Number(localStorage.getItem("mergeBestScore") || 0);
                 if (!Number.isNaN(savedBest)) bestScore = savedBest;
                 try {
@@ -661,7 +668,9 @@
                 }
                 newGame();
 
-                document.getElementById('btnRestart').addEventListener('click', () => { popup.classList.remove('show'); newGame(); });
+                document.getElementById('btnRestart').addEventListener('click', () => {
+                    popup.classList.remove('show'); newGame();
+                });
                 document.getElementById('btnBack').addEventListener('click', () => { popup.classList.remove('show'); });
                 document.getElementById('btnViewBest').addEventListener('click', () => {
                     if (bestGameState) { renderMiniPopup(bestGameState, playerId, bestScore); }
@@ -670,16 +679,13 @@
                 document.getElementById('btnNew').addEventListener('click', () => { newGame(); });
                 document.getElementById('btnResetId').addEventListener('click', () => { askPlayerId(true); });
 
+                // 수동 랭킹 팝업
                 document.getElementById('btnRankManual').addEventListener('click', () => {
                     popup.classList.add('show');
                     rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
                     loadRanking();
                 });
-
-                // 레이아웃 핏 1회 실행(실측 기반)
-                setTimeout(layoutFit, 0);
             }
-
             // 경로 하이라이트
             function highlightPath(path) {
                 if (!path || path.length < 2) return;
@@ -688,7 +694,9 @@
                     if (cell) cell.classList.add('path-highlight');
                 }
             }
-            function clearPathHighlight() { board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight')); }
+            function clearPathHighlight() {
+                board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
+            }
 
             /* ====== 이동 ====== */
             function onTapCell() {
@@ -700,7 +708,12 @@
                     selected = { r, c };
                     highlightSelection();
                     showPossibleMoves(r, c);
-                    if (!board.querySelector('.possible-move')) info("이동 가능한 곳이 없습니다.", "warn");
+
+                    // 이동 가능한 칸이 하나도 없을 때 경고
+                    if (!board.querySelector('.possible-move')) {
+                        info("이동 가능한 곳이 없습니다.", "warn");
+                    }
+
                     try { sounds.click.currentTime = 0; sounds.click.play().catch(() => { }); } catch (e) { }
                     return;
                 }
@@ -708,6 +721,7 @@
                 if (isEmpty(r, c) && selected) {
                     const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
                     const reasons = [];
+
                     const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
                     const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
                     const currentGroup = floodSame(from.r, from.c, val);
@@ -716,19 +730,35 @@
 
                     isAnimating = true;
                     animateMoveTile(from, to, path, () => {
-                        if (gsize >= 3) { resolveAutoMerges(to); }
-                        else { try { sounds.move.currentTime = 0; sounds.move.play().catch(() => { }); } catch (e) { } }
+                        if (gsize >= 3) {
+                            resolveAutoMerges(to);
+                        } else {
+                            try { sounds.move.currentTime = 0; sounds.move.play().catch(() => { }); } catch (e) { }
+                        }
 
                         turn++; untilSpawn--;
-                        if (untilSpawn === 0) { spawnBatch(); untilSpawn = SPAWN_EVERY; }
 
-                        updateMegaLeft(); saveSnapshot();
-                        elTurn.textContent = String(turn); elNext.textContent = String(untilSpawn);
-                        selected = null; highlightSelection(); clearPossibleMoves();
-                        isAnimating = false; checkGameOverSoon();
+                        if (untilSpawn === 0) {
+                            spawnBatch();
+                            untilSpawn = SPAWN_EVERY;
+                        }
+
+                        // ✅ 이동 직후에도 '대소환 남음' 갱신
+                        updateMegaLeft();
+
+                        saveSnapshot();
+                        elTurn.textContent = String(turn);
+                        elNext.textContent = String(untilSpawn);
+                        selected = null;
+                        highlightSelection();
+                        clearPossibleMoves();
+                        isAnimating = false;
+                        checkGameOverSoon();
+
                     });
                 }
             }
+
             function animateMoveTile(from, to, path, callback) {
                 const v = grid[from.r][from.c];
                 const fromCell = board.children[from.r * COLS + from.c];
@@ -759,7 +789,10 @@
                     clearPathHighlight();
 
                     const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
-                    if (finalTile) { finalTile.classList.add('bump'); setTimeout(() => finalTile.classList.remove('bump'), 200); }
+                    if (finalTile) {
+                        finalTile.classList.add('bump');
+                        setTimeout(() => finalTile.classList.remove('bump'), 200);
+                    }
                     if (callback) callback();
                 });
             }
@@ -775,6 +808,7 @@
                 tile.style.height = targetCell.offsetHeight + 'px';
                 tile.style.transition = 'none';
             }
+
             function animateStepByStep(tile, path, currentStep, callback) {
                 if (currentStep >= path.length - 1) { if (callback) callback(); return; }
                 const nextPos = path[currentStep + 1];
@@ -786,6 +820,7 @@
                 tile.style.top = (rect.top - boardRect.top) + 'px';
                 setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback); }, 100);
             }
+
             function moveTileInstant(from, to) {
                 const v = grid[from.r][from.c];
                 grid[from.r][from.c] = 0; grid[to.r][to.c] = v;
@@ -824,8 +859,7 @@
                     .some(([dr, dc]) => inBounds(to.r + dr, to.c + dc) && grid[to.r + dr][to.c + dc] === val);
             }
             function floodSame(sr, sc, val, g = grid) {
-                const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)),
-                    q = [{ r: sr, c: sc }], out = [];
+                const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)), q = [{ r: sr, c: sc }], out = [];
                 vis[sr][sc] = true;
                 while (q.length) {
                     const { r, c } = q.shift(); out.push({ r, c });
@@ -849,10 +883,10 @@
                 popupTitle.textContent = "게임 오버";
                 grid = makeGrid();
 
-                // 불가용칸: 2~3개 랜덤을 원하면 아래로 교체
-                // const blockedCount = 2 + ((Math.random()*2)|0);
+                // 불가용칸: 3개 랜덤
                 const blockedCount = 3;
                 placeRandomBlocks(-1, blockedCount);
+
 
                 placeRandomTilesAvoidingTriples(INIT_TILES, 400);
                 renderAll(true);
@@ -862,9 +896,6 @@
                 updateMegaLeft();
                 popup.classList.remove('show');
                 checkGameOverSoon();
-
-                // 새게임 후 레이아웃 재적용(폰트/줄바꿈 변동 대응)
-                setTimeout(layoutFit, 0);
             }
 
             /* ====== 소환 ====== */
@@ -896,7 +927,6 @@
                     for (let i = 0; i < SPAWN_BATCH; i++) spawnOne();
                 }
                 updateMegaLeft();
-                setTimeout(layoutFit, 0); // 셀 개수 변동 후도 안전
             }
             function spawnOne() {
                 const E = listEmpty(); if (!E.length) return false;
@@ -906,6 +936,7 @@
                 resolveAutoMerges();
                 return true;
             }
+
             /* ====== 머지 ====== */
             function findAnyGroupGE3() {
                 const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
@@ -934,7 +965,9 @@
                     drawCell(pivot.r, pivot.c);
                     merged = true; forcePivot = null;
 
-                    try { if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); } } catch (e) { }
+                    try {
+                        if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); }
+                    } catch (e) { }
                 }
                 if (merged) saveSnapshot();
             }
@@ -981,7 +1014,8 @@
                 lastGameState = cloneGrid(grid);
 
                 if (total > bestScore) {
-                    bestScore = total; bestGameState = cloneGrid(grid);
+                    bestScore = total;
+                    bestGameState = cloneGrid(grid);
                     localStorage.setItem("mergeBestScore", bestScore);
                     localStorage.setItem("mergeBestState", JSON.stringify(bestGameState));
                 }
@@ -997,6 +1031,7 @@
                         body: JSON.stringify({ secret: "TEST2", name: playerId, score: total, state: grid }),
                         mode: "no-cors"
                     });
+                    console.log("✅ 저장 요청 보냄");
                 } catch (e) { console.error("❌ POST 오류:", e); }
 
                 loadRanking();
@@ -1017,13 +1052,18 @@
             function renderRanking(rows) {
                 rankingsEl.innerHTML = "";
                 if (!rows || rows.length === 0) {
-                    const empty = document.createElement('div'); empty.style.padding = '10px'; empty.textContent = '랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return;
+                    const empty = document.createElement('div');
+                    empty.style.padding = '10px';
+                    empty.textContent = '랭킹 데이터를 불러오지 못했습니다.';
+                    rankingsEl.appendChild(empty);
+                    return;
                 }
                 rows.forEach((row, i) => {
                     const item = document.createElement('div');
                     item.className = 'rank-item' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '');
                     const left = document.createElement('div'); left.className = 'left';
-                    const crown = document.createElement('span'); crown.className = 'crown'; crown.textContent = (i < 3 ? '👑' : ''); left.appendChild(crown);
+                    const crown = document.createElement('span'); crown.className = 'crown'; crown.textContent = (i < 3 ? '👑' : '');
+                    left.appendChild(crown);
                     const name = document.createElement('span'); name.textContent = `${i + 1}. ${row.name}`; left.appendChild(name);
 
                     const right = document.createElement('div'); right.className = 'right';
@@ -1083,41 +1123,6 @@
                 mini.appendChild(box);
             }
 
-            /* ====== 레이아웃 핏: 어떤 화면비에서도 전 UI 노출 보장 ====== */
-            function layoutFit() {
-                const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-                const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-
-                const appEl = document.getElementById('app');
-                const headerEl = document.querySelector('header');
-                const ctrlEl = document.getElementById('controlBar');
-                const boardEl = document.getElementById('board');
-                if (!appEl || !headerEl || !ctrlEl || !boardEl) return;
-
-                appEl.style.width = '480px';           // 최대 가정으로 실측
-                boardEl.style.width = '100%';
-
-                const headerH = Math.ceil(headerEl.getBoundingClientRect().height);
-                const ctrlH = Math.ceil(ctrlEl.getBoundingClientRect().height);
-                const extra = 12;
-
-                const maxBoardH = Math.max(200, vh - headerH - ctrlH - extra);
-                const widthByHeight = maxBoardH * (5 / 7);
-                const widthByView = vw * 0.98;
-                const designCeiling = 480;
-                const finalW = Math.floor(Math.max(240, Math.min(widthByHeight, widthByView, designCeiling)));
-
-                document.documentElement.style.setProperty('--appW', finalW + 'px');
-                appEl.style.width = finalW + 'px';
-                boardEl.style.width = '100%';
-
-                const gapPx = Math.max(2, Math.round(finalW / 80)); // 480px일 때 ~6px
-                document.documentElement.style.setProperty('--gap', gapPx + 'px');
-            }
-            window.addEventListener('resize', layoutFit);
-            window.addEventListener('orientationchange', layoutFit);
-            document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(layoutFit, 50); });
-
             /* ====== 기타 이벤트 ====== */
             document.addEventListener('click', (e) => {
                 if (!toast.classList.contains('show')) return;
@@ -1127,19 +1132,36 @@
             }, true);
 
             /* ====== 시작 ====== */
-            preloadImages(IMAGE_URLS).then(() => { init(); });
-
+            preloadImages(IMAGE_URLS).then(() => {
+                console.log("✅ 모든 이미지 프리로드 완료");
+                init();
+            });
         })();
 
         // 🎵 첫 터치/클릭 시 BGM 시작 + 시작 메시지 숨김
-        function startBgm() { if (sounds.bgm && sounds.bgm.paused) { sounds.bgm.play().then(() => { }).catch(() => { }); } }
-        function hideStartMsg() { const m = document.getElementById("startMsg"); if (m) m.classList.add("hide"); }
+        function startBgm() {
+            if (sounds.bgm && sounds.bgm.paused) {
+                sounds.bgm.play().then(() => { console.log("🎶 BGM 시작됨"); }).catch(err => { console.log("🔇 BGM 시작 실패:", err); });
+            }
+        }
+        function hideStartMsg() {
+            const m = document.getElementById("startMsg");
+            if (m) m.classList.add("hide");
+        }
         document.addEventListener("touchstart", () => { startBgm(); hideStartMsg(); }, { once: true });
         document.addEventListener("click", () => { startBgm(); hideStartMsg(); }, { once: true });
 
         // 앱/탭 전환 시 BGM 제어
-        function pauseBgm() { if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) { window.sounds.bgm.pause(); } }
-        function resumeBgm() { if (window.sounds && window.sounds.bgm) { window.sounds.bgm.play().catch(() => { }); } }
+        function pauseBgm() {
+            if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) {
+                window.sounds.bgm.pause();
+            }
+        }
+        function resumeBgm() {
+            if (window.sounds && window.sounds.bgm) {
+                window.sounds.bgm.play().catch(err => console.log("재생 실패:", err));
+            }
+        }
         document.addEventListener("visibilitychange", () => { if (document.hidden) pauseBgm(); else resumeBgm(); });
         window.addEventListener("pagehide", pauseBgm);
         window.addEventListener("pageshow", resumeBgm);
@@ -1148,3 +1170,4 @@
     </script>
 </body>
 </html>
+
