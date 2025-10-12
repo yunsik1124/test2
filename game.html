@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>3매칭</title>
     <style>
         :root {
@@ -93,12 +94,11 @@
         }
 
         #board {
-            width: 90vw;
-            max-width: 480px;
+            width: min(100vw, 540px);
             aspect-ratio: 5/7;
             display: grid;
-            grid-template-columns: repeat(var(--cols),1fr);
-            grid-template-rows: repeat(var(--rows),1fr);
+            grid-template-columns: repeat(var(--cols), 1fr);
+            grid-template-rows: repeat(var(--rows), 1fr);
             gap: var(--gap);
             position: relative;
             margin: 0 auto;
@@ -167,6 +167,7 @@
 
             .tile.spawn {
                 animation: pop .22s ease-out;
+                z-index: 300;
             }
 
             .tile.bump {
@@ -175,6 +176,25 @@
 
             .tile.merge {
                 animation: merge .22s ease-in-out;
+            }
+
+            .tile.moving {
+                z-index: 200;
+                pointer-events: none;
+                box-shadow: 0 4px 12px rgba(70, 211, 255, 0.6);
+                transform: scale(1.1);
+                border: 2px solid var(--accent);
+                border-radius: 12px;
+            }
+
+            .tile.placeholder {
+                position: absolute;
+                inset: 0;
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+                pointer-events: none;
+                z-index: 0;
             }
 
         @keyframes pop {
@@ -215,18 +235,6 @@
             100% {
                 transform: scale(1)
             }
-        }
-
-        .tile.moving {
-            z-index: 100;
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(70, 211, 255, 0.6);
-            transform: scale(1.1);
-            border: 2px solid var(--accent);
-            border-radius: 12px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
         }
 
         #controlBar {
@@ -419,7 +427,7 @@
             <span>턴: <b id="turn">0</b></span>
             <span>다음 소환: <b id="nextSpawn">3</b></span>
             <span>대소환 남음: <b id="megaLeft">5</b></span>
-            <span id="version">v1.5.0</span>
+            <span id="version">v1.7.0</span>
         </div>
     </header>
 
@@ -432,9 +440,9 @@
         </div>
     </div>
 
-    <!-- 중복 제거: #toast 하나만 -->
     <div class="msg" id="toast"></div>
     <div class="msg show" id="startMsg">몬스터 탭!</div>
+
     <div id="resultPopup">
         <div id="resultBox">
             <h2 id="popupTitle">게임 오버</h2>
@@ -454,10 +462,7 @@
             /* ====== 이미지 프리로드 ====== */
             function preloadImages(urls) {
                 return Promise.all(urls.map(src => new Promise(res => {
-                    const img = new Image();
-                    img.onload = res;
-                    img.onerror = res;
-                    img.src = src;
+                    const img = new Image(); img.onload = res; img.onerror = res; img.src = src;
                 })));
             }
             const IMAGE_URLS = [
@@ -501,7 +506,6 @@
             const SPAWN_BATCH = 3;
             const MEGA_INTERVAL = 5;
 
-            // 블럭 이미지 매핑
             const TILE_IMAGES = {
                 1: "images/block-1.png", 3: "images/block-2.png", 9: "images/block-3.png",
                 27: "images/block-4.png", 81: "images/block-5.png", 243: "images/block-6.png",
@@ -523,7 +527,6 @@
                 toast.textContent = t;
                 toast.style.color = k === 'err' ? 'var(--err)' : (k === 'warn' ? 'var(--warn)' : 'var(--fg)');
                 toast.classList.remove('show'); void toast.offsetWidth; toast.classList.add('show');
-                // 🎵 안내문구음
                 try { sounds.toast.currentTime = 0; sounds.toast.play().catch(() => { }); } catch (e) { }
                 if (toastTimer) clearTimeout(toastTimer);
                 toastTimer = setTimeout(() => { toast.classList.remove('show'); toastTimer = null; }, 2000);
@@ -553,6 +556,7 @@
             }
 
             /* ====== 유틸 ====== */
+            const key = (r, c) => `${r},${c}`;
             function cloneGrid(g) { return g.map(r => r.slice()); }
             function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
             function isEmpty(r, c) { return grid[r][c] === 0; }
@@ -562,64 +566,58 @@
             function listEmpty() { const out = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === 0) out.push({ r, c }); return out; }
             function randomValue() { return [1, 1, 1, 1, 3, 3, 9][(Math.random() * 7) | 0]; }
 
+            /* 깜빡임 방지 플레이스홀더 */
+            function addEmptyPlaceholderAt(r, c) {
+                const cell = board.children[r * COLS + c];
+                if (!cell) return;
+                if (cell.querySelector('.placeholder')) return;
+                const ph = document.createElement('div');
+                ph.className = 'tile placeholder';
+                ph.style.backgroundImage = "url('images/empty.png')";
+                cell.appendChild(ph);
+            }
+            function removePlaceholderAt(r, c) {
+                const cell = board.children[r * COLS + c];
+                if (!cell) return;
+                const ph = cell.querySelector('.placeholder');
+                if (ph) ph.remove();
+            }
+
             /* ====== 셀 & 렌더링 ====== */
             function drawCell(r, c, opt = {}) {
                 const idx = r * COLS + c, cell = board.children[idx];
                 cell.classList.toggle('blocked', isBlocked(r, c));
-                const prev = cell.querySelector('.tile'); if (prev) prev.remove();
+                // 모든 타일류 정리(placeholder는 유지)
+                const tiles = cell.querySelectorAll('.tile:not(.placeholder)');
+                tiles.forEach(n => n.remove());
                 const v = grid[r][c];
                 if (v > 0) {
-                    const t = document.createElement('div');
-                    t.className = 'tile'; t.dataset.val = v;
+                    const t = document.createElement('div'); t.className = 'tile'; t.dataset.val = v;
                     if (opt.spawn) t.classList.add('spawn');
                     if (TILE_IMAGES[v]) t.style.backgroundImage = `url(${TILE_IMAGES[v]})`;
                     cell.appendChild(t);
                 } else if (v === -1) {
-                    const b = document.createElement('div');
-                    b.className = 'tile';
-                    b.style.backgroundImage = "url('images/blocked.png')";
-                    cell.appendChild(b);
+                    const b = document.createElement('div'); b.className = 'tile'; b.style.backgroundImage = "url('images/blocked.png')"; cell.appendChild(b);
                 } else {
-                    const e = document.createElement('div');
-                    e.className = 'tile';
-                    e.style.backgroundImage = "url('images/empty.png')";
-                    cell.appendChild(e);
+                    const e = document.createElement('div'); e.className = 'tile'; e.style.backgroundImage = "url('images/empty.png')"; cell.appendChild(e);
                 }
             }
 
-            // 대소환 남음 UI 갱신 (이동/턴 기준)
             function updateMegaLeft() {
-                // 이번 대소환 이후 몇 배치가 지났는지
                 const batchesSinceLastMega = spawnCount % MEGA_INTERVAL;
-
-                // 다음 대소환까지 남은 배치 수(현재 배치 포함)
-                // 방금 대소환 직후(spawnCount%MEGA_INTERVAL===0)에도 MEGA_INTERVAL로 표기
                 const remBatches = (MEGA_INTERVAL - batchesSinceLastMega) || MEGA_INTERVAL;
-
-                // 현재 배치에서 다음 스폰 배치까지 남은 이동 수: untilSpawn
-                // 대소환까지 총 남은 이동 수 = (남은 배치-1)*SPAWN_EVERY + untilSpawn
                 const movesLeft = (remBatches - 1) * SPAWN_EVERY + untilSpawn;
-
                 elMega.textContent = String(movesLeft);
             }
 
-
             function renderAll(spawn = false) {
-                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
-                    drawCell(r, c, { spawn: spawn && isTile(r, c) });
-                elTurn.textContent = String(turn);
-                elNext.textContent = String(untilSpawn);
-                updateMegaLeft();
+                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) drawCell(r, c, { spawn: spawn && isTile(r, c) });
+                elTurn.textContent = String(turn); elNext.textContent = String(untilSpawn); updateMegaLeft();
             }
 
             function highlightSelection() {
-                for (const cell of board.children) {
-                    const t = cell.querySelector('.tile'); if (t) t.classList.remove('sel');
-                }
-                if (selected) {
-                    const tile = board.children[selected.r * COLS + selected.c].querySelector('.tile');
-                    if (tile) tile.classList.add('sel');
-                }
+                for (const cell of board.children) { const t = cell.querySelector('.tile'); if (t) t.classList.remove('sel'); }
+                if (selected) { const tile = board.children[selected.r * COLS + selected.c].querySelector('.tile'); if (tile) tile.classList.add('sel'); }
             }
 
             /* ====== 이동 가능 위치 표시 ====== */
@@ -644,12 +642,10 @@
                     }
                 }
             }
-
             /* ====== 초기화 ====== */
             function init() {
                 askPlayerId();
 
-                // 최고 기록 복원
                 const savedBest = Number(localStorage.getItem("mergeBestScore") || 0);
                 if (!Number.isNaN(savedBest)) bestScore = savedBest;
                 try {
@@ -668,9 +664,7 @@
                 }
                 newGame();
 
-                document.getElementById('btnRestart').addEventListener('click', () => {
-                    popup.classList.remove('show'); newGame();
-                });
+                document.getElementById('btnRestart').addEventListener('click', () => { popup.classList.remove('show'); newGame(); });
                 document.getElementById('btnBack').addEventListener('click', () => { popup.classList.remove('show'); });
                 document.getElementById('btnViewBest').addEventListener('click', () => {
                     if (bestGameState) { renderMiniPopup(bestGameState, playerId, bestScore); }
@@ -679,14 +673,14 @@
                 document.getElementById('btnNew').addEventListener('click', () => { newGame(); });
                 document.getElementById('btnResetId').addEventListener('click', () => { askPlayerId(true); });
 
-                // 수동 랭킹 팝업
                 document.getElementById('btnRankManual').addEventListener('click', () => {
                     popup.classList.add('show');
                     rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
                     loadRanking();
                 });
             }
-            // 경로 하이라이트
+
+            /* 경로 하이라이트 */
             function highlightPath(path) {
                 if (!path || path.length < 2) return;
                 for (let i = 1; i < path.length - 1; i++) {
@@ -694,9 +688,7 @@
                     if (cell) cell.classList.add('path-highlight');
                 }
             }
-            function clearPathHighlight() {
-                board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
-            }
+            function clearPathHighlight() { board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight')); }
 
             /* ====== 이동 ====== */
             function onTapCell() {
@@ -708,12 +700,7 @@
                     selected = { r, c };
                     highlightSelection();
                     showPossibleMoves(r, c);
-
-                    // 이동 가능한 칸이 하나도 없을 때 경고
-                    if (!board.querySelector('.possible-move')) {
-                        info("이동 가능한 곳이 없습니다.", "warn");
-                    }
-
+                    if (!board.querySelector('.possible-move')) info("이동 가능한 곳이 없습니다.", "warn");
                     try { sounds.click.currentTime = 0; sounds.click.play().catch(() => { }); } catch (e) { }
                     return;
                 }
@@ -721,40 +708,17 @@
                 if (isEmpty(r, c) && selected) {
                     const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
                     const reasons = [];
-
                     const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
                     const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
                     const currentGroup = floodSame(from.r, from.c, val);
                     if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
                     if (reasons.length > 0) { info(reasons.join("\n"), "err"); return; }
 
-                    isAnimating = true;
-                    animateMoveTile(from, to, path, () => {
-                        if (gsize >= 3) {
-                            resolveAutoMerges(to);
-                        } else {
-                            try { sounds.move.currentTime = 0; sounds.move.play().catch(() => { }); } catch (e) { }
-                        }
+                    isAnimating = true; // 전체 파이프라인 잠금
 
-                        turn++; untilSpawn--;
-
-                        if (untilSpawn === 0) {
-                            spawnBatch();
-                            untilSpawn = SPAWN_EVERY;
-                        }
-
-                        // ✅ 이동 직후에도 '대소환 남음' 갱신
-                        updateMegaLeft();
-
-                        saveSnapshot();
-                        elTurn.textContent = String(turn);
-                        elNext.textContent = String(untilSpawn);
-                        selected = null;
-                        highlightSelection();
-                        clearPossibleMoves();
-                        isAnimating = false;
-                        checkGameOverSoon();
-
+                    animateMoveTile(from, to, path, async () => {
+                        const pivotIfMerge = (gsize >= 3) ? to : null;
+                        await completeTurnPipeline(pivotIfMerge);
                     });
                 }
             }
@@ -770,10 +734,14 @@
                     return;
                 }
 
+                // 이동 시작 전에 바닥 플레이스홀더 추가(깜빡임 방지)
+                addEmptyPlaceholderAt(from.r, from.c);
+
                 const animatingTile = fromTile.cloneNode(true);
                 animatingTile.classList.add('moving');
                 highlightPath(path);
 
+                // 논리 이동
                 grid[from.r][from.c] = 0;
                 grid[to.r][to.c] = v;
 
@@ -785,14 +753,13 @@
 
                 animateStepByStep(animatingTile, path, 0, () => {
                     animatingTile.remove();
+                    removePlaceholderAt(from.r, from.c);
+
                     drawCell(to.r, to.c);
                     clearPathHighlight();
 
                     const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
-                    if (finalTile) {
-                        finalTile.classList.add('bump');
-                        setTimeout(() => finalTile.classList.remove('bump'), 200);
-                    }
+                    if (finalTile) { finalTile.classList.add('bump'); setTimeout(() => finalTile.classList.remove('bump'), 200); }
                     if (callback) callback();
                 });
             }
@@ -823,8 +790,10 @@
 
             function moveTileInstant(from, to) {
                 const v = grid[from.r][from.c];
+                addEmptyPlaceholderAt(from.r, from.c);
                 grid[from.r][from.c] = 0; grid[to.r][to.c] = v;
-                drawCell(from.r, from.c); drawCell(to.r, to.c);
+                drawCell(from.r, from.c); removePlaceholderAt(from.r, from.c);
+                drawCell(to.r, to.c);
                 const tCell = board.children[to.r * COLS + to.c].querySelector('.tile');
                 if (tCell) { tCell.classList.add('bump'); setTimeout(() => tCell.classList.remove('bump'), 200); }
             }
@@ -854,10 +823,12 @@
                 }
                 return null;
             }
+
             function destAdjacentSame(to, val) {
                 return [[1, 0], [-1, 0], [0, 1], [0, -1]]
                     .some(([dr, dc]) => inBounds(to.r + dr, to.c + dc) && grid[to.r + dr][to.c + dc] === val);
             }
+
             function floodSame(sr, sc, val, g = grid) {
                 const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)), q = [{ r: sr, c: sc }], out = [];
                 vis[sr][sc] = true;
@@ -870,6 +841,7 @@
                 }
                 return out;
             }
+
             function groupSizeIfMoved(from, to, val) {
                 const tmp = cloneGrid(grid);
                 tmp[from.r][from.c] = 0; tmp[to.r][to.c] = val;
@@ -883,14 +855,12 @@
                 popupTitle.textContent = "게임 오버";
                 grid = makeGrid();
 
-                // 불가용칸: 3개 랜덤
                 const blockedCount = 3;
                 placeRandomBlocks(-1, blockedCount);
 
-
                 placeRandomTilesAvoidingTriples(INIT_TILES, 400);
                 renderAll(true);
-                requestAnimationFrame(() => { resolveAutoMerges(); saveSnapshot(); });
+                // 시작 직후 자동 머지 금지(초기 배치에서 3개 회피 로직 사용)
                 turn = 0; untilSpawn = SPAWN_EVERY; spawnCount = 0; selected = null; gameOverShown = false;
                 elTurn.textContent = '0'; elNext.textContent = String(SPAWN_EVERY);
                 updateMegaLeft();
@@ -909,7 +879,7 @@
                     const E = listEmpty(); if (!E.length) break;
                     const p = E[(Math.random() * E.length) | 0], v = randomValue();
                     grid[p.r][p.c] = v;
-                    if (findAnyGroupGE3()) { grid[p.r][p.c] = 0; } else { placed++; }
+                    if (findLowestGroupGE3()) { grid[p.r][p.c] = 0; } else { placed++; }
                     tries++;
                 }
                 if (placed < count) placeRandomTiles(count - placed);
@@ -932,46 +902,173 @@
                 const E = listEmpty(); if (!E.length) return false;
                 const p = E[(Math.random() * E.length) | 0];
                 grid[p.r][p.c] = randomValue();
-                drawCell(p.r, p.c, { spawn: true });
-                resolveAutoMerges();
+                drawCell(p.r, p.c, { spawn: true }); // z-order 최상단
+                // 안전빵: spawn 클래스 보장
+                const t = board.children[p.r * COLS + p.c].querySelector('.tile'); if (t) t.classList.add('spawn');
                 return true;
             }
+            /* ====== 머지 (낮은 숫자 우선, 경로 따라 모션) ====== */
 
-            /* ====== 머지 ====== */
-            function findAnyGroupGE3() {
-                const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-                    const v = grid[r][c]; if (v <= 0 || seen[r][c]) continue;
-                    const comp = floodSame(r, c, v);
-                    for (const p of comp) seen[p.r][p.c] = true;
-                    if (comp.length >= 3) return { val: v, group: comp };
+            // 그룹 내부 4방향 경로 (같은 값의 그룹 칸만 통과, 대각선 금지)
+            function findPathWithinGroup(from, to, groupSet) {
+                const q = [from], prev = new Map(), vis = new Set([key(from.r, from.c)]);
+                const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+                while (q.length) {
+                    const cur = q.shift();
+                    if (cur.r === to.r && cur.c === to.c) {
+                        const path = []; let k = key(cur.r, cur.c);
+                        while (k) { const [rr, cc] = k.split(',').map(Number); path.push({ r: rr, c: cc }); k = prev.get(k); }
+                        path.reverse(); return path;
+                    }
+                    for (const [dr, dc] of dirs) {
+                        const nr = cur.r + dr, nc = cur.c + dc, nk = key(nr, nc);
+                        if (!inBounds(nr, nc) || vis.has(nk)) continue;
+                        if (!groupSet.has(nk)) continue;
+                        vis.add(nk); prev.set(nk, key(cur.r, cur.c)); q.push({ r: nr, c: nc });
+                    }
                 }
                 return null;
             }
-            function resolveAutoMerges(forcePivot = null) {
-                let merged = false;
-                while (true) {
-                    const f = findAnyGroupGE3(); if (!f) break;
-                    const { val, group } = f;
-                    const pivot = forcePivot || group[0];
-                    const absorb = group.filter(p => (p.r !== pivot.r || p.c !== pivot.c)).slice(0, 2);
 
-                    for (const p of absorb) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
-                    grid[pivot.r][pivot.c] = val * 3;
-
-                    const tCell = board.children[pivot.r * COLS + pivot.c].querySelector('.tile');
-                    if (tCell) { tCell.classList.add('merge'); setTimeout(() => tCell.classList.remove('merge'), 240); }
-
-                    drawCell(pivot.r, pivot.c);
-                    merged = true; forcePivot = null;
-
-                    try {
-                        if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); }
-                    } catch (e) { }
-                }
-                if (merged) saveSnapshot();
+            // 폴백: 맨해튼(세로→가로) 직선 경로
+            function manhattanFallbackPath(from, to) {
+                const path = [{ r: from.r, c: from.c }];
+                let r = from.r, c = from.c;
+                while (r !== to.r) { r += (to.r > r ? 1 : -1); path.push({ r, c }); }
+                while (c !== to.c) { c += (to.c > c ? 1 : -1); path.push({ r, c }); }
+                return path;
             }
 
+            // 현재 보드에서 "가장 낮은 값"의 3+ 그룹 하나 찾기
+            function findLowestGroupGE3() {
+                const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+                let best = null;
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const v = grid[r][c];
+                        if (v <= 0 || seen[r][c]) continue;
+                        const comp = floodSame(r, c, v);
+                        for (const p of comp) seen[p.r][p.c] = true;
+                        if (comp.length >= 3) {
+                            if (!best || v < best.val) best = { val: v, group: comp };
+                        }
+                    }
+                }
+                return best;
+            }
+
+            // 그룹 머지 애니메이션(피벗으로 두 개가 길 따라 흡수)
+            function animateGroupMerge(group, pivot, val) {
+                return new Promise((resolve) => {
+                    // 피벗 제외 2개 선택
+                    const absorbers = group.filter(p => !(p.r === pivot.r && p.c === pivot.c)).slice(0, 2);
+                    const gset = new Set(group.map(p => key(p.r, p.c)));
+
+                    // 각 흡수자 경로
+                    const paths = absorbers.map(src => {
+                        let path = findPathWithinGroup(src, pivot, gset);
+                        if (!path || path.length < 2) path = manhattanFallbackPath(src, pivot);
+                        return path;
+                    });
+
+                    // 클론 + 플레이스홀더
+                    const clones = absorbers.map((src, i) => {
+                        const cell = board.children[src.r * COLS + src.c];
+                        const tile = cell.querySelector('.tile');
+                        addEmptyPlaceholderAt(src.r, src.c); // 깜빡임 방지
+                        const clone = tile ? tile.cloneNode(true) : null;
+                        if (tile) tile.style.visibility = 'hidden';
+                        if (clone) {
+                            clone.classList.add('moving');
+                            board.appendChild(clone);
+                            setTilePosition(clone, paths[i][0]);
+                        }
+                        return { src, clone };
+                    });
+
+                    // 경로 하이라이트
+                    paths.forEach(p => highlightPath(p));
+
+                    let finished = 0;
+                    const onOneDone = () => { finished++; if (finished === paths.length) afterAllArrived(); };
+
+                    clones.forEach((pack, i) => {
+                        const cl = pack.clone;
+                        if (!cl) { onOneDone(); return; }
+                        animateStepByStep(cl, paths[i], 0, () => { onOneDone(); });
+                    });
+
+                    function afterAllArrived() {
+                        // 클론 제거 + placeholder 제거
+                        clones.forEach(p => { if (p.clone) p.clone.remove(); });
+                        absorbers.forEach(p => removePlaceholderAt(p.r, p.c));
+
+                        // 실제 머지 적용
+                        for (const p of absorbers) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
+                        grid[pivot.r][pivot.c] = val * 3; drawCell(pivot.r, pivot.c);
+
+                        clearPathHighlight();
+
+                        const tCell = board.children[pivot.r * COLS + pivot.c].querySelector('.tile');
+                        if (tCell) { tCell.classList.add('merge'); setTimeout(() => tCell.classList.remove('merge'), 240); }
+                        try {
+                            if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); }
+                        } catch (e) { }
+
+                        resolve();
+                    }
+                });
+            }
+
+            // 연쇄 머지: "항상 낮은 숫자부터" 한 번에 하나씩 처리
+            async function resolveAutoMergesAsync(forcePivot = null) {
+                while (true) {
+                    let pick;
+                    if (forcePivot) {
+                        // 강제 피벗이 속한 그룹을 우선(낮은 숫자 예외 없이, 첫 스텝만)
+                        const val = grid[forcePivot.r][forcePivot.c];
+                        if (val > 0) {
+                            const group = floodSame(forcePivot.r, forcePivot.c, val);
+                            if (group.length >= 3) {
+                                await animateGroupMerge(group, forcePivot, val);
+                                saveSnapshot();
+                                forcePivot = null;
+                                continue; // 다시 스캔
+                            }
+                        }
+                        forcePivot = null;
+                    }
+                    pick = findLowestGroupGE3();
+                    if (!pick) break;
+                    const { val, group } = pick;
+                    const pivot = group[0]; // 그룹 내 임의(일관성 위해 첫 요소)
+                    await animateGroupMerge(group, pivot, val);
+                    saveSnapshot();
+                }
+            }
+
+            // 한 턴 파이프라인: (1) 머지 → (2) 필요 시 스폰 → (3) 다시 머지
+            async function completeTurnPipeline(pivotOrNull) {
+                await resolveAutoMergesAsync(pivotOrNull);
+
+                // 턴/스폰 처리
+                turn++; untilSpawn--;
+                if (untilSpawn === 0) {
+                    spawnBatch();          // 스폰 먼저
+                    await resolveAutoMergesAsync(null); // 스폰으로 생긴 신규 머지도 수행
+                    untilSpawn = SPAWN_EVERY;
+                }
+
+                // UI, 선택 초기화
+                updateMegaLeft();
+                saveSnapshot();
+                elTurn.textContent = String(turn);
+                elNext.textContent = String(untilSpawn);
+                selected = null; highlightSelection(); clearPossibleMoves();
+
+                isAnimating = false; // 전체 파이프라인 해제
+                checkGameOverSoon();
+            }
             /* ====== 게임오버 ====== */
             function legalMoveExistsForTile(r, c) {
                 const v = grid[r][c]; const currentGroup = floodSame(r, c, v);
@@ -986,8 +1083,7 @@
                 return false;
             }
             function hasAnyMoves() {
-                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
-                    if (grid[r][c] > 0 && legalMoveExistsForTile(r, c)) return true;
+                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] > 0 && legalMoveExistsForTile(r, c)) return true;
                 return false;
             }
             function checkGameOverSoon() {
@@ -1014,8 +1110,7 @@
                 lastGameState = cloneGrid(grid);
 
                 if (total > bestScore) {
-                    bestScore = total;
-                    bestGameState = cloneGrid(grid);
+                    bestScore = total; bestGameState = cloneGrid(grid);
                     localStorage.setItem("mergeBestScore", bestScore);
                     localStorage.setItem("mergeBestState", JSON.stringify(bestGameState));
                 }
@@ -1031,7 +1126,6 @@
                         body: JSON.stringify({ secret: "TEST2", name: playerId, score: total, state: grid }),
                         mode: "no-cors"
                     });
-                    console.log("✅ 저장 요청 보냄");
                 } catch (e) { console.error("❌ POST 오류:", e); }
 
                 loadRanking();
@@ -1040,8 +1134,7 @@
             async function loadRanking() {
                 try {
                     const res = await fetch(`${GAS_URL}?mode=ranking`, { cache: "no-cache" });
-                    let data = [];
-                    try { data = await res.json(); } catch (e) { console.error("❌ JSON 파싱 실패:", e); }
+                    let data = []; try { data = await res.json(); } catch (e) { console.error("❌ JSON 파싱 실패:", e); }
                     renderRanking(Array.isArray(data) ? data.slice(0, 100) : []);
                 } catch (e) {
                     console.error("❌ 랭킹 fetch 실패:", e);
@@ -1052,18 +1145,13 @@
             function renderRanking(rows) {
                 rankingsEl.innerHTML = "";
                 if (!rows || rows.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.style.padding = '10px';
-                    empty.textContent = '랭킹 데이터를 불러오지 못했습니다.';
-                    rankingsEl.appendChild(empty);
-                    return;
+                    const empty = document.createElement('div'); empty.style.padding = '10px'; empty.textContent = '랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return;
                 }
                 rows.forEach((row, i) => {
                     const item = document.createElement('div');
                     item.className = 'rank-item' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '');
                     const left = document.createElement('div'); left.className = 'left';
-                    const crown = document.createElement('span'); crown.className = 'crown'; crown.textContent = (i < 3 ? '👑' : '');
-                    left.appendChild(crown);
+                    const crown = document.createElement('span'); crown.className = 'crown'; crown.textContent = (i < 3 ? '👑' : ''); left.appendChild(crown);
                     const name = document.createElement('span'); name.textContent = `${i + 1}. ${row.name}`; left.appendChild(name);
 
                     const right = document.createElement('div'); right.className = 'right';
@@ -1084,6 +1172,7 @@
                     }
                     const score = document.createElement('span'); score.className = 'score'; score.textContent = `${row.score}`;
                     right.appendChild(score);
+
                     item.appendChild(left); item.appendChild(right); rankingsEl.appendChild(item);
                 });
             }
@@ -1132,11 +1221,9 @@
             }, true);
 
             /* ====== 시작 ====== */
-            preloadImages(IMAGE_URLS).then(() => {
-                console.log("✅ 모든 이미지 프리로드 완료");
-                init();
-            });
-        })();
+            preloadImages(IMAGE_URLS).then(() => { init(); });
+
+        })(); // IIFE 끝
 
         // 🎵 첫 터치/클릭 시 BGM 시작 + 시작 메시지 숨김
         function startBgm() {
@@ -1144,24 +1231,13 @@
                 sounds.bgm.play().then(() => { console.log("🎶 BGM 시작됨"); }).catch(err => { console.log("🔇 BGM 시작 실패:", err); });
             }
         }
-        function hideStartMsg() {
-            const m = document.getElementById("startMsg");
-            if (m) m.classList.add("hide");
-        }
+        function hideStartMsg() { const m = document.getElementById("startMsg"); if (m) m.classList.add("hide"); }
         document.addEventListener("touchstart", () => { startBgm(); hideStartMsg(); }, { once: true });
         document.addEventListener("click", () => { startBgm(); hideStartMsg(); }, { once: true });
 
         // 앱/탭 전환 시 BGM 제어
-        function pauseBgm() {
-            if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) {
-                window.sounds.bgm.pause();
-            }
-        }
-        function resumeBgm() {
-            if (window.sounds && window.sounds.bgm) {
-                window.sounds.bgm.play().catch(err => console.log("재생 실패:", err));
-            }
-        }
+        function pauseBgm() { if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) { sounds.bgm.pause(); } }
+        function resumeBgm() { if (window.sounds && window.sounds.bgm) { sounds.bgm.play().catch(err => console.log("재생 실패:", err)); } }
         document.addEventListener("visibilitychange", () => { if (document.hidden) pauseBgm(); else resumeBgm(); });
         window.addEventListener("pagehide", pauseBgm);
         window.addEventListener("pageshow", resumeBgm);
@@ -1170,4 +1246,3 @@
     </script>
 </body>
 </html>
-
