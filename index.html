@@ -2,8 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>합치다 보니 신이되었다 | Index</title>
 
     <!-- 리소스 프리로드 -->
@@ -13,9 +12,8 @@
 
     <style>
         :root {
-            --btn-offset-y: 200px; /* 화면 중앙 기준 +Y */
+            --btn-offset-y: 200px;
             --btn-max-width: 202px;
-            /* 톤 */
             --sheet-bg: rgba(8,12,18,.84);
             --card-bg: rgba(18,24,32,.9);
             --fg: #e8f0ff;
@@ -23,6 +21,7 @@
             --accent: #46d3ff;
             --ok: #67ff9a;
             --warn: #ffcc4d;
+            --err: #ff6b6b;
         }
 
         * {
@@ -36,10 +35,14 @@
             background: #000;
             overflow: hidden;
             font-family: system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Arial,sans-serif;
-            color: var(--fg)
+            color: var(--fg);
         }
 
-        /* 인덱스 전체 화면 */
+            body.fade-out {
+                transition: opacity .6s ease;
+                opacity: 0;
+            }
+
         #indexScreen {
             position: fixed;
             inset: 0;
@@ -53,47 +56,40 @@
             display: grid;
             place-items: center;
             width: 100%;
-            height: 100%
+            height: 100%;
         }
 
         #startBtn {
             position: relative;
             transform: translateY(var(--btn-offset-y));
-            width: min(56vw, var(--btn-max-width));
+            width: min(56vw,var(--btn-max-width));
             aspect-ratio: 3/1;
             background: url("images/start_btn.png") center/contain no-repeat;
             border: none;
-            outline: none;
             cursor: pointer;
-            padding: 0;
-            margin: 0;
             filter: drop-shadow(0 8px 18px rgba(0,0,0,.55));
             transition: transform .08s ease;
-            touch-action: manipulation;
         }
 
             #startBtn:active {
-                transform: translateY(calc(var(--btn-offset-y) + 2px)) scale(.98)
+                transform: translateY(calc(var(--btn-offset-y) + 2px)) scale(.98);
             }
 
         .sr-only {
             position: absolute !important;
             width: 1px;
             height: 1px;
-            padding: 0;
-            margin: -1px;
             overflow: hidden;
             clip: rect(0,0,0,0);
             white-space: nowrap;
-            border: 0
         }
 
-        /* 사운드 토글(우상단) */
+        /* 상단 UI */
         #soundToggle {
             position: fixed;
             right: 14px;
             top: 14px;
-            z-index: 5;
+            z-index: 6;
             width: 48px;
             height: 48px;
             display: grid;
@@ -101,23 +97,15 @@
             border-radius: 12px;
             background: rgba(0,0,0,.38);
             color: #e8f0ff;
-            backdrop-filter: blur(6px);
             font-size: 22px;
-            user-select: none;
             cursor: pointer;
             border: 1px solid rgba(255,255,255,.15);
         }
 
-            #soundToggle[aria-pressed="true"] .icon {
-                opacity: .5
-            }
-
-        /* 랭킹 열기 버튼(좌상단) */
-        #rankOpenBtn {
+        #rankOpenBtn, #tipOpenBtn {
             position: fixed;
             left: 14px;
-            top: 14px;
-            z-index: 5;
+            z-index: 6;
             height: 48px;
             padding: 0 14px;
             border-radius: 12px;
@@ -129,26 +117,131 @@
             align-items: center;
             gap: 8px;
             font-weight: 700;
-            letter-spacing: .2px;
             cursor: pointer;
         }
 
-            #rankOpenBtn .badge {
-                font-size: 12px;
-                padding: 2px 8px;
-                border-radius: 999px;
-                background: rgba(70,211,255,.2);
-                color: var(--accent);
-                border: 1px solid rgba(70,211,255,.35);
-            }
-
-        /* 페이드 아웃 */
-        body.fade-out {
-            transition: opacity .6s ease;
-            opacity: 0
+        #rankOpenBtn {
+            top: 14px;
         }
 
-        /* ===== 랭킹 시트 ===== */
+        #tipOpenBtn {
+            top: 70px;
+        }
+
+        #rankOpenBtn .badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(70,211,255,.2);
+            color: var(--accent);
+            border: 1px solid rgba(70,211,255,.35);
+        }
+
+        /* 중앙 ID */
+        #idBadge {
+            position: fixed;
+            left: 50%;
+            top: 14px;
+            transform: translateX(-50%);
+            z-index: 6;
+            height: 48px;
+            max-width: min(70vw,560px);
+            padding: 0 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: rgba(0,0,0,.42);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+        }
+
+            #idBadge .label {
+                color: var(--muted);
+                font-weight: 700;
+                font-size: 12px;
+            }
+
+            #idBadge .edit {
+                margin-left: auto;
+                padding: 6px 10px;
+                border-radius: 999px;
+                cursor: pointer;
+                border: 1px solid rgba(255,255,255,.14);
+                background: rgba(255,255,255,.06);
+                font-size: 12px;
+            }
+
+        /* 모달 공통 */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.6);
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: .2s;
+        }
+
+            .modal-backdrop.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+        .modal {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%,-50%) scale(.98);
+            z-index: 21;
+            width: min(92vw,520px);
+            background: var(--sheet-bg);
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: .2s;
+        }
+
+            .modal.open {
+                opacity: 1;
+                pointer-events: auto;
+                transform: translate(-50%,-50%) scale(1);
+            }
+
+            .modal .hd {
+                padding: 14px 16px 8px;
+                text-align: center;
+                font-weight: 900;
+                font-size: 18px;
+            }
+
+            .modal .body {
+                padding: 0 16px 16px;
+                text-align: center;
+            }
+
+            .modal .ft {
+                padding: 12px 16px 16px;
+                text-align: center;
+            }
+
+        .btn {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.18);
+            background: rgba(255,255,255,.08);
+            color: var(--fg);
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+            .btn.ok {
+                background: rgba(103,255,154,.14);
+                border-color: rgba(103,255,154,.5);
+            }
+
+        /* 랭킹 시트 */
         .sheet-backdrop {
             position: fixed;
             inset: 0;
@@ -156,12 +249,12 @@
             z-index: 10;
             opacity: 0;
             pointer-events: none;
-            transition: opacity .18s ease;
+            transition: .18s;
         }
 
             .sheet-backdrop.open {
                 opacity: 1;
-                pointer-events: auto
+                pointer-events: auto;
             }
 
         .sheet {
@@ -169,18 +262,18 @@
             inset: auto 0 0 0;
             z-index: 11;
             background: var(--sheet-bg);
-            backdrop-filter: blur(10px);
             border-radius: 18px 18px 0 0;
             transform: translateY(100%);
-            transition: transform .28s ease;
+            transition: .28s;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 -12px 28px rgba(0,0,0,.35);
+            backdrop-filter: blur(10px);
         }
 
             .sheet.open {
-                transform: translateY(0)
+                transform: translateY(0);
             }
 
         .sheet-header {
@@ -194,15 +287,14 @@
         .sheet-title {
             font-weight: 800;
             font-size: 18px;
-            letter-spacing: .2px
+            letter-spacing: .2px;
         }
 
         .sheet-sub {
             color: var(--muted);
-            font-size: 12px
+            font-size: 12px;
         }
 
-        /* 닫기(X) 버튼 가시성 업그레이드 */
         .sheet-close {
             position: absolute;
             right: 10px;
@@ -212,39 +304,28 @@
             border-radius: 14px;
             display: grid;
             place-items: center;
-            cursor: pointer;
             background: rgba(255,255,255,.12);
             border: 2px solid rgba(255,255,255,.95);
-            box-shadow: 0 4px 18px rgba(0,0,0,.45), inset 0 0 0 2px rgba(70,211,255,.45);
-            color: #ffffff;
-            font-weight: 900;
+            color: #fff;
             font-size: 22px;
-            transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+            font-weight: 900;
+            cursor: pointer;
         }
-
-            .sheet-close:hover,
-            .sheet-close:focus-visible {
-                transform: scale(1.06);
-                background: rgba(255,255,255,.2);
-                box-shadow: 0 10px 26px rgba(0,0,0,.6), inset 0 0 0 2px rgba(70,211,255,.8);
-                outline: none;
-            }
 
         .pill-tabs {
             display: flex;
             gap: 8px;
             padding: 0 16px 12px 16px;
-            flex-wrap: wrap
+            flex-wrap: wrap;
         }
 
         .pill {
             padding: 8px 12px;
             border-radius: 999px;
-            cursor: pointer;
-            user-select: none;
             background: rgba(255,255,255,.06);
             border: 1px solid rgba(255,255,255,.1);
             color: var(--muted);
+            cursor: pointer;
             font-weight: 700;
             font-size: 13px;
         }
@@ -252,14 +333,14 @@
             .pill.active {
                 color: var(--accent);
                 border-color: rgba(70,211,255,.4);
-                background: rgba(70,211,255,.08)
+                background: rgba(70,211,255,.08);
             }
 
         .sheet-body {
             min-height: 200px;
             overflow: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 0 16px 20px 16px
+            padding: 0 16px 20px 16px;
         }
 
         .today-card {
@@ -276,7 +357,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px
+            gap: 8px;
         }
 
         .date-badge {
@@ -285,35 +366,34 @@
             border-radius: 999px;
             background: rgba(255,255,255,.06);
             border: 1px solid rgba(255,255,255,.1);
-            color: #cfe2ff
+            color: #cfe2ff;
         }
 
         .big-id {
             font-weight: 900;
             font-size: 18px;
-            letter-spacing: .2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 8px
         }
 
         .score {
             font-weight: 800;
+            color: #9affc0;
             font-variant-numeric: tabular-nums;
-            color: #9affc0
         }
 
         .note {
             color: var(--muted);
-            font-size: 12px
+            font-size: 12px;
         }
 
         .list {
             display: grid;
-            gap: 10px
+            gap: 10px;
         }
 
         .item {
@@ -330,98 +410,82 @@
             .item .left {
                 min-width: 0;
                 display: grid;
-                gap: 2px
+                gap: 2px;
             }
 
             .item .date {
                 font-size: 12px;
-                color: #cde0ff
+                color: #cde0ff;
             }
 
             .item .pid {
                 font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 8px;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
-                display: flex;
-                align-items: center;
-                gap: 8px
             }
 
             .item .rscore {
                 font-weight: 800;
                 color: #96ffc0;
-                font-variant-numeric: tabular-nums
+                font-variant-numeric: tabular-nums;
             }
 
-        /* 아이콘(왕관) */
         .medal {
-            display: inline-block;
             width: 18px;
             aspect-ratio: 1/1;
-            flex: 0 0 auto;
             filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
-            vertical-align: -3px;
         }
 
         .empty {
             padding: 14px;
-            border-radius: 12px;
             text-align: center;
             color: var(--muted);
             border: 1px dashed rgba(255,255,255,.15);
             background: rgba(255,255,255,.03);
+            border-radius: 12px;
         }
 
-        /* iOS 하단 안전영역 */
         .safe-bottom {
-            height: max(12px, env(safe-area-inset-bottom))
+            height: max(12px,env(safe-area-inset-bottom));
         }
     </style>
 </head>
+
 <body>
     <noscript>이 게임을 실행하려면 JavaScript가 필요합니다.</noscript>
 
-    <div id="indexScreen" aria-label="타이틀 화면">
-        <!-- 좌상단: 랭킹 열기 -->
-        <button id="rankOpenBtn" aria-label="랭킹 보기">
-            <span>🏆 랭킹</span>
-            <span class="badge">Daily</span>
-        </button>
-
-        <!-- 우상단: 사운드 토글 -->
-        <div id="soundToggle" role="button" aria-pressed="false" aria-label="사운드 토글">
-            <span class="icon">🔊</span>
+    <div id="indexScreen">
+        <button id="rankOpenBtn"><span>🏆 랭킹</span><span class="badge">Daily</span></button>
+        <button id="tipOpenBtn"><span>🎮 게임 팁</span></button>
+        <div id="idBadge">
+            <span class="label">현재 ID</span><span class="pid" id="currentId">—</span>
+            <button class="edit" id="editIdBtn">✏️ Edit</button>
         </div>
-
-        <!-- 중앙 스택 -->
-        <div class="centerStack">
-            <button id="startBtn" aria-label="게임 시작">
-                <span class="sr-only">START</span>
-            </button>
-        </div>
+        <div id="soundToggle" role="button" aria-pressed="false"><span class="icon">🔊</span></div>
+        <div class="centerStack"><button id="startBtn"><span class="sr-only">START</span></button></div>
     </div>
 
     <!-- 랭킹 시트 -->
-    <div id="sheetBackdrop" class="sheet-backdrop" aria-hidden="true"></div>
-    <section id="rankSheet" class="sheet" aria-modal="true" role="dialog" aria-label="일일 Top 랭킹">
+    <div id="sheetBackdrop" class="sheet-backdrop"></div>
+    <section id="rankSheet" class="sheet">
         <header class="sheet-header">
             <div>
                 <div class="sheet-title">일일 TOP</div>
                 <div class="sheet-sub">하루 1명(최고 점수) · 날짜별 열람</div>
             </div>
-            <button class="sheet-close" id="sheetClose" aria-label="닫기" title="닫기(ESC)">✕</button>
+            <button class="sheet-close" id="sheetClose">✕</button>
         </header>
-
-        <nav class="pill-tabs" role="tablist" aria-label="랭킹 탭">
-            <div class="pill active" role="tab" aria-selected="true" data-tab="today">오늘</div>
-            <div class="pill" role="tab" aria-selected="false" data-tab="bydate">날짜별</div>
+        <nav class="pill-tabs">
+            <div class="pill active" data-tab="today">오늘</div>
+            <div class="pill" data-tab="bydate">날짜별</div>
         </nav>
-
         <div class="sheet-body">
-            <!-- 오늘 TOP -->
             <div id="tab-today">
-                <div class="today-card" id="todayCard">
+                <div class="today-card">
                     <div class="row">
                         <span class="date-badge" id="todayBadge">—</span>
                         <span class="score" id="todayScore"></span>
@@ -430,8 +494,6 @@
                     <div class="note">플레이 유도 코멘트, 혹은 공지사항</div>
                 </div>
             </div>
-
-            <!-- 날짜별 리스트(세로 스크롤) -->
             <div id="tab-bydate" style="display:none">
                 <div class="list" id="dateList"></div>
                 <div class="safe-bottom"></div>
@@ -439,270 +501,146 @@
         </div>
     </section>
 
-    <!-- BGM -->
+    <!-- 팁 모달 -->
+    <div id="tipModalBackdrop" class="modal-backdrop"></div>
+    <section id="tipModal" class="modal">
+        <div class="hd">게임 팁</div>
+        <div class="body">
+            <p>이 게임은 더 이상 이동할 블럭이 없을 때 종료됩니다.</p>
+            <p>4개 이상을 모아도 3개만 합쳐집니다.</p>
+            <p>최대한 비효율적으로 운영하면서 생존해보세요.</p>
+        </div>
+        <div class="ft"><button id="tipCloseBtn" class="btn ok">확인</button></div>
+    </section>
+
     <audio id="bgm" src="sounds/mainmap_bgm.mp3" preload="auto" loop></audio>
 
     <script>
-        // ====== 요소 ======
-        const bgm = document.getElementById('bgm');
-        const startBtn = document.getElementById('startBtn');
-        const soundToggle = document.getElementById('soundToggle');
-        const rankOpenBtn = document.getElementById('rankOpenBtn');
+        const bgm = document.getElementById('bgm'),
+            startBtn = document.getElementById('startBtn'),
+            soundToggle = document.getElementById('soundToggle');
+        const tipOpenBtn = document.getElementById('tipOpenBtn'),
+            tipModal = document.getElementById('tipModal'),
+            tipModalBackdrop = document.getElementById('tipModalBackdrop'),
+            tipCloseBtn = document.getElementById('tipCloseBtn');
+        const currentIdEl = document.getElementById('currentId'),
+            editIdBtn = document.getElementById('editIdBtn');
 
-        const sheet = document.getElementById('rankSheet');
-        const backdrop = document.getElementById('sheetBackdrop');
-        const sheetClose = document.getElementById('sheetClose');
-        const pills = Array.from(document.querySelectorAll('.pill'));
-        const tabToday = document.getElementById('tab-today');
-        const tabByDate = document.getElementById('tab-bydate');
+        /* ===== ID 저장 키 (인게임과 동일 키로 유지) ===== */
+        const PID_KEY = "mergePlayerId";
+        function getPID() { return (localStorage.getItem(PID_KEY) || "").trim(); }
+        function setPID(v) { const t = String(v || "").trim(); if (!t) return; localStorage.setItem(PID_KEY, t); refreshIdBadge(); }
+        function refreshIdBadge() { currentIdEl.textContent = getPID() || '미설정'; }
 
-        const todayBadge = document.getElementById('todayBadge');
-        const todayId = document.getElementById('todayId');
-        const todayScore = document.getElementById('todayScore');
-        const dateList = document.getElementById('dateList');
-
-        // ====== 로컬 스토리지 키 ======
-        const LS = {
-            MUTED: 'merge_bgm_muted_v1',
-            VOL: 'merge_bgm_vol_v1'
-        };
-
-        // ====== GAS API 엔드포인트 ======
-        const RANK_API = 'https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec';
-
-        // ====== 사운드 초기화 ======
-        let isMuted = localStorage.getItem(LS.MUTED) === '1';
-        let vol = parseFloat(localStorage.getItem(LS.VOL) || '0.8');
+        /* ===== 사운드 토글 ===== */
+        let isMuted = localStorage.getItem("merge_bgm_muted_v1") === '1';
+        let vol = parseFloat(localStorage.getItem("merge_bgm_vol_v1") || '0.8');
         if (Number.isNaN(vol)) vol = 0.8;
-        bgm.volume = isMuted ? 0 : vol;
-        bgm.muted = isMuted;
-        updateSoundToggle();
+        bgm.volume = isMuted ? 0 : vol; bgm.muted = isMuted;
 
         function updateSoundToggle() {
             soundToggle.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
             soundToggle.querySelector('.icon').textContent = isMuted ? '🔈' : '🔊';
         }
+        updateSoundToggle();
 
         async function ensureBgmPlay() {
-            try {
-                bgm.muted = isMuted;
-                if (bgm.paused) await bgm.play();
-            } catch (e) {
-                // 모바일 정책 등으로 막힐 수 있음
-                console.warn('BGM play blocked:', e);
-            }
+            try { bgm.muted = isMuted; if (bgm.paused) await bgm.play(); } catch (e) { console.warn('BGM play blocked', e); }
         }
-
-        // ====== 어떤 버튼이든 누르면 BGM 보장 재생 ======
-        const interactiveSelector = 'button,[role="button"],.pill,.item';
-        document.addEventListener('pointerdown', (e) => {
-            if (e.target.closest(interactiveSelector)) ensureBgmPlay();
-        }, { passive: true });
-        document.addEventListener('keydown', (e) => {
-            // 스페이스/엔터 입력으로 조작 시도 시도
-            if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.matches(interactiveSelector)) {
-                ensureBgmPlay();
-            }
-        });
-
-        // ====== 토글 ======
         soundToggle.addEventListener('click', () => {
             isMuted = !isMuted;
-            localStorage.setItem(LS.MUTED, isMuted ? '1' : '0');
+            localStorage.setItem("merge_bgm_muted_v1", isMuted ? '1' : '0');
             bgm.muted = isMuted;
             updateSoundToggle();
             if (!isMuted && bgm.paused) ensureBgmPlay();
         });
+        document.addEventListener('pointerdown', e => { if (e.target.closest('button')) ensureBgmPlay(); });
 
-        // 시작 버튼
-        startBtn.addEventListener('click', async () => {
-            await ensureBgmPlay();
-            document.body.classList.add('fade-out');
-            setTimeout(() => { window.location.href = 'game.html'; }, 600);
-        });
+        /* ===== 팁 모달 ===== */
+        function openTipModal() { tipModal.classList.add('open'); tipModalBackdrop.classList.add('open'); }
+        function closeTipModal() { tipModal.classList.remove('open'); tipModalBackdrop.classList.remove('open'); }
+        tipOpenBtn.addEventListener('click', openTipModal);
+        tipCloseBtn.addEventListener('click', closeTipModal);
+        tipModalBackdrop.addEventListener('click', closeTipModal);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTipModal(); });
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                if (!bgm.paused) bgm.pause();
-            } else {
-                if (!isMuted) ensureBgmPlay();
+        /* ===== ID 입력 (인게임과 동일한 prompt 문구) ===== */
+        function openIdModal(force = false) {
+            let pid = getPID();
+            if (!pid || force) {
+                let input = "";
+                while (!input) {
+                    input = prompt("플레이어 아이디를 입력하세요:");
+                    if (input === null) break;
+                    input = input.trim();
+                }
+                if (input) setPID(input);
             }
-        });
+        }
+        editIdBtn.addEventListener('click', () => openIdModal(true));
 
-        // ====== 유틸 ======
-        const tz = 'Asia/Seoul';
-        function todayStr() {
-            const d = new Date();
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-        }
-        function fmtK(dateStr) {
-            const d = new Date(dateStr + 'T00:00:00');
-            const f = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeZone: tz });
-            return f.format(d);
-        }
-        function number(n) { return new Intl.NumberFormat('ko-KR').format(n) }
-        function esc(s = '') { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+        /* ===== 랭킹 시트 ===== */
+        const rankOpenBtn = document.getElementById('rankOpenBtn');
+        const sheet = document.getElementById('rankSheet'),
+            backdrop = document.getElementById('sheetBackdrop'),
+            sheetClose = document.getElementById('sheetClose');
+        const pills = Array.from(document.querySelectorAll('.pill')),
+            tabToday = document.getElementById('tab-today'),
+            tabByDate = document.getElementById('tab-bydate');
+        const todayBadge = document.getElementById('todayBadge'),
+            todayId = document.getElementById('todayId'),
+            todayScore = document.getElementById('todayScore'),
+            dateList = document.getElementById('dateList');
 
-        // 왕관 SVG (인라인)
-        const CROWN_SVG = `
-            <svg class="medal" viewBox="0 0 24 24" aria-hidden="true">
-                <defs>
-                    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stop-color="#FFD95A"/>
-                        <stop offset="1" stop-color="#FFB200"/>
-                    </linearGradient>
-                </defs>
-                <path fill="url(#g)" d="M4 8l4 3 4-6 4 6 4-3v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z"/>
-                <rect x="5" y="16" width="14" height="3" rx="1" fill="rgba(255,255,255,.35)"/>
-            </svg>`.trim();
+        const RANK_API = 'https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec';
 
-        // 최근 n일 기본 골격
-        function buildRecentDays(n = 30) {
-            const arr = [];
-            const base = new Date();
-            for (let i = 0; i < n; i++) {
-                const d = new Date(base);
-                d.setDate(base.getDate() - i);
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                arr.push({ date: `${y}-${m}-${day}`, id: null, score: null });
-            }
-            return arr;
-        }
-
-        // ====== 랭킹 패널 열고 닫기 ======
-        function openSheet() {
-            backdrop.classList.add('open');
-            sheet.classList.add('open');
-            backdrop.setAttribute('aria-hidden', 'false');
-        }
-        function closeSheet() {
-            sheet.classList.remove('open');
-            backdrop.classList.remove('open');
-            backdrop.setAttribute('aria-hidden', 'true');
-        }
+        function openSheet() { backdrop.classList.add('open'); sheet.classList.add('open'); }
+        function closeSheet() { sheet.classList.remove('open'); backdrop.classList.remove('open'); }
         rankOpenBtn.addEventListener('click', openSheet);
         sheetClose.addEventListener('click', closeSheet);
         backdrop.addEventListener('click', closeSheet);
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet() });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
-        // 탭 전환
-        pills.forEach(p => {
-            p.addEventListener('click', () => {
-                pills.forEach(x => x.classList.remove('active'));
-                p.classList.add('active');
-                const tab = p.dataset.tab;
-                tabToday.style.display = (tab === 'today') ? '' : 'none';
-                tabByDate.style.display = (tab === 'bydate') ? '' : 'none';
-            });
+        pills.forEach(p => p.addEventListener('click', () => {
+            pills.forEach(x => x.classList.remove('active'));
+            p.classList.add('active');
+            const tab = p.dataset.tab;
+            tabToday.style.display = (tab === 'today') ? '' : 'none';
+            tabByDate.style.display = (tab === 'bydate') ? '' : 'none';
+        }));
+
+        const tz = 'Asia/Seoul';
+        function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function fmtK(dateStr) { const d = new Date(dateStr + 'T00:00:00'); return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeZone: tz }).format(d); }
+        function number(n) { return new Intl.NumberFormat('ko-KR').format(n); }
+        function esc(s = '') { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+        const CROWN_SVG = `<svg class="medal" viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD95A"/><stop offset="1" stop-color="#FFB200"/></linearGradient></defs><path fill="url(#g)" d="M4 8l4 3 4-6 4 6 4-3v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z"/><rect x="5" y="16" width="14" height="3" rx="1" fill="rgba(255,255,255,.35)"/></svg>`;
+
+        function buildRecentDays(n = 30) { const arr = [], base = new Date(); for (let i = 0; i < n; i++) { const d = new Date(base); d.setDate(base.getDate() - i); arr.push({ date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, id: null, score: null }); } return arr; }
+        async function fetchDailyTop(limit = 60) { const res = await fetch(`${RANK_API}?mode=dailyTop&limit=${limit}`, { cache: 'no-store' }); const json = await res.json(); return Array.isArray(json.data) ? json.data : []; }
+        function renderToday(map) { const t = todayStr(), r = map.get(t); todayBadge.textContent = fmtK(t); if (r && r.id) { todayId.innerHTML = `${CROWN_SVG}<span>${esc(r.id)}</span>`; todayScore.textContent = r.score ? `${number(r.score)}점` : ''; } else { todayId.textContent = '기록 없음'; todayScore.textContent = ''; } }
+        function renderDateList(rows) { dateList.innerHTML = ''; if (!rows.length) { dateList.innerHTML = '<div class="empty">기록이 없습니다.</div>'; return; } const f = document.createDocumentFragment(); rows.forEach(r => { const el = document.createElement('div'); el.className = 'item'; el.innerHTML = `<div class="left"><div class="date">${fmtK(r.date)}</div><div class="pid">${r.id ? CROWN_SVG + '<span>' + esc(r.id) + '</span>' : '—'}</div></div><div class="rscore">${r.score ? number(r.score) : ''}</div>`; f.appendChild(el); }); dateList.appendChild(f); }
+        async function loadRanking() { const base = buildRecentDays(60), map = new Map(base.map(r => [r.date, r])); try { const apiRows = await fetchDailyTop(60); apiRows.forEach(x => { const d = x.date?.slice(0, 10); if (!d) return; if (map.has(d)) { const t = map.get(d); t.id = x.id || t.id; t.score = parseInt(x.score || '') || null; } else { map.set(d, { date: d, id: x.id || null, score: x.score || null }); } }); } catch (e) { console.warn('랭킹 로드 실패:', e); } renderToday(map); renderDateList(Array.from(map.values()).sort((a, b) => a.date < b.date ? 1 : -1)); }
+
+        /* ===== START 버튼 → 인게임 진입 ===== */
+        startBtn.addEventListener('click', () => {
+            document.body.classList.add('fade-out');
+            setTimeout(() => { window.location.href = "game.html"; }, 400); // 인게임 파일명
         });
 
-        // ====== 데이터 로드 ======
-        async function fetchDailyTop(limit = 60) {
-            const url = `${RANK_API}?mode=dailyTop&limit=${limit}`;
-            const res = await fetch(url, { cache: 'no-store' });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const json = await res.json();
-            if (!json || json.ok === false) throw new Error('API fail');
-            return Array.isArray(json.data) ? json.data : [];
-        }
-
-        function renderToday(dataByDateMap) {
-            const t = todayStr();
-            const row = dataByDateMap.get(t);
-            todayBadge.textContent = fmtK(t);
-            if (row && row.id) {
-                todayId.innerHTML = `${CROWN_SVG}<span>${esc(row.id)}</span>`;
-                todayScore.textContent = row.score != null ? `${number(row.score)}점` : '';
+        /* ===== 초기 진입 플로우 ===== */
+        window.addEventListener('load', () => {
+            refreshIdBadge();
+            if (!getPID()) {
+                openIdModal(true);
+                const chk = setInterval(() => {
+                    if (getPID()) { clearInterval(chk); openSheet(); loadRanking(); }
+                }, 300);
             } else {
-                todayId.textContent = '기록 없음';
-                todayScore.textContent = '';
+                openSheet();
+                loadRanking();
             }
-        }
-
-        function renderDateList(rows) {
-            dateList.innerHTML = '';
-            if (!rows.length) {
-                dateList.innerHTML = `<div class="empty">기록이 없습니다.</div>`;
-                return;
-            }
-            const frag = document.createDocumentFragment();
-            rows.forEach(r => {
-                const el = document.createElement('div');
-                el.className = 'item';
-
-                const left = document.createElement('div');
-                left.className = 'left';
-
-                const d1 = document.createElement('div');
-                d1.className = 'date';
-                d1.textContent = fmtK(r.date);
-
-                const d2 = document.createElement('div');
-                d2.className = 'pid';
-                d2.innerHTML = r.id ? `${CROWN_SVG}<span>${esc(r.id)}</span>` : '—';
-
-                left.appendChild(d1); left.appendChild(d2);
-
-                const right = document.createElement('div');
-                right.className = 'rscore';
-                right.textContent = (r.score != null) ? `${number(r.score)}` : '';
-
-                el.appendChild(left);
-                el.appendChild(right);
-
-                // 클릭 시 ID 복사 피드백
-                el.addEventListener('click', () => {
-                    if (r.id) {
-                        navigator.clipboard?.writeText(r.id).catch(() => { });
-                        el.style.outline = '2px solid rgba(70,211,255,.6)';
-                        setTimeout(() => { el.style.outline = 'none' }, 500);
-                    }
-                });
-
-                frag.appendChild(el);
-            });
-            dateList.appendChild(frag);
-        }
-
-        async function loadRanking() {
-            const base = buildRecentDays(60);
-            const map = new Map(base.map(r => [r.date, r]));
-            try {
-                const apiRows = await fetchDailyTop(60);
-                apiRows.forEach(x => {
-                    const d = x.date?.slice(0, 10);
-                    if (!d) return;
-                    if (map.has(d)) {
-                        const t = map.get(d);
-                        t.id = x.id ?? t.id;
-                        t.score = (typeof x.score === 'number' ? x.score : parseInt(x.score || ''));
-                    } else {
-                        map.set(d, { date: d, id: x.id || null, score: x.score || null });
-                    }
-                });
-            } catch (e) {
-                console.warn('랭킹 로드 실패:', e);
-            }
-
-            renderToday(map);
-            const rows = Array.from(map.values()).sort((a, b) => a.date < b.date ? 1 : -1);
-            renderDateList(rows);
-        }
-
-        // ====== 최초 동작 ======
-        (async function init() {
-            // 랭킹 시트 먼저 오픈
-            openSheet();
-
-            // 동시에 데이터 로드 시작 (비동기)
-            loadRanking();
-        })();
-
+        });
     </script>
 </body>
 </html>
