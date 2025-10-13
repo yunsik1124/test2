@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>합치다 보니 신이되었다 | Index</title>
 
     <!-- 리소스 프리로드 -->
@@ -26,7 +27,7 @@
 
         * {
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent
+            -webkit-tap-highlight-color: transparent;
         }
 
         html, body {
@@ -84,24 +85,7 @@
             white-space: nowrap;
         }
 
-        /* 상단 UI */
-        #soundToggle {
-            position: fixed;
-            right: 14px;
-            top: 14px;
-            z-index: 6;
-            width: 48px;
-            height: 48px;
-            display: grid;
-            place-items: center;
-            border-radius: 12px;
-            background: rgba(0,0,0,.38);
-            color: #e8f0ff;
-            font-size: 22px;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,.15);
-        }
-
+        /* 좌상단 버튼 */
         #rankOpenBtn, #tipOpenBtn {
             position: fixed;
             left: 14px;
@@ -137,12 +121,11 @@
             border: 1px solid rgba(70,211,255,.35);
         }
 
-        /* 중앙 ID */
+        /* 우상단 ID */
         #idBadge {
             position: fixed;
-            left: 50%;
+            right: 14px;
             top: 14px;
-            transform: translateX(-50%);
             z-index: 6;
             height: 48px;
             max-width: min(70vw,560px);
@@ -170,20 +153,21 @@
                 border: 1px solid rgba(255,255,255,.14);
                 background: rgba(255,255,255,.06);
                 font-size: 12px;
+                color: #fff; /* 화이트 폰트 */
             }
 
-        /* 모달 공통 */
-        .modal-backdrop {
+        /* 공통 모달/시트 */
+        .modal-backdrop, .sheet-backdrop {
             position: fixed;
             inset: 0;
             background: rgba(0,0,0,.6);
-            z-index: 20;
+            z-index: 10; /* 랭킹창 아래로 내려줌 */
             opacity: 0;
             pointer-events: none;
             transition: .2s;
         }
 
-            .modal-backdrop.open {
+            .modal-backdrop.open, .sheet-backdrop.open {
                 opacity: 1;
                 pointer-events: auto;
             }
@@ -241,26 +225,12 @@
                 border-color: rgba(103,255,154,.5);
             }
 
-        /* 랭킹 시트 */
-        .sheet-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 10;
-            opacity: 0;
-            pointer-events: none;
-            transition: .18s;
-        }
-
-            .sheet-backdrop.open {
-                opacity: 1;
-                pointer-events: auto;
-            }
-
+        /* 시트 (랭킹) */
         .sheet {
             position: fixed;
             inset: auto 0 0 0;
-            z-index: 11;
+            z-index: 20; /* 딤드보다 위로 올림 */
+    background: var(--sheet-bg);
             background: var(--sheet-bg);
             border-radius: 18px 18px 0 0;
             transform: translateY(100%);
@@ -278,7 +248,7 @@
 
         .sheet-header {
             position: relative;
-            padding: 14px 16px 8px 16px;
+            padding: 14px 16px 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -315,7 +285,7 @@
         .pill-tabs {
             display: flex;
             gap: 8px;
-            padding: 0 16px 12px 16px;
+            padding: 0 16px 12px;
             flex-wrap: wrap;
         }
 
@@ -339,8 +309,7 @@
         .sheet-body {
             min-height: 200px;
             overflow: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 0 16px 20px 16px;
+            padding: 0 16px 20px;
         }
 
         .today-card {
@@ -348,7 +317,7 @@
             border: 1px solid rgba(255,255,255,.08);
             border-radius: 16px;
             padding: 14px;
-            margin: 0 0 14px 0;
+            margin: 0 0 14px;
             display: grid;
             gap: 10px;
         }
@@ -376,8 +345,6 @@
             align-items: center;
             gap: 8px;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .score {
@@ -424,8 +391,6 @@
                 align-items: center;
                 gap: 8px;
                 overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
             }
 
             .item .rscore {
@@ -454,7 +419,6 @@
         }
     </style>
 </head>
-
 <body>
     <noscript>이 게임을 실행하려면 JavaScript가 필요합니다.</noscript>
 
@@ -465,7 +429,6 @@
             <span class="label">현재 ID</span><span class="pid" id="currentId">—</span>
             <button class="edit" id="editIdBtn">✏️ Edit</button>
         </div>
-        <div id="soundToggle" role="button" aria-pressed="false"><span class="icon">🔊</span></div>
         <div class="centerStack"><button id="startBtn"><span class="sr-only">START</span></button></div>
     </div>
 
@@ -517,8 +480,7 @@
 
     <script>
         const bgm = document.getElementById('bgm'),
-            startBtn = document.getElementById('startBtn'),
-            soundToggle = document.getElementById('soundToggle');
+            startBtn = document.getElementById('startBtn');
         const tipOpenBtn = document.getElementById('tipOpenBtn'),
             tipModal = document.getElementById('tipModal'),
             tipModalBackdrop = document.getElementById('tipModalBackdrop'),
@@ -526,35 +488,11 @@
         const currentIdEl = document.getElementById('currentId'),
             editIdBtn = document.getElementById('editIdBtn');
 
-        /* ===== ID 저장 키 (인게임과 동일 키로 유지) ===== */
+        /* ===== ID 저장 ===== */
         const PID_KEY = "mergePlayerId";
         function getPID() { return (localStorage.getItem(PID_KEY) || "").trim(); }
         function setPID(v) { const t = String(v || "").trim(); if (!t) return; localStorage.setItem(PID_KEY, t); refreshIdBadge(); }
         function refreshIdBadge() { currentIdEl.textContent = getPID() || '미설정'; }
-
-        /* ===== 사운드 토글 ===== */
-        let isMuted = localStorage.getItem("merge_bgm_muted_v1") === '1';
-        let vol = parseFloat(localStorage.getItem("merge_bgm_vol_v1") || '0.8');
-        if (Number.isNaN(vol)) vol = 0.8;
-        bgm.volume = isMuted ? 0 : vol; bgm.muted = isMuted;
-
-        function updateSoundToggle() {
-            soundToggle.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
-            soundToggle.querySelector('.icon').textContent = isMuted ? '🔈' : '🔊';
-        }
-        updateSoundToggle();
-
-        async function ensureBgmPlay() {
-            try { bgm.muted = isMuted; if (bgm.paused) await bgm.play(); } catch (e) { console.warn('BGM play blocked', e); }
-        }
-        soundToggle.addEventListener('click', () => {
-            isMuted = !isMuted;
-            localStorage.setItem("merge_bgm_muted_v1", isMuted ? '1' : '0');
-            bgm.muted = isMuted;
-            updateSoundToggle();
-            if (!isMuted && bgm.paused) ensureBgmPlay();
-        });
-        document.addEventListener('pointerdown', e => { if (e.target.closest('button')) ensureBgmPlay(); });
 
         /* ===== 팁 모달 ===== */
         function openTipModal() { tipModal.classList.add('open'); tipModalBackdrop.classList.add('open'); }
@@ -564,7 +502,7 @@
         tipModalBackdrop.addEventListener('click', closeTipModal);
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTipModal(); });
 
-        /* ===== ID 입력 (인게임과 동일한 prompt 문구) ===== */
+        /* ===== ID 입력 ===== */
         function openIdModal(force = false) {
             let pid = getPID();
             if (!pid || force) {
@@ -579,7 +517,7 @@
         }
         editIdBtn.addEventListener('click', () => openIdModal(true));
 
-        /* ===== 랭킹 시트 ===== */
+        /* ===== 랭킹 ===== */
         const rankOpenBtn = document.getElementById('rankOpenBtn');
         const sheet = document.getElementById('rankSheet'),
             backdrop = document.getElementById('sheetBackdrop'),
@@ -622,13 +560,13 @@
         function renderDateList(rows) { dateList.innerHTML = ''; if (!rows.length) { dateList.innerHTML = '<div class="empty">기록이 없습니다.</div>'; return; } const f = document.createDocumentFragment(); rows.forEach(r => { const el = document.createElement('div'); el.className = 'item'; el.innerHTML = `<div class="left"><div class="date">${fmtK(r.date)}</div><div class="pid">${r.id ? CROWN_SVG + '<span>' + esc(r.id) + '</span>' : '—'}</div></div><div class="rscore">${r.score ? number(r.score) : ''}</div>`; f.appendChild(el); }); dateList.appendChild(f); }
         async function loadRanking() { const base = buildRecentDays(60), map = new Map(base.map(r => [r.date, r])); try { const apiRows = await fetchDailyTop(60); apiRows.forEach(x => { const d = x.date?.slice(0, 10); if (!d) return; if (map.has(d)) { const t = map.get(d); t.id = x.id || t.id; t.score = parseInt(x.score || '') || null; } else { map.set(d, { date: d, id: x.id || null, score: x.score || null }); } }); } catch (e) { console.warn('랭킹 로드 실패:', e); } renderToday(map); renderDateList(Array.from(map.values()).sort((a, b) => a.date < b.date ? 1 : -1)); }
 
-        /* ===== START 버튼 → 인게임 진입 ===== */
+        /* ===== START ===== */
         startBtn.addEventListener('click', () => {
             document.body.classList.add('fade-out');
-            setTimeout(() => { window.location.href = "game.html"; }, 400); // 인게임 파일명
+            setTimeout(() => { window.location.href = "game.html"; }, 400);
         });
 
-        /* ===== 초기 진입 플로우 ===== */
+        /* ===== 초기 ===== */
         window.addEventListener('load', () => {
             refreshIdBadge();
             if (!getPID()) {
@@ -641,6 +579,37 @@
                 loadRanking();
             }
         });
+        /* ===== BGM 자동 재생 (모든 유저 입력에 반응) ===== */
+        let bgmStarted = false;
+
+        function tryPlayBGM() {
+            if (bgmStarted) return;
+            bgmStarted = true;
+            bgm.volume = 0.6;
+
+            const playPromise = bgm.play();
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => console.log('BGM 재생 시작'))
+                    .catch(err => {
+                        console.warn('자동재생 차단됨, 재시도 대기:', err);
+                        // 일부 브라우저는 첫 play() 실패 시 다시 시도해야 함
+                        document.addEventListener('pointerdown', forcePlayBGM, { once: true });
+                        document.addEventListener('touchstart', forcePlayBGM, { once: true });
+                        document.addEventListener('click', forcePlayBGM, { once: true });
+                    });
+            }
+        }
+
+        function forcePlayBGM() {
+            bgm.play().then(() => console.log('BGM 재시작 성공')).catch(() => { });
+        }
+
+        /* 모든 입력에 반응하도록 */
+        ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(evt => {
+            window.addEventListener(evt, tryPlayBGM, { once: true });
+        });
+
     </script>
 </body>
 </html>

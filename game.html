@@ -599,6 +599,8 @@
                 <button class="btn" id="btnRestart">다시 시작</button>
                 <button class="btn" id="btnBack">돌아가기</button>
                 <button class="btn" id="btnViewBest">내 최고 기록 확인</button>
+                
+
             </div>
         </div>
     </div>
@@ -648,6 +650,10 @@
                 <button class="menu-btn" id="mLoad">
                     불러오기 (로컬)
                     <span class="sub">마지막으로 저장한 보드를 다시 불러옴</span>
+                </button>
+                <button class="menu-btn" id="mViewBest">
+                    내 최고 기록 보기
+                    <span class="sub">가장 높은 점수의 보드를 확인</span>
                 </button>
                 <button class="menu-btn" id="mResetId">
                     아이디 초기화
@@ -921,6 +927,15 @@
                     else info("불러올 데이터가 없습니다.", "warn");
                     closeSettings();
                 });
+                document.getElementById('mViewBest').addEventListener('click', () => {
+                    // closeSettings();  ← ❌ 이 줄 삭제!
+                    if (bestGameState) {
+                        renderMiniPopup(bestGameState, playerId, bestScore);
+                    } else {
+                        info("아직 저장된 최고 기록이 없습니다.", "warn");
+                    }
+                });
+
                 document.getElementById('mResetId').addEventListener('click', () => { closeSettings(); askPlayerId(true); });
                 document.getElementById('mRanking').addEventListener('click', () => {
                     closeSettings();
@@ -937,7 +952,7 @@
             /* 경로 하이라이트 */
             function highlightPath(path) {
                 if (!path || path.length < 2) return;
-                for (let i = 1; i < path.length - 1; i++) {
+                for (let i = 1; i < path.length; i++) {   // <--- 여기 수정 ( -1 제거 )
                     const cell = board.children[path[i].r * COLS + path[i].c];
                     if (cell) cell.classList.add('path-highlight');
                 }
@@ -1438,7 +1453,7 @@
                     mini = document.createElement('div'); mini.id = 'miniPopup';
                     mini.style.position = 'fixed'; mini.style.inset = '0'; mini.style.background = 'rgba(0,0,0,0.6)';
                     mini.style.display = 'flex'; mini.style.alignItems = 'center'; mini.style.justifyContent = 'center';
-                    mini.style.zIndex = '2000'; document.body.appendChild(mini);
+                    mini.style.zIndex = '3000'; document.body.appendChild(mini);
                 }
                 mini.innerHTML = '';
                 const box = document.createElement('div');
