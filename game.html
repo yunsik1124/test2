@@ -2038,7 +2038,24 @@ unlockCell(pivot.r, pivot.c);
                 checkGameOverSoon();
 
                     flushToast();
-               
+                    // ① 턴 종료 후 누적 정리
+function cleanupDetachedNodes() {
+  document.querySelectorAll('.moving, .placeholder, .bomb-effect').forEach(el => el.remove());
+}
+
+// completeTurnPipeline 끝부분에 추가
+cleanupDetachedNodes();
+
+// ② 게임오버 시 타이머 완전 초기화
+for (let id = 1; id < 10000; id++) clearTimeout(id), clearInterval(id);
+
+
+               // 턴이 끝날 때마다 쓰레기 정리
+function cleanupDetachedNodes() {
+  document.querySelectorAll('.moving, .bomb-effect, .placeholder')
+    .forEach(el => el.remove());
+}
+
             }
 
             /* ====== 게임오버 ====== */
