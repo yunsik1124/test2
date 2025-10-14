@@ -10,6 +10,9 @@
     <link rel="preload" as="image" href="images/title.png">
     <link rel="preload" as="image" href="images/start_btn.png">
     <link rel="preload" as="audio" href="sounds/mainmap_bgm.mp3">
+    <link rel="preload" as="audio" href="sounds/click_menu.mp3">
+    <link rel="preload" as="audio" href="sounds/start.mp3">
+
 
     <style>
         :root {
@@ -70,6 +73,24 @@
             cursor: pointer;
             filter: drop-shadow(0 8px 18px rgba(0,0,0,.55));
             transition: transform .08s ease;
+        }
+        /* 🎵 스타트 버튼 알파값 루프 */
+        @keyframes startPulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        #startBtn {
+            animation: startPulse 1.5s ease-in-out infinite;
         }
 
             #startBtn:active {
@@ -230,7 +251,7 @@
             position: fixed;
             inset: auto 0 0 0;
             z-index: 20; /* 딤드보다 위로 올림 */
-    background: var(--sheet-bg);
+            background: var(--sheet-bg);
             background: var(--sheet-bg);
             border-radius: 18px 18px 0 0;
             transform: translateY(100%);
@@ -561,10 +582,36 @@
         async function loadRanking() { const base = buildRecentDays(60), map = new Map(base.map(r => [r.date, r])); try { const apiRows = await fetchDailyTop(60); apiRows.forEach(x => { const d = x.date?.slice(0, 10); if (!d) return; if (map.has(d)) { const t = map.get(d); t.id = x.id || t.id; t.score = parseInt(x.score || '') || null; } else { map.set(d, { date: d, id: x.id || null, score: x.score || null }); } }); } catch (e) { console.warn('랭킹 로드 실패:', e); } renderToday(map); renderDateList(Array.from(map.values()).sort((a, b) => a.date < b.date ? 1 : -1)); }
 
         /* ===== START ===== */
+        const startSound = new Audio('sounds/start.mp3');
+        startSound.volume = 0.8;
+
         startBtn.addEventListener('click', () => {
+            // 🔇 BGM 즉시 중단
+            try {
+                bgm.pause();
+                bgm.currentTime = 0;
+            } catch (e) { }
+
+            // 🎵 시작 사운드 재생
+            try {
+                startSound.currentTime = 0;
+                startSound.play().catch(() => { });
+            } catch (e) { }
+
+            // 💫 화면 페이드아웃
             document.body.classList.add('fade-out');
-            setTimeout(() => { window.location.href = "game.html"; }, 400);
+
+            // 🎵 사운드가 끝나면 페이지 전환
+            startSound.addEventListener('ended', () => {
+                window.location.href = "game.html";
+            });
+
+            // ⚙️ 안전 타이머 (혹시 ended 안 잡히면)
+            setTimeout(() => {
+                window.location.href = "game.html";
+            }, (startSound.duration || 1.5) * 1000 + 100);
         });
+
 
         /* ===== 초기 ===== */
         window.addEventListener('load', () => {
@@ -608,6 +655,39 @@
         /* 모든 입력에 반응하도록 */
         ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(evt => {
             window.addEventListener(evt, tryPlayBGM, { once: true });
+        });
+
+        // index.html 내에서 실행
+        const preloadImages = (urls) => Promise.all(urls.map(u => new Promise(res => {
+            const img = new Image(); img.onload = res; img.onerror = res; img.src = u;
+        })));
+
+        const INGAME_IMAGES = [
+            "images/block-1.png", "images/block-2.png", "images/block-3.png",
+            "images/block-4.png", "images/block-5.png", "images/block-6.png",
+            "images/block-7.png", "images/block-8.png", "images/block-9.png",
+            "images/blocked.png", "images/empty.png", "images/bg.png",
+            "images/rock.png", "images/hammer.png", "images/hammer_big.png", "images/setup.png",
+            ...Array.from({ length: 12 }, (_, i) => `images/bomb${String(i + 1).padStart(2, '0')}.png`)
+        ];
+
+        // 페이지 로드 시점에 인게임 리소스 캐싱
+        preloadImages(INGAME_IMAGES).then(() => {
+            console.log("🎨 인게임 이미지 사전 로드 완료");
+        });
+        // ✅ 버튼 클릭 사운드 (startBtn 제외)
+        const clickSound = new Audio('sounds/click_menu.mp3');
+        clickSound.volume = 0.5;
+
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.id !== 'startBtn') {
+                btn.addEventListener('click', () => {
+                    try {
+                        clickSound.currentTime = 0;
+                        clickSound.play().catch(() => { });
+                    } catch (e) { }
+                });
+            }
         });
 
     </script>
