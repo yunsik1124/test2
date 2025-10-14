@@ -1680,49 +1680,62 @@ if (reasons.length > 0) {
 const isRock = (r, c) => grid[r][c] === -2;
 
 function findPathViaEmpties(from, to) {
-    const q = [from],
-        prev = Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
-        vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    const q = [from];
+    let head = 0; // ✅ shift() 제거
+    const prev = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     vis[from.r][from.c] = true;
+
     const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-    while (q.length) {
-        const cur = q.shift();
+    while (head < q.length) {
+        const cur = q[head++]; // ✅ O(1) 접근
+
         for (const [dr, dc] of dirs) {
             const nr = cur.r + dr, nc = cur.c + dc;
             if (!inBounds(nr, nc) || vis[nr][nc]) continue;
-            else if (isBlocked(nr, nc) || isRock(nr, nc) || isTile(nr, nc) || rockSet.has(`${nr},${nc}`)) continue;
+            // rock(-2) 또는 blocked(-1) 또는 타일이 있는 경우 통과 불가
+            if (isBlocked(nr, nc) || grid[nr][nc] > 0 || grid[nr][nc] === -2 || rockSet.has(`${nr},${nc}`)) continue;
 
+            vis[nr][nc] = true;
+            prev[nr][nc] = cur;
 
-                        vis[nr][nc] = true; prev[nr][nc] = cur;
-                        if (nr === to.r && nc === to.c) {
-                            const path = []; let x = { r: nr, c: nc };
-                            while (x) { path.push(x); x = prev[x.r][x.c]; }
-                            path.reverse(); return path;
-                        }
-                        q.push({ r: nr, c: nc });
-                    }
+            if (nr === to.r && nc === to.c) {
+                // ✅ 도착 시 경로 재구성
+                const path = [];
+                let x = { r: nr, c: nc };
+                while (x) {
+                    path.push(x);
+                    x = prev[x.r][x.c];
                 }
-                return null;
+                path.reverse();
+                return path;
             }
-
-            function destAdjacentSame(to, val) {
-                return [[1, 0], [-1, 0], [0, 1], [0, -1]]
-                    .some(([dr, dc]) => inBounds(to.r + dr, to.c + dc) && grid[to.r + dr][to.c + dc] === val);
-            }
-
+            q.push({ r: nr, c: nc });
+        }
+    }
+    return null;
+}
             function floodSame(sr, sc, val, g = grid) {
-                const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)),
-                    q = [{ r: sr, c: sc }], out = [];
-                vis[sr][sc] = true;
-                while (q.length) {
-                    const { r, c } = q.shift(); out.push({ r, c });
-                    for (const [dr, dc] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-                        const nr = r + dr, nc = c + dc;
-                        if (inBounds(nr, nc) && !vis[nr][nc] && g[nr][nc] === val) { vis[nr][nc] = true; q.push({ r: nr, c: nc }); }
-                    }
-                }
-                return out;
+    const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    const q = [{ r: sr, c: sc }];
+    const out = [];
+    let head = 0; // ✅ shift() 대신 인덱스 포인터 사용
+    vis[sr][sc] = true;
+
+    while (head < q.length) {
+        const { r, c } = q[head++]; // ✅ O(1) 큐 접근
+        out.push({ r, c });
+
+        for (const [dr, dc] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+            const nr = r + dr, nc = c + dc;
+            if (inBounds(nr, nc) && !vis[nr][nc] && g[nr][nc] === val) {
+                vis[nr][nc] = true;
+                q.push({ r: nr, c: nc });
             }
+        }
+    }
+    return out;
+}
 
             function groupSizeIfMoved(from, to, val) {
     const tmp = cloneGrid(grid);
