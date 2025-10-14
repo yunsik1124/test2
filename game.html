@@ -1112,7 +1112,7 @@ function playBombAnimation(r, c, options = {}) {
                         cell.appendChild(t);
 
                         // ✅ 망치는 '스폰된 블록'일 때만 확률적으로 부착, 망치 아이템 등장 확률
-                        if (opt.spawn && Math.random() < 0.09) {
+                        if (opt.spawn && Math.random() < 0.1) {
                             t.dataset.hammer = "1";
                             const icon = document.createElement('img');
                             icon.src = "images/hammer.png";
