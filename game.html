@@ -86,7 +86,7 @@
             vertical-align: middle;
             color: #faff8c;
             background: #121722;
-            border: 2px solid #2a3443;
+            border: px solid #2a3443;
             border-radius: 8px;
             padding: 2px 6px;
         }
@@ -718,6 +718,17 @@
             #fadeLayer.fade-in {
                 opacity: 0;
             }
+        /* ⚡ GPU 가속 */
+        .tile, .tile img, .cell {
+            will-change: transform, opacity;
+            transform: translateZ(0);
+        }
+
+            /* ⚠️ iOS 성능저하 원인 box-shadow 제거 */
+            .cell.possible-move, .cell.path-highlight, .tile.moving {
+                box-shadow: none !important;
+            }
+
     </style>
 </head>
 <body>
