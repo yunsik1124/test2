@@ -86,7 +86,7 @@
             vertical-align: middle;
             color: #faff8c;
             background: #121722;
-            border: px solid #2a3443;
+            border: 3px solid #2a3443;
             border-radius: 8px;
             padding: 2px 6px;
         }
@@ -718,23 +718,6 @@
             #fadeLayer.fade-in {
                 opacity: 0;
             }
-        /* ⚡ GPU 가속: 이동/병합 타일만 지정적으로 */
-        .tile.moving, .tile.merge, .tile.spawn {
-            will-change: transform, opacity;
-            transform: translateZ(0);
-        }
-
-        /* ⚠️ 불필요한 그림자 제거 (특히 iOS 렉 주범) */
-        .cell, .tile {
-            box-shadow: none !important;
-        }
-
-
-            /* ⚠️ iOS 성능저하 원인 box-shadow 제거 */
-            .cell.possible-move, .cell.path-highlight, .tile.moving {
-                box-shadow: none !important;
-            }
-
     </style>
 </head>
 <body>
@@ -1022,14 +1005,10 @@ function flushToast() {
     }, DISPLAY_TIME);
 
     // 🔊 사운드 (기존처럼 유지)
-   try {
-    // ⚡ 이미 재생 중이면 중복 재생 금지
-    if (sounds.toast.paused || sounds.toast.ended) {
+    try {
         sounds.toast.currentTime = 0;
         sounds.toast.play().catch(()=>{});
-    }
-} catch(e){}
-
+    } catch(e){}
 }
 
 
