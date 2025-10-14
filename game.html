@@ -1607,7 +1607,7 @@ if (reasons.length > 0) {
                         const nr = cur.r + dr, nc = cur.c + dc;
                         if (!inBounds(nr, nc) || vis[nr][nc]) continue;
                         else if (isBlocked(nr, nc) || isTile(nr, nc) || rockSet.has(`${nr},${nc}`)) continue;
-                        else if (isBlocked(nr, nc) || isTile(nr, nc)) continue;
+                       
                         vis[nr][nc] = true; prev[nr][nc] = cur;
                         if (nr === to.r && nc === to.c) {
                             const path = []; let x = { r: nr, c: nc };
@@ -1640,10 +1640,17 @@ if (reasons.length > 0) {
             }
 
             function groupSizeIfMoved(from, to, val) {
-                const tmp = cloneGrid(grid);
-                tmp[from.r][from.c] = 0; tmp[to.r][to.c] = val;
-                return floodSame(to.r, to.c, val, tmp).length;
-            }
+    const tmp = cloneGrid(grid);
+    // rockSet도 반영
+    for (const pos of rockSet) {
+        const [r, c] = pos.split(',').map(Number);
+        tmp[r][c] = -2; // rock은 막힘 처리
+    }
+    tmp[from.r][from.c] = 0;
+    tmp[to.r][to.c] = val;
+    return floodSame(to.r, to.c, val, tmp).length;
+}
+
 
             /* ====== 보드/새게임 ====== */
             const makeGrid = () => Array.from({ length: ROWS }, () => Array(COLS).fill(0));
