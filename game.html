@@ -1016,10 +1016,14 @@ function flushToast() {
     }, DISPLAY_TIME);
 
     // 🔊 사운드 (기존처럼 유지)
-    try {
+   try {
+    // ⚡ 이미 재생 중이면 중복 재생 금지
+    if (sounds.toast.paused || sounds.toast.ended) {
         sounds.toast.currentTime = 0;
         sounds.toast.play().catch(()=>{});
-    } catch(e){}
+    }
+} catch(e){}
+
 }
 
 
