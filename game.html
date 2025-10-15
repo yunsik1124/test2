@@ -647,25 +647,11 @@
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            animation: warningBlink 1s ease-in-out infinite;
             opacity: 0.5;
             pointer-events: none;
             z-index: 10;
         }
 
-        @keyframes warningBlink {
-            0% {
-                opacity: 0.5;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                opacity: 0.5;
-            }
-        }
 
         .rock-block.spawn {
             animation: rockSpawn 0.3s ease-out forwards;
