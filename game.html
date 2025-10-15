@@ -47,12 +47,12 @@
         header {
             width: 100%;
             max-width: 480px;
-            padding: 12px 14px;
+            padding: 4px 14px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
             background: linear-gradient(180deg,rgba(11,15,20,0.95),rgba(11,15,20,0.6) 70%,transparent);
             backdrop-filter: #262626b2;
         }
@@ -88,34 +88,10 @@
             background: #121722;
             border: 3px solid #2a3443;
             border-radius: 8px;
-            padding: 2px 6px;
+            padding: 2px 4px;
         }
 
-            /* 내부 텍스트를 부드럽게 좌우로 흐르게 */
-            .idtag span {
-                display: inline-block;
-                animation: idScroll 6s linear infinite; /* 속도 조정 가능 */
-            }
-
-            /* hover 시 일시정지 (선택사항) */
-            .idtag:hover span {
-                animation-play-state: paused;
-            }
-
-        /* 실제 스크롤 애니메이션 */
-        @keyframes idScroll {
-            0% {
-                transform: translateX(0);
-            }
-
-            50% {
-                transform: translateX(-50%);
-            }
-
-            100% {
-                transform: translateX(0);
-            }
-        }
+        
 
 
         #boardWrap {
@@ -666,33 +642,7 @@
                 transform: scale(1);
             }
         }
-        /* ==== 🛑 적 공격 경고 오버레이 ==== */
-        .warning-overlay {
-            position: absolute;
-            inset: 0;
-            background-image: url('images/warning.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            animation: warningBlink 1s ease-in-out infinite;
-            opacity: 0.5;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        @keyframes warningBlink {
-            0% {
-                opacity: 0.5;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                opacity: 0.5;
-            }
-        }
+   
 
         .rock-block.spawn {
             animation: rockSpawn 0.3s ease-out forwards;
@@ -753,7 +703,9 @@
             height: 200px;
             display: none; /* 기본 숨김 */
         }
-
+        .footer-center {
+            visibility: hidden; /* ✅ 공간은 유지, 보이지만 않음 */
+        }
     </style>
 </head>
 <body>
@@ -1107,10 +1059,7 @@
 
                 // 💥 rock 생성 애니메이션 클래스 추가
                 rock.classList.add('spawn');
-                // ⚠️ 경고 오버레이 추가
-                const overlay = document.createElement('div');
-                overlay.className = 'warning-overlay';
-                rock.appendChild(overlay);
+   
 
 
                 rockSet.add(`${r},${c}`);
