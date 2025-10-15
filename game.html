@@ -2306,7 +2306,30 @@
                 });
             }
         });
+        /* ===== 🎧 iOS 사운드 무음 해결 ===== */
+        (function fixIOSAudio() {
+            // iOS Safari에서 AudioContext를 깨워주는 코드
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
 
+            let ctx = new AudioContext();
+
+            // 터치 또는 클릭 시 오디오 시스템 활성화
+            function resumeAudioContext() {
+                if (ctx.state === "suspended") {
+                    ctx.resume().then(() => console.log("✅ iOS AudioContext resumed"));
+                }
+                // 기본 BGM도 강제 재생 시도 (첫 입력 시 확실하게)
+                if (window.sounds && window.sounds.bgm && window.sounds.bgm.paused) {
+                    window.sounds.bgm.play().catch(() => { });
+                }
+                document.removeEventListener("touchstart", resumeAudioContext);
+                document.removeEventListener("click", resumeAudioContext);
+            }
+
+            document.addEventListener("touchstart", resumeAudioContext, { once: true });
+            document.addEventListener("click", resumeAudioContext, { once: true });
+        })();
 
     </script>
     <!-- ✅ 페이드 인 레이어 -->
