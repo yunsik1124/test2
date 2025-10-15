@@ -471,7 +471,6 @@
         #footerBar {
             position: fixed;
             left: 50%;
-            bottom: 0;
             transform: translateX(-50%);
             width: 100%;
             max-width: 480px;
@@ -479,8 +478,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 2000; /* 충분히 높게 */
-            pointer-events: auto; /* 🔑 부모도 클릭 허용 */
+            z-index: 2000;
+            pointer-events: auto;
+            bottom: 20px; /* 초기 기본값 */
+            transition: bottom 0.3s ease;
         }
 
         /* 네모 박스 느낌 빼고, 단순 컨테이너로 */
@@ -2342,6 +2343,26 @@
                 }
             });
 
+            function adjustFooterPosition() {
+                const ratio = window.innerWidth / window.innerHeight;
+                const root = document.documentElement;
+
+                // 세로가 긴 경우 (스마트폰)
+                if (ratio < 0.6) {
+                    root.style.setProperty('--footer-bottom', '20px');
+                }
+                // 중간 비율 (일반 모바일 or 세로 긴 태블릿)
+                else if (ratio < 0.75) {
+                    root.style.setProperty('--footer-bottom', '40px');
+                }
+                // 가로가 넓은 화면 (PC 등)
+                else {
+                    root.style.setProperty('--footer-bottom', '60px');
+                }
+            }
+
+            window.addEventListener('resize', adjustFooterPosition);
+            window.addEventListener('load', adjustFooterPosition);
 
         </script>
         <!-- ✅ 페이드 인 레이어 -->
