@@ -48,12 +48,10 @@
             }
 
         #indexScreen {
-            position: absolute; /* ✅ fixed → absolute */
+            position: fixed;
             inset: 0;
             display: grid;
             place-items: center;
-            width: 100%;
-            height: 100%;
             background: url("images/title.png") center/cover no-repeat;
         }
 
@@ -110,7 +108,7 @@
 
         /* 좌상단 버튼 */
         #rankOpenBtn, #tipOpenBtn {
-            position: absolute;
+            position: fixed;
             left: 14px;
             z-index: 6;
             height: 48px;
@@ -146,7 +144,7 @@
 
         /* 우상단 ID */
         #idBadge {
-            position: absolute;
+            position: fixed;
             right: 14px;
             top: 14px;
             z-index: 6;
@@ -181,7 +179,7 @@
 
         /* 공통 모달/시트 */
         .modal-backdrop, .sheet-backdrop {
-            position: absolute;
+            position: fixed;
             inset: 0;
             background: rgba(0,0,0,.6);
             z-index: 10; /* 랭킹창 아래로 내려줌 */
@@ -196,7 +194,7 @@
             }
 
         .modal {
-            position: absolute;
+            position: fixed;
             left: 50%;
             top: 50%;
             transform: translate(-50%,-50%) scale(.98);
@@ -234,7 +232,7 @@
             }
         /* 스킨 변경 버튼 — 게임팁 바로 아래 */
         .btn-skin {
-            position: absolute;
+            position: fixed;
             left: 14px;
             top: 126px; /* ← 70px(게임팁) + 56px 간격 */
             z-index: 6;
@@ -273,7 +271,7 @@
 
         /* 시트 (랭킹) */
         .sheet {
-            position: absolute;
+            position: fixed;
             inset: auto 0 0 0;
             z-index: 20; /* 딤드보다 위로 올림 */
             background: var(--sheet-bg);
@@ -463,309 +461,272 @@
         .safe-bottom {
             height: max(12px,env(safe-area-inset-bottom));
         }
-        /* === 📱 PC에서 처음 실행 시 9:16 비율 고정 === */
-        .viewport-9-16 {
-            position: relative;
-            margin: auto;
-            aspect-ratio: 9 / 16; /* 비율 고정 */
-            width: min(100vw, calc(100vh * 9 / 16));
-            height: min(100vh, calc(100vw * 16 / 9));
-            overflow: hidden;
-            background: #000;
-            transition: width 0.3s ease, height 0.3s ease;
-        }
     </style>
-    <script>
-        /* === 💡 9:16 비율 유지 스크립트 === */
-        function adjustViewport() {
-            const vp = document.getElementById('viewport');
-            if (!vp) return;
-            const winW = window.innerWidth;
-            const winH = window.innerHeight;
-            const targetW = Math.min(winW, winH * 9 / 16);
-            const targetH = targetW * 16 / 9;
-            vp.style.width = `${targetW}px`;
-            vp.style.height = `${targetH}px`;
-        }
-        window.addEventListener('resize', adjustViewport);
-        window.addEventListener('load', adjustViewport);
-    </script>
 </head>
 <body>
-    <!-- 📱 비율 고정용 래퍼 -->
-    <div class="viewport-9-16" id="viewport">
-        <noscript>이 게임을 실행하려면 JavaScript가 필요합니다.</noscript>
+    <noscript>이 게임을 실행하려면 JavaScript가 필요합니다.</noscript>
 
-        <!-- ✅ 기존 indexScreen 전체 -->
-        <div id="indexScreen">
-            <button id="rankOpenBtn"><span>🏆 랭킹</span><span class="badge">Daily</span></button>
-            <button id="tipOpenBtn"><span>🎮 게임 팁</span></button>
-            <button class="btn-skin">🎨 스킨 변경</button>
-            <div id="idBadge">
-                <span class="label">현재 ID</span><span class="pid" id="currentId">—</span>
-                <button class="edit" id="editIdBtn">✏️ Edit</button>
+    <div id="indexScreen">
+        <button id="rankOpenBtn"><span>🏆 랭킹</span><span class="badge">Daily</span></button>
+        <button id="tipOpenBtn"><span>🎮 게임 팁</span></button>
+        <button class="btn-skin">🎨 스킨 변경</button>
+        <div id="idBadge">
+            <span class="label">현재 ID</span><span class="pid" id="currentId">—</span>
+            <button class="edit" id="editIdBtn">✏️ Edit</button>
+        </div>
+        <div class="centerStack"><button id="startBtn"><span class="sr-only">START</span></button></div>
+    </div>
+
+    <!-- 랭킹 시트 -->
+    <div id="sheetBackdrop" class="sheet-backdrop"></div>
+    <section id="rankSheet" class="sheet">
+        <header class="sheet-header">
+            <div>
+                <div class="sheet-title">일일 TOP</div>
+                <div class="sheet-sub">하루 1명(최고 점수) · 날짜별 열람</div>
             </div>
-            <div class="centerStack">
-                <button id="startBtn"><span class="sr-only">START</span></button>
+            <button class="sheet-close" id="sheetClose">✕</button>
+        </header>
+        <nav class="pill-tabs">
+            <div class="pill active" data-tab="today">오늘</div>
+            <div class="pill" data-tab="bydate">날짜별</div>
+        </nav>
+        <div class="sheet-body">
+            <div id="tab-today">
+                <div class="today-card">
+                    <div class="row">
+                        <span class="date-badge" id="todayBadge">—</span>
+                        <span class="score" id="todayScore"></span>
+                    </div>
+                    <div class="big-id" id="todayId">불러오는중...</div>
+                    <div class="note">플레이 유도 코멘트, 혹은 공지사항</div>
+                </div>
+            </div>
+            <div id="tab-bydate" style="display:none">
+                <div class="list" id="dateList"></div>
+                <div class="safe-bottom"></div>
             </div>
         </div>
+    </section>
 
-        <!-- 랭킹 시트 -->
-        <div id="sheetBackdrop" class="sheet-backdrop"></div>
-        <section id="rankSheet" class="sheet">
-            <header class="sheet-header">
-                <div>
-                    <div class="sheet-title">일일 TOP</div>
-                    <div class="sheet-sub">하루 1명(최고 점수) · 날짜별 열람</div>
-                </div>
-                <button class="sheet-close" id="sheetClose">✕</button>
-            </header>
-            <nav class="pill-tabs">
-                <div class="pill active" data-tab="today">오늘</div>
-                <div class="pill" data-tab="bydate">날짜별</div>
-            </nav>
-            <div class="sheet-body">
-                <div id="tab-today">
-                    <div class="today-card">
-                        <div class="row">
-                            <span class="date-badge" id="todayBadge">—</span>
-                            <span class="score" id="todayScore"></span>
-                        </div>
-                        <div class="big-id" id="todayId">불러오는중...</div>
-                        <div class="note">플레이 유도 코멘트, 혹은 공지사항</div>
-                    </div>
-                </div>
-                <div id="tab-bydate" style="display:none">
-                    <div class="list" id="dateList"></div>
-                    <div class="safe-bottom"></div>
-                </div>
-            </div>
-        </section>
+    <!-- 팁 모달 -->
+    <div id="tipModalBackdrop" class="modal-backdrop"></div>
+    <section id="tipModal" class="modal">
+        <div class="hd">🧩 게임 안내</div>
+        <div class="body">
+            <p>같은 숫자 블럭 3개를 합치면 더 강한 몬스터가 탄생!</p>
+            <p>이동할 블럭이 없을 때는 게임 종료</p>
+            <p>3턴마다 새 블록이 생기니 공간 관리가 핵심!</p>
+            <p>아이템으로 바위를 부수고 길을 열어라!</p>
 
-        <!-- 팁 모달 -->
-        <div id="tipModalBackdrop" class="modal-backdrop"></div>
-        <section id="tipModal" class="modal">
-            <div class="hd">🧩 게임 안내</div>
-            <div class="body">
-                <p>같은 숫자 블럭 3개를 합치면 더 강한 몬스터가 탄생!</p>
-                <p>이동할 블럭이 없을 때는 게임 종료</p>
-                <p>3턴마다 새 블록이 생기니 공간 관리가 핵심!</p>
-                <p>아이템으로 바위를 부수고 길을 열어라!</p>
+        </div>
+        <div class="hd">⚙️ 실전 팁 모음</div>
+        <div class="body">
+            <p>공격 예고 땐 길목을 최대한 확보할 것</p>
+            <p>변두리 쪽 빈칸부터 채워 중앙 공간을 확보할 것</p>
+            <p>2개씩을 먼저 합하여 다음 소환까지 버틸 것</p>
+            <p>🔥 빈칸을 지배하는 자, 신이 된다! 🔥</p>
 
-            </div>
-            <div class="hd">⚙️ 실전 팁 모음</div>
-            <div class="body">
-                <p>공격 예고 땐 길목을 최대한 확보할 것</p>
-                <p>변두리 쪽 빈칸부터 채워 중앙 공간을 확보할 것</p>
-                <p>2개씩을 먼저 합하여 다음 소환까지 버틸 것</p>
-                <p>🔥 빈칸을 지배하는 자, 신이 된다! 🔥</p>
+            <div class="ft"><button id="tipCloseBtn" class="btn ok">확인</button></div>
+    </section>
 
-                <div class="ft"><button id="tipCloseBtn" class="btn ok">확인</button></div>
-        </section>
+    <audio id="bgm" src="sounds/mainmap_bgm.mp3" preload="auto" loop></audio>
 
-        <audio id="bgm" src="sounds/mainmap_bgm.mp3" preload="auto" loop></audio>
+    <script>
+        const bgm = document.getElementById('bgm'),
+            startBtn = document.getElementById('startBtn');
+        const tipOpenBtn = document.getElementById('tipOpenBtn'),
+            tipModal = document.getElementById('tipModal'),
+            tipModalBackdrop = document.getElementById('tipModalBackdrop'),
+            tipCloseBtn = document.getElementById('tipCloseBtn');
+        const currentIdEl = document.getElementById('currentId'),
+            editIdBtn = document.getElementById('editIdBtn');
 
-        <script>
-            const bgm = document.getElementById('bgm'),
-                startBtn = document.getElementById('startBtn');
-            const tipOpenBtn = document.getElementById('tipOpenBtn'),
-                tipModal = document.getElementById('tipModal'),
-                tipModalBackdrop = document.getElementById('tipModalBackdrop'),
-                tipCloseBtn = document.getElementById('tipCloseBtn');
-            const currentIdEl = document.getElementById('currentId'),
-                editIdBtn = document.getElementById('editIdBtn');
+        /* ===== ID 저장 ===== */
+        const PID_KEY = "mergePlayerId";
+        function getPID() { return (localStorage.getItem(PID_KEY) || "").trim(); }
+        function setPID(v) { const t = String(v || "").trim(); if (!t) return; localStorage.setItem(PID_KEY, t); refreshIdBadge(); }
+        function refreshIdBadge() { currentIdEl.textContent = getPID() || '미설정'; }
 
-            /* ===== ID 저장 ===== */
-            const PID_KEY = "mergePlayerId";
-            function getPID() { return (localStorage.getItem(PID_KEY) || "").trim(); }
-            function setPID(v) { const t = String(v || "").trim(); if (!t) return; localStorage.setItem(PID_KEY, t); refreshIdBadge(); }
-            function refreshIdBadge() { currentIdEl.textContent = getPID() || '미설정'; }
+        /* ===== 팁 모달 ===== */
+        function openTipModal() { tipModal.classList.add('open'); tipModalBackdrop.classList.add('open'); }
+        function closeTipModal() { tipModal.classList.remove('open'); tipModalBackdrop.classList.remove('open'); }
+        tipOpenBtn.addEventListener('click', openTipModal);
+        tipCloseBtn.addEventListener('click', closeTipModal);
+        tipModalBackdrop.addEventListener('click', closeTipModal);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTipModal(); });
 
-            /* ===== 팁 모달 ===== */
-            function openTipModal() { tipModal.classList.add('open'); tipModalBackdrop.classList.add('open'); }
-            function closeTipModal() { tipModal.classList.remove('open'); tipModalBackdrop.classList.remove('open'); }
-            tipOpenBtn.addEventListener('click', openTipModal);
-            tipCloseBtn.addEventListener('click', closeTipModal);
-            tipModalBackdrop.addEventListener('click', closeTipModal);
-            document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTipModal(); });
-
-            /* ===== ID 입력 ===== */
-            function openIdModal(force = false) {
-                let pid = getPID();
-                if (!pid || force) {
-                    let input = "";
-                    while (!input) {
-                        input = prompt("플레이어 아이디를 입력하세요:");
-                        if (input === null) break;
-                        input = input.trim();
-                    }
-                    if (input) setPID(input);
+        /* ===== ID 입력 ===== */
+        function openIdModal(force = false) {
+            let pid = getPID();
+            if (!pid || force) {
+                let input = "";
+                while (!input) {
+                    input = prompt("플레이어 아이디를 입력하세요:");
+                    if (input === null) break;
+                    input = input.trim();
                 }
+                if (input) setPID(input);
             }
-            editIdBtn.addEventListener('click', () => openIdModal(true));
+        }
+        editIdBtn.addEventListener('click', () => openIdModal(true));
 
-            /* ===== 랭킹 ===== */
-            const rankOpenBtn = document.getElementById('rankOpenBtn');
-            const sheet = document.getElementById('rankSheet'),
-                backdrop = document.getElementById('sheetBackdrop'),
-                sheetClose = document.getElementById('sheetClose');
-            const pills = Array.from(document.querySelectorAll('.pill')),
-                tabToday = document.getElementById('tab-today'),
-                tabByDate = document.getElementById('tab-bydate');
-            const todayBadge = document.getElementById('todayBadge'),
-                todayId = document.getElementById('todayId'),
-                todayScore = document.getElementById('todayScore'),
-                dateList = document.getElementById('dateList');
+        /* ===== 랭킹 ===== */
+        const rankOpenBtn = document.getElementById('rankOpenBtn');
+        const sheet = document.getElementById('rankSheet'),
+            backdrop = document.getElementById('sheetBackdrop'),
+            sheetClose = document.getElementById('sheetClose');
+        const pills = Array.from(document.querySelectorAll('.pill')),
+            tabToday = document.getElementById('tab-today'),
+            tabByDate = document.getElementById('tab-bydate');
+        const todayBadge = document.getElementById('todayBadge'),
+            todayId = document.getElementById('todayId'),
+            todayScore = document.getElementById('todayScore'),
+            dateList = document.getElementById('dateList');
 
-            const RANK_API = 'https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec';
+        const RANK_API = 'https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec';
 
-            function openSheet() { backdrop.classList.add('open'); sheet.classList.add('open'); }
-            function closeSheet() { sheet.classList.remove('open'); backdrop.classList.remove('open'); }
-            rankOpenBtn.addEventListener('click', openSheet);
-            sheetClose.addEventListener('click', closeSheet);
-            backdrop.addEventListener('click', closeSheet);
-            document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+        function openSheet() { backdrop.classList.add('open'); sheet.classList.add('open'); }
+        function closeSheet() { sheet.classList.remove('open'); backdrop.classList.remove('open'); }
+        rankOpenBtn.addEventListener('click', openSheet);
+        sheetClose.addEventListener('click', closeSheet);
+        backdrop.addEventListener('click', closeSheet);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
-            pills.forEach(p => p.addEventListener('click', () => {
-                pills.forEach(x => x.classList.remove('active'));
-                p.classList.add('active');
-                const tab = p.dataset.tab;
-                tabToday.style.display = (tab === 'today') ? '' : 'none';
-                tabByDate.style.display = (tab === 'bydate') ? '' : 'none';
-            }));
+        pills.forEach(p => p.addEventListener('click', () => {
+            pills.forEach(x => x.classList.remove('active'));
+            p.classList.add('active');
+            const tab = p.dataset.tab;
+            tabToday.style.display = (tab === 'today') ? '' : 'none';
+            tabByDate.style.display = (tab === 'bydate') ? '' : 'none';
+        }));
 
-            const tz = 'Asia/Seoul';
-            function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-            function fmtK(dateStr) { const d = new Date(dateStr + 'T00:00:00'); return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeZone: tz }).format(d); }
-            function number(n) { return new Intl.NumberFormat('ko-KR').format(n); }
-            function esc(s = '') { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
-            const CROWN_SVG = `<svg class="medal" viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD95A"/><stop offset="1" stop-color="#FFB200"/></linearGradient></defs><path fill="url(#g)" d="M4 8l4 3 4-6 4 6 4-3v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z"/><rect x="5" y="16" width="14" height="3" rx="1" fill="rgba(255,255,255,.35)"/></svg>`;
+        const tz = 'Asia/Seoul';
+        function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function fmtK(dateStr) { const d = new Date(dateStr + 'T00:00:00'); return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeZone: tz }).format(d); }
+        function number(n) { return new Intl.NumberFormat('ko-KR').format(n); }
+        function esc(s = '') { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+        const CROWN_SVG = `<svg class="medal" viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD95A"/><stop offset="1" stop-color="#FFB200"/></linearGradient></defs><path fill="url(#g)" d="M4 8l4 3 4-6 4 6 4-3v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z"/><rect x="5" y="16" width="14" height="3" rx="1" fill="rgba(255,255,255,.35)"/></svg>`;
 
-            function buildRecentDays(n = 30) { const arr = [], base = new Date(); for (let i = 0; i < n; i++) { const d = new Date(base); d.setDate(base.getDate() - i); arr.push({ date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, id: null, score: null }); } return arr; }
-            async function fetchDailyTop(limit = 60) { const res = await fetch(`${RANK_API}?mode=dailyTop&limit=${limit}`, { cache: 'no-store' }); const json = await res.json(); return Array.isArray(json.data) ? json.data : []; }
-            function renderToday(map) { const t = todayStr(), r = map.get(t); todayBadge.textContent = fmtK(t); if (r && r.id) { todayId.innerHTML = `${CROWN_SVG}<span>${esc(r.id)}</span>`; todayScore.textContent = r.score ? `${number(r.score)}점` : ''; } else { todayId.textContent = '기록 없음'; todayScore.textContent = ''; } }
-            function renderDateList(rows) { dateList.innerHTML = ''; if (!rows.length) { dateList.innerHTML = '<div class="empty">기록이 없습니다.</div>'; return; } const f = document.createDocumentFragment(); rows.forEach(r => { const el = document.createElement('div'); el.className = 'item'; el.innerHTML = `<div class="left"><div class="date">${fmtK(r.date)}</div><div class="pid">${r.id ? CROWN_SVG + '<span>' + esc(r.id) + '</span>' : '—'}</div></div><div class="rscore">${r.score ? number(r.score) : ''}</div>`; f.appendChild(el); }); dateList.appendChild(f); }
-            async function loadRanking() { const base = buildRecentDays(60), map = new Map(base.map(r => [r.date, r])); try { const apiRows = await fetchDailyTop(60); apiRows.forEach(x => { const d = x.date?.slice(0, 10); if (!d) return; if (map.has(d)) { const t = map.get(d); t.id = x.id || t.id; t.score = parseInt(x.score || '') || null; } else { map.set(d, { date: d, id: x.id || null, score: x.score || null }); } }); } catch (e) { console.warn('랭킹 로드 실패:', e); } renderToday(map); renderDateList(Array.from(map.values()).sort((a, b) => a.date < b.date ? 1 : -1)); }
+        function buildRecentDays(n = 30) { const arr = [], base = new Date(); for (let i = 0; i < n; i++) { const d = new Date(base); d.setDate(base.getDate() - i); arr.push({ date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, id: null, score: null }); } return arr; }
+        async function fetchDailyTop(limit = 60) { const res = await fetch(`${RANK_API}?mode=dailyTop&limit=${limit}`, { cache: 'no-store' }); const json = await res.json(); return Array.isArray(json.data) ? json.data : []; }
+        function renderToday(map) { const t = todayStr(), r = map.get(t); todayBadge.textContent = fmtK(t); if (r && r.id) { todayId.innerHTML = `${CROWN_SVG}<span>${esc(r.id)}</span>`; todayScore.textContent = r.score ? `${number(r.score)}점` : ''; } else { todayId.textContent = '기록 없음'; todayScore.textContent = ''; } }
+        function renderDateList(rows) { dateList.innerHTML = ''; if (!rows.length) { dateList.innerHTML = '<div class="empty">기록이 없습니다.</div>'; return; } const f = document.createDocumentFragment(); rows.forEach(r => { const el = document.createElement('div'); el.className = 'item'; el.innerHTML = `<div class="left"><div class="date">${fmtK(r.date)}</div><div class="pid">${r.id ? CROWN_SVG + '<span>' + esc(r.id) + '</span>' : '—'}</div></div><div class="rscore">${r.score ? number(r.score) : ''}</div>`; f.appendChild(el); }); dateList.appendChild(f); }
+        async function loadRanking() { const base = buildRecentDays(60), map = new Map(base.map(r => [r.date, r])); try { const apiRows = await fetchDailyTop(60); apiRows.forEach(x => { const d = x.date?.slice(0, 10); if (!d) return; if (map.has(d)) { const t = map.get(d); t.id = x.id || t.id; t.score = parseInt(x.score || '') || null; } else { map.set(d, { date: d, id: x.id || null, score: x.score || null }); } }); } catch (e) { console.warn('랭킹 로드 실패:', e); } renderToday(map); renderDateList(Array.from(map.values()).sort((a, b) => a.date < b.date ? 1 : -1)); }
 
-            /* ===== START ===== */
-            const startSound = new Audio('sounds/start.mp3');
-            startSound.volume = 0.8;
+        /* ===== START ===== */
+        const startSound = new Audio('sounds/start.mp3');
+        startSound.volume = 0.8;
 
-            startBtn.addEventListener('click', () => {
-                // 🔇 BGM 즉시 중단
-                try {
-                    bgm.pause();
-                    bgm.currentTime = 0;
-                } catch (e) { }
+        startBtn.addEventListener('click', () => {
+            // 🔇 BGM 즉시 중단
+            try {
+                bgm.pause();
+                bgm.currentTime = 0;
+            } catch (e) { }
 
-                // 🎵 시작 사운드 재생
-                try {
-                    startSound.currentTime = 0;
-                    startSound.play().catch(() => { });
-                } catch (e) { }
+            // 🎵 시작 사운드 재생
+            try {
+                startSound.currentTime = 0;
+                startSound.play().catch(() => { });
+            } catch (e) { }
 
-                // 💫 화면 페이드아웃
-                document.body.classList.add('fade-out');
+            // 💫 화면 페이드아웃
+            document.body.classList.add('fade-out');
 
-                // 🎵 사운드가 끝나면 페이지 전환
-                startSound.addEventListener('ended', () => {
-                    window.location.href = "game.html";
+            // 🎵 사운드가 끝나면 페이지 전환
+            startSound.addEventListener('ended', () => {
+                window.location.href = "game.html";
+            });
+
+            // ⚙️ 안전 타이머 (혹시 ended 안 잡히면)
+            setTimeout(() => {
+                window.location.href = "game.html";
+            }, (startSound.duration || 1.5) * 1000 + 100);
+        });
+
+
+        /* ===== 초기 ===== */
+        window.addEventListener('load', () => {
+            refreshIdBadge();
+            if (!getPID()) {
+                openIdModal(true);
+                const chk = setInterval(() => {
+                    if (getPID()) { clearInterval(chk); openSheet(); loadRanking(); }
+                }, 300);
+            } else {
+                openSheet();
+                loadRanking();
+            }
+        });
+        /* ===== BGM 자동 재생 (모든 유저 입력에 반응) ===== */
+        let bgmStarted = false;
+
+        function tryPlayBGM() {
+            if (bgmStarted) return;
+            bgmStarted = true;
+            bgm.volume = 0.6;
+
+            const playPromise = bgm.play();
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => console.log('BGM 재생 시작'))
+                    .catch(err => {
+                        console.warn('자동재생 차단됨, 재시도 대기:', err);
+                        // 일부 브라우저는 첫 play() 실패 시 다시 시도해야 함
+                        document.addEventListener('pointerdown', forcePlayBGM, { once: true });
+                        document.addEventListener('touchstart', forcePlayBGM, { once: true });
+                        document.addEventListener('click', forcePlayBGM, { once: true });
+                    });
+            }
+        }
+
+        function forcePlayBGM() {
+            bgm.play().then(() => console.log('BGM 재시작 성공')).catch(() => { });
+        }
+
+        /* 모든 입력에 반응하도록 */
+        ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(evt => {
+            window.addEventListener(evt, tryPlayBGM, { once: true });
+        });
+
+        // index.html 내에서 실행
+        const preloadImages = (urls) => Promise.all(urls.map(u => new Promise(res => {
+            const img = new Image(); img.onload = res; img.onerror = res; img.src = u;
+        })));
+
+        const INGAME_IMAGES = [
+            "images/block-1.png", "images/block-2.png", "images/block-3.png",
+            "images/block-4.png", "images/block-5.png", "images/block-6.png",
+            "images/block-7.png", "images/block-8.png", "images/block-9.png",
+            "images/blocked.png", "images/empty.png", "images/bg.png",
+            "images/rock.png", "images/hammer.png", "images/hammer_big.png", "images/setup.png",
+            ...Array.from({ length: 12 }, (_, i) => `images/bomb${String(i + 1).padStart(2, '0')}.png`)
+        ];
+
+        // 페이지 로드 시점에 인게임 리소스 캐싱
+        preloadImages(INGAME_IMAGES).then(() => {
+            console.log("🎨 인게임 이미지 사전 로드 완료");
+        });
+        // ✅ 버튼 클릭 사운드 (startBtn 제외)
+        const clickSound = new Audio('sounds/click_menu.mp3');
+        clickSound.volume = 0.5;
+
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.id !== 'startBtn') {
+                btn.addEventListener('click', () => {
+                    try {
+                        clickSound.currentTime = 0;
+                        clickSound.play().catch(() => { });
+                    } catch (e) { }
                 });
-
-                // ⚙️ 안전 타이머 (혹시 ended 안 잡히면)
-                setTimeout(() => {
-                    window.location.href = "game.html";
-                }, (startSound.duration || 1.5) * 1000 + 100);
-            });
-
-
-            /* ===== 초기 ===== */
-            window.addEventListener('load', () => {
-                refreshIdBadge();
-                if (!getPID()) {
-                    openIdModal(true);
-                    const chk = setInterval(() => {
-                        if (getPID()) { clearInterval(chk); openSheet(); loadRanking(); }
-                    }, 300);
-                } else {
-                    openSheet();
-                    loadRanking();
-                }
-            });
-            /* ===== BGM 자동 재생 (모든 유저 입력에 반응) ===== */
-            let bgmStarted = false;
-
-            function tryPlayBGM() {
-                if (bgmStarted) return;
-                bgmStarted = true;
-                bgm.volume = 0.6;
-
-                const playPromise = bgm.play();
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => console.log('BGM 재생 시작'))
-                        .catch(err => {
-                            console.warn('자동재생 차단됨, 재시도 대기:', err);
-                            // 일부 브라우저는 첫 play() 실패 시 다시 시도해야 함
-                            document.addEventListener('pointerdown', forcePlayBGM, { once: true });
-                            document.addEventListener('touchstart', forcePlayBGM, { once: true });
-                            document.addEventListener('click', forcePlayBGM, { once: true });
-                        });
-                }
             }
-
-            function forcePlayBGM() {
-                bgm.play().then(() => console.log('BGM 재시작 성공')).catch(() => { });
-            }
-
-            /* 모든 입력에 반응하도록 */
-            ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(evt => {
-                window.addEventListener(evt, tryPlayBGM, { once: true });
-            });
-
-            // index.html 내에서 실행
-            const preloadImages = (urls) => Promise.all(urls.map(u => new Promise(res => {
-                const img = new Image(); img.onload = res; img.onerror = res; img.src = u;
-            })));
-
-            const INGAME_IMAGES = [
-                "images/block-1.png", "images/block-2.png", "images/block-3.png",
-                "images/block-4.png", "images/block-5.png", "images/block-6.png",
-                "images/block-7.png", "images/block-8.png", "images/block-9.png",
-                "images/blocked.png", "images/empty.png", "images/bg.png",
-                "images/rock.png", "images/hammer.png", "images/hammer_big.png", "images/setup.png",
-                ...Array.from({ length: 12 }, (_, i) => `images/bomb${String(i + 1).padStart(2, '0')}.png`)
-            ];
-
-            // 페이지 로드 시점에 인게임 리소스 캐싱
-            preloadImages(INGAME_IMAGES).then(() => {
-                console.log("🎨 인게임 이미지 사전 로드 완료");
-            });
-            function adjustViewport() {
-                const vp = document.getElementById('viewport');
-                if (!vp) return;
-
-                const winW = window.innerWidth;
-                const winH = window.innerHeight;
-                const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-
-                if (isMobile) {
-                    // 📱 모바일에서는 100% 채우기
-                    vp.style.width = '100vw';
-                    vp.style.height = '100vh';
-                } else {
-                    // 💻 PC에서만 9:16 비율 유지
-                    const targetW = Math.min(winW, winH * 9 / 16);
-                    const targetH = targetW * 16 / 9;
-                    vp.style.width = `${targetW}px`;
-                    vp.style.height = `${targetH}px`;
-                }
-            }
-            window.addEventListener('resize', adjustViewport);
-            window.addEventListener('load', adjustViewport);
+        });
+        document.querySelector('.btn-skin').addEventListener('click', () => {
+            window.location.href = 'forest/index.html';
+        });
 
 
-
-        </script>
+    </script>
 </body>
 </html>

@@ -26,11 +26,13 @@
             -webkit-tap-highlight-color: transparent
         }
 
-
+        html, body {
+            height: 100%
+        }
 
         body {
             margin: 0;
-            background: #000; /* 바깥 검은 여백만 */
+            background: url('images/bg.png') no-repeat center center fixed;
             background-size: cover;
             color: var(--fg);
             font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
@@ -50,9 +52,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 2px;
             background: linear-gradient(180deg,rgba(11,15,20,0.95),rgba(11,15,20,0.6) 70%,transparent);
-            backdrop-filter: #262626b2;
+            backdrop-filter: blur(6px);
         }
 
         #title {
@@ -86,10 +88,34 @@
             background: #121722;
             border: 3px solid #2a3443;
             border-radius: 8px;
-            padding: 2px 4px;
+            padding: 2px 6px;
         }
 
+            /* 내부 텍스트를 부드럽게 좌우로 흐르게 */
+            .idtag span {
+                display: inline-block;
+                animation: idScroll 6s linear infinite; /* 속도 조정 가능 */
+            }
 
+            /* hover 시 일시정지 (선택사항) */
+            .idtag:hover span {
+                animation-play-state: paused;
+            }
+
+        /* 실제 스크롤 애니메이션 */
+        @keyframes idScroll {
+            0% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(-50%);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
 
 
         #boardWrap {
@@ -97,7 +123,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px
         }
 
         #board {
@@ -105,45 +130,52 @@
             max-width: 480px;
             aspect-ratio: 5/7;
             display: grid;
-            grid-template-columns: repeat(var(--cols),1fr);
-            grid-template-rows: repeat(var(--rows),1fr);
+            grid-template-columns: repeat(var(--cols), 1fr);
+            grid-template-rows: repeat(var(--rows), 1fr);
             gap: var(--gap);
             position: relative;
             margin: 0 auto;
-            overflow: visible;
         }
 
         .cell {
             aspect-ratio: 1/1;
             background: transparent;
-            border: 1px solid #1c2736;
+            border: 2px solid #fffec92a;
             border-radius: 14px;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: visible;
         }
-            /* 선택된 셀 테두리 */
-            .cell.selected {
-                outline: 5px solid #46d3ff; /* 파란 테두리 */
-                outline-offset: -3px; /* 안쪽으로 붙이기 */
-                border-radius: 12px; /* 셀 모서리에 맞춰 둥글게 */
-            }
-
 
             .cell.blocked {
                 background: var(--blocked);
-                background-image: repeating-linear-gradient(135deg,#1f2533 0 8px,#141925 8px 16px);
+                background-image: repeating-linear-gradient(135deg, #1f2533 0 8px, #141925 8px 16px);
                 border-color: #20283a;
             }
 
+            /* 이동 가능 / 경로 하이라이트 */
+            .cell.possible-move::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: url("images/move_1.png") center/contain no-repeat;
+                z-index: 5;
+                animation: movePulse 1.2s ease-in-out infinite;
+            }
 
+            .cell.path-highlight::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: url("images/move_2.png") center/contain no-repeat;
+                z-index: 6;
+                animation: moveGlow 0.8s ease-in-out infinite;
+            }
 
         .tile {
             position: absolute;
             inset: 0;
-            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -151,105 +183,76 @@
             background-repeat: no-repeat;
             background-position: center;
             user-select: none;
-            -webkit-user-select: none;
             transition: transform .15s ease;
         }
 
+            .tile.sel {
+                border: 3px solid var(--accent);
+                transform: scale(1.1);
+                box-shadow: 0 0 15px var(--accent), 0 0 25px rgba(70,211,255,0.7);
+                z-index: 10;
+            }
 
+            .tile.spawn {
+                animation: pop .22s ease-out;
+            }
 
+            .tile.bump {
+                animation: bump .18s ease-out;
+            }
 
-        /* 🟢 이동 가능한 블럭 표시 (move_1.png) */
-        .cell.possible-move::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: url("images/move_1.png") center/contain no-repeat;
-            pointer-events: none;
-            z-index: 5;
-        }
+            .tile.merge {
+                animation: merge .22s ease-in-out;
+            }
 
-        /* 🟡 이동 경로 표시 (move_2.png) */
-        .cell.path-highlight::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: url("images/move_2.png") center/contain no-repeat;
-            pointer-events: none;
-            z-index: 6;
-        }
-
-
-        .tile.spawn {
-            animation: pop .22s ease-out;
-            z-index: 300;
-        }
-
-        .tile.bump {
-            animation: bump .18s ease-out;
-        }
-
-        .tile.merge {
-            animation: merge .22s ease-in-out;
-        }
-
-        .tile.moving {
-            z-index: 500;
-            pointer-events: none;
-            box-shadow: none;
-            transform: scale(1.1);
-            border: 2px solid var(--accent);
-            border-radius: 12px;
-        }
-
-        .tile.placeholder {
-            position: absolute;
-            inset: 0;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            pointer-events: none;
-            z-index: 0;
-        }
+            .tile.moving {
+                z-index: 500;
+                pointer-events: none;
+                box-shadow: 0 4px 12px rgba(70, 211, 255, 0.6);
+                transform: scale(1.1);
+                border: 2px solid var(--accent);
+            }
 
         @keyframes pop {
             from {
                 transform: scale(0.6);
-                opacity: 0
+                opacity: 0;
             }
 
             to {
                 transform: scale(1);
-                opacity: 1
+                opacity: 1;
             }
         }
 
         @keyframes bump {
             0% {
-                transform: scale(1)
+                transform: scale(1);
             }
 
             50% {
-                transform: scale(1.08)
+                transform: scale(1.08);
             }
 
             100% {
-                transform: scale(1)
+                transform: scale(1);
             }
         }
 
         @keyframes merge {
             0% {
-                transform: scale(0.95)
+                transform: scale(0.95);
             }
 
             50% {
-                transform: scale(1.12)
+                transform: scale(1.12);
             }
 
             100% {
-                transform: scale(1)
+                transform: scale(1);
             }
         }
+
 
         .btn {
             appearance: none;
@@ -289,7 +292,7 @@
             line-height: 1.6; /* 기존 3 → 컴팩트하게 */
             text-align: center;
             opacity: 0;
-            transition: opacity 0.2s ease-in-out; /* ← 정확히 이 속도 */
+            transition: opacity 0.4s ease-in-out; /* ← 정확히 이 속도 */
         }
 
         #toast {
@@ -436,6 +439,7 @@
             border-radius: 50%;
             cursor: pointer;
             transition: transform .06s ease, background .2s ease, box-shadow .2s ease;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02);
         }
 
             .icon-btn:active {
@@ -471,23 +475,21 @@
         #footerBar {
             position: fixed;
             left: 50%;
+            bottom: 20px; /* ← 하단에서 떨어진 거리 */
             transform: translateX(-50%);
             width: 100%;
             max-width: 480px;
-            padding: 10px calc(16px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+            padding: 10px 16px; /* ← 내부 여백 */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            pointer-events: auto;
-            bottom: 20px; /* 초기 기본값 */
-            transition: bottom 0.3s ease;
         }
 
         /* 네모 박스 느낌 빼고, 단순 컨테이너로 */
         .footer-glass {
             display: flex; /* 🔑 grid → flex */
-            gap: var(--btn-gap, 14px); /* 가운데 div 없이 간격 유지 */
+            gap: 150px; /* ← 아이콘 사이 거리 */
             background: transparent; /* 네모 박스 제거 */
             border: 0;
             backdrop-filter: none;
@@ -645,7 +647,33 @@
                 transform: scale(1);
             }
         }
+        /* ==== 🛑 적 공격 경고 오버레이 ==== */
+        .warning-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: url('images/warning.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: warningBlink 1s ease-in-out infinite;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 10;
+        }
 
+        @keyframes warningBlink {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
 
         .rock-block.spawn {
             animation: rockSpawn 0.3s ease-out forwards;
@@ -671,1703 +699,1624 @@
             #fadeLayer.fade-in {
                 opacity: 0;
             }
-
-        }
-
-        /* === 🟩 이동 가능한 칸 오버레이 (move_1.png) === */
-        .cell.possible-move::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: url("images/move_1.png") center/contain no-repeat;
-            pointer-events: none;
-            z-index: 5; /* 배경보다 위, 타일보다 아래면 조정 가능 */
-        }
-
-        /* === 🟨 이동 경로 오버레이 (move_2.png) === */
-        .cell.path-highlight::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: url("images/move_2.png") center/contain no-repeat;
-            pointer-events: none;
-            z-index: 6; /* move_1 위에 위치 */
-        }
-     
-
         .footer-center {
-            visibility: hidden; /* ✅ 공간은 유지, 보이지만 않음 */
-        }
-        /* === 🟩 인게임 화면 9:16 비율 고정 === */
-        html, body {
-            margin: 0;
-            height: 100%;
-            background: #000; /* 프레임 밖은 검정 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: none;
         }
 
-        /* 9:16 고정 프레임 (배경 포함) */
-        .game-wrapper {
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100vh * 9 / 16);
-            height: 100vh; /* 세로 꽉 채움 */
-            max-width: 100vw;
-            background: url('images/bg.png') no-repeat center center;
-            background-size: 100% 100%; /* ← 핵심: 비율 무시하고 위아래까지 완전 채움 */
-            background-color: #000;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-        }
     </style>
-   
 </head>
 <body>
-    <div class="game-wrapper">
-        <header>
-            <div class="stat">
-                <span class="idtag" id="idView"><span>ID: -</span></span>
-                <div class="stat-right">
-                    <span class="stat-turn">턴: <b id="turn">0</b></span>
-                    <span class="stat-next">다음 소환: <b id="nextSpawn">3</b></span>
-                    <span class="stat-mega">대소환 남음: <b id="megaLeft">5</b></span>
-                </div>
-            </div>
-        </header>
-
-        <div id="boardWrap">
-            <div id="board"></div>
-        </div>
-
-        <div class="msg" id="toast"></div>
-        <div class="msg" id="toast2"></div>
-        <div class="msg show" id="startMsg">몬스터 탭!</div>
-
-        <div id="resultPopup">
-            <div id="resultBox">
-                <h2 id="popupTitle">게임 오버</h2>
-                <p id="finalScore"></p>
-                <p id="noMovesMsg" style="display:none;">이동 가능한 소환수가 없습니다.</p>
-                <div id="rankHeader"><h3 style="margin:0;font-size:16px;">랭킹 TOP 100</h3></div>
-                <div id="rankings"><div style="padding:10px">랭킹을 불러오는중...</div></div>
-                <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;">
-                    <button class="btn" id="btnRestart">다시 시작</button>
-                    <button class="btn" id="btnBack">돌아가기</button>
-                    <button class="btn" id="btnViewBest">내 최고 기록 확인</button>
-
-
-                </div>
+    <header>
+        <div class="stat">
+            <span class="idtag" id="idView"><span>ID: -</span></span>
+            <div class="stat-right">
+                <span class="stat-turn">턴: <b id="turn">0</b></span>
+                <span class="stat-next">다음 소환: <b id="nextSpawn">3</b></span>
+                <span class="stat-mega">대소환 남음: <b id="megaLeft">5</b></span>
             </div>
         </div>
-        <!-- ===== 하단 플로팅바 ===== -->
-        <div id="footerBar">
-            <div class="footer-glass">
-                <!-- 왼쪽: 망치 -->
-                <button id="btnHammer" class="icon-btn" aria-label="망치 아이템">
-                    <img src="images/hammer_big.png" alt="hammer" class="icon-img">
-                    <span id="hammerCount" class="hammer-count">0</span>
+    </header>
+
+    <div id="boardWrap">
+        <div id="board"></div>
+    </div>
+
+    <div class="msg" id="toast"></div>
+    <div class="msg" id="toast2"></div>
+    <div class="msg show" id="startMsg">몬스터 탭!</div>
+
+    <div id="resultPopup">
+        <div id="resultBox">
+            <h2 id="popupTitle">게임 오버</h2>
+            <p id="finalScore"></p>
+            <p id="noMovesMsg" style="display:none;">이동 가능한 소환수가 없습니다.</p>
+            <div id="rankHeader"><h3 style="margin:0;font-size:16px;">랭킹 TOP 100</h3></div>
+            <div id="rankings"><div style="padding:10px">랭킹을 불러오는중...</div></div>
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;">
+                <button class="btn" id="btnRestart">다시 시작</button>
+                <button class="btn" id="btnBack">돌아가기</button>
+                <button class="btn" id="btnViewBest">내 최고 기록 확인</button>
+
+
+            </div>
+        </div>
+    </div>
+    <!-- ===== 하단 플로팅바 ===== -->
+    <div id="footerBar">
+        <div class="footer-glass">
+            <!-- 왼쪽: 망치 -->
+            <button id="btnHammer" class="icon-btn" aria-label="망치 아이템">
+                <img src="images/hammer_big.png" alt="hammer" class="icon-img">
+                <span id="hammerCount" class="hammer-count">0</span>
+            </button>
+
+            <!-- 가운데: 미니 스탯 -->
+            <div class="footer-center">
+                턴 <b id="turnMini">0</b> · 다음 소환 <b id="nextMini">3</b>
+            </div>
+
+            <!-- 오른쪽: 설정 -->
+            <button id="btnSettings" class="icon-btn" aria-label="설정">
+                <img src="images/setup.png" alt="setup" class="icon-img">
+            </button>
+
+
+
+        </div>
+    </div>
+
+    <!-- ===== 설정 팝업 ===== -->
+    <div id="settingsPopup" role="dialog" aria-modal="true">
+        <div class="settings-box">
+            <h3 class="settings-title"><span class="gear-dot"></span> 설정</h3>
+            <div class="menu-list">
+                <button class="menu-btn" id="mNew">
+                    새 게임
+                    <span class="sub">현재 진행중인 내용을 초기화하고 새로 시작</span>
                 </button>
-
-                <!-- 가운데: 미니 스탯 -->
-                <div class="footer-center">
-                    턴 <b id="turnMini">0</b> · 다음 소환 <b id="nextMini">3</b>
-                </div>
-
-                <!-- 오른쪽: 설정 -->
-                <button id="btnSettings" class="icon-btn" aria-label="설정">
-                    <img src="images/setup.png" alt="setup" class="icon-img">
+                <button class="menu-btn" id="mSave">
+                    게임 저장 (로컬)
+                    <span class="sub">브라우저 로컬 저장소에 현재 보드를 저장</span>
                 </button>
-
-
-
+                <button class="menu-btn" id="mLoad">
+                    불러오기 (로컬)
+                    <span class="sub">저장한 보드를 1회 불러옴</span>
+                </button>
+                <button class="menu-btn" id="mViewBest">
+                    내 최고 기록 보기
+                    <span class="sub">가장 높은 점수의 보드를 확인</span>
+                </button>
+                <button class="menu-btn" id="mResetId">
+                    아이디 초기화
+                    <span class="sub">플레이어 ID를 다시 입력</span>
+                </button>
+                <button class="menu-btn" id="mRanking">
+                    랭킹 불러오기
+                    <span class="sub">랭킹 TOP 100을 확인</span>
+                </button>
+                <button class="menu-btn" id="mExit">
+                    나가기
+                    <span class="sub">타이틀 화면으로 이동</span>
+                </button>
+            </div>
+            <div class="settings-actions">
+                <button class="btn" id="btnSettingsClose">닫기</button>
             </div>
         </div>
+    </div>
+    <script>
+        (() => {
 
-        <!-- ===== 설정 팝업 ===== -->
-        <div id="settingsPopup" role="dialog" aria-modal="true">
-            <div class="settings-box">
-                <h3 class="settings-title"><span class="gear-dot"></span> 설정</h3>
-                <div class="menu-list">
-                    <button class="menu-btn" id="mNew">
-                        새 게임
-                        <span class="sub">현재 진행중인 내용을 초기화하고 새로 시작</span>
-                    </button>
-                    <button class="menu-btn" id="mSave">
-                        게임 저장 (로컬)
-                        <span class="sub">브라우저 로컬 저장소에 현재 보드를 저장</span>
-                    </button>
-                    <button class="menu-btn" id="mLoad">
-                        불러오기 (로컬)
-                        <span class="sub">저장한 보드를 1회 불러옴</span>
-                    </button>
-                    <button class="menu-btn" id="mViewBest">
-                        내 최고 기록 보기
-                        <span class="sub">가장 높은 점수의 보드를 확인</span>
-                    </button>
-                    <button class="menu-btn" id="mResetId">
-                        아이디 초기화
-                        <span class="sub">플레이어 ID를 다시 입력</span>
-                    </button>
-                    <button class="menu-btn" id="mRanking">
-                        랭킹 불러오기
-                        <span class="sub">랭킹 TOP 100을 확인</span>
-                    </button>
-                    <button class="menu-btn" id="mExit">
-                        나가기
-                        <span class="sub">타이틀 화면으로 이동</span>
-                    </button>
-                </div>
-                <div class="settings-actions">
-                    <button class="btn" id="btnSettingsClose">닫기</button>
-                </div>
-            </div>
-        </div>
-        <script>
-            (() => {
+            const IMAGE_URLS = [
+                "images/block-1.png", "images/block-2.png", "images/block-3.png",
+                "images/block-4.png", "images/block-5.png", "images/block-6.png",
+                "images/block-7.png", "images/block-8.png", "images/block-9.png",
+                "images/blocked.png", "images/empty.png", "images/bg.png", "images/hammer.png",
+                "images/hammer_big.png", "images/rock.png", "images/setup.png",
+                "images/bomb01.png", "images/bomb02.png", "images/bomb03.png", "images/bomb04.png", "images/bomb05.png", "images/bomb06.png", "images/bomb07.png", "images/bomb08.png", "images/bomb09.png", "images/bomb10.png", "images/bomb11.png", "images/bomb12.png"
 
-                const IMAGE_URLS = [
+            ];
+
+            /* ====== 이미지 프리로드 ====== */
+            function preloadImages(urls) {
+                return Promise.all(urls.map(src => new Promise(res => {
+                    const img = new Image(); img.onload = res; img.onerror = res; img.src = src;
+                })));
+            }
+
+            // ✅ 블록 이미지 디코딩까지 미리 완료
+            async function decodeAllBlockImages() {
+                const urls = [
                     "images/block-1.png", "images/block-2.png", "images/block-3.png",
                     "images/block-4.png", "images/block-5.png", "images/block-6.png",
-                    "images/block-7.png", "images/block-8.png", "images/block-9.png",
-                    "images/blocked.png", "images/empty.png", "images/bg.png", "images/hammer.png",
-                    "images/hammer_big.png", "images/rock.png", "images/setup.png",
-                    "images/bomb01.png", "images/bomb02.png", "images/bomb03.png", "images/bomb04.png", "images/bomb05.png", "images/bomb06.png", "images/bomb07.png", "images/bomb08.png", "images/bomb09.png", "images/bomb10.png", "images/bomb11.png", "images/bomb12.png"
-
+                    "images/block-7.png", "images/block-8.png", "images/block-9.png"
                 ];
+                await Promise.all(urls.map(src => {
+                    const img = new Image();
+                    img.src = src;
+                    return img.decode().catch(() => { });
+                }));
+                console.log("✅ 블록 이미지 decode 완료");
+            }
 
-                /* ====== 이미지 프리로드 ====== */
-                function preloadImages(urls) {
-                    return Promise.all(urls.map(src => new Promise(res => {
-                        const img = new Image(); img.onload = res; img.onerror = res; img.src = src;
-                    })));
+
+            /* ====== 🎵 사운드 로드 ====== */
+            window.sounds = {
+                bgm: new Audio("sounds/bgm.mp3"),
+                move: new Audio("sounds/move.mp3"),
+                click: new Audio("sounds/click.mp3"),
+                toast: new Audio("sounds/toast.mp3"),
+                gameover: new Audio("sounds/gameover.mp3"),
+                mergeMove: new Audio("sounds/move.mp3"),
+                attack: new Audio("sounds/attack.mp3"),
+                hammer: new Audio("sounds/hammer.mp3"),
+                clickMenu: new Audio("sounds/click_menu.mp3"),
+                warning: new Audio("sounds/warning.mp3"),
+                bigcall: new Audio("sounds/bigcall.mp3"),
+                blocks: {
+                    3: new Audio("sounds/block-2.mp3"),
+                    9: new Audio("sounds/block-3.mp3"),
+                    27: new Audio("sounds/block-4.mp3"),
+                    81: new Audio("sounds/block-5.mp3"),
+                    243: new Audio("sounds/block-6.mp3"),
+                    729: new Audio("sounds/block-7.mp3"),
+                    2187: new Audio("sounds/block-8.mp3"),
+                    6561: new Audio("sounds/block-9.mp3")
+                }
+            };
+            sounds.bgm.loop = true;
+            sounds.bgm.volume = 1;
+            sounds.move.volume = 1;
+            sounds.mergeMove.volume = 1;
+            sounds.click.volume = 0.5;
+            sounds.toast.volume = 1;
+            sounds.gameover.volume = 1;
+            sounds.attack.volume = 1;
+            sounds.warning.volume = 1;
+            sounds.bigcall.volume = 1;
+            sounds.hammer.volume = 1;
+            sounds.clickMenu.volume = 0.6;
+
+            for (let k in sounds.blocks) sounds.blocks[k].volume = 1;
+
+            /* ====== 기본 설정/상수 ====== */
+            const GAS_URL = "https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec";
+            const COLS = 5, ROWS = 7;
+            const INIT_TILES = 12;
+            const SPAWN_EVERY = 3;
+            const SPAWN_BATCH = 3;
+            const MEGA_INTERVAL = 5;
+            // ==== ⚔️ 적의 공격 확률 설정 ====
+            const ENEMY_ATTACK_CHANCE = 0.3; // 0.0~1.0 사이 (공격 예고 확률)
+            let gameActive = false; // 게임 활성 상태 여부
+
+
+            // 이동/머지 속도
+            const MOVE_SPEED = 80;    // 일반 이동
+            const MERGE_SPEED = 120;  // 그룹 흡수 이동
+
+            // 딜레이 상수
+            const MERGE_CHAIN_DELAY = 200;   // 연속 머지 간 간격
+            const SPAWN_TO_MERGE_DELAY = 200; // 스폰 후 자동 머지 전 대기
+
+            const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+            const TILE_IMAGES = {
+                1: "images/block-1.png", 3: "images/block-2.png", 9: "images/block-3.png",
+                27: "images/block-4.png", 81: "images/block-5.png", 243: "images/block-6.png",
+                729: "images/block-7.png", 2187: "images/block-8.png", 6561: "images/block-9.png"
+            };
+
+            let grid = [], turn = 0, untilSpawn = SPAWN_EVERY, spawnCount = 0, selected = null, history = [], gameOverShown = false;
+            let lastGameState = null, bestScore = 0, bestGameState = null;
+            let isAnimating = false;
+            // 🪨 rock 블록 위치 추적용 Set
+            const rockSet = new Set();
+
+            const board = document.getElementById('board');
+            let hammerMode = false;
+            let hammerCount = 0;
+            function updateHammerUI() {
+                document.getElementById("hammerCount").textContent = hammerCount;
+            }
+
+            const elTurn = document.getElementById('turn'),
+                elNext = document.getElementById('nextSpawn'),
+                elMega = document.getElementById('megaLeft');
+            const elTurnMini = document.getElementById('turnMini');
+            const elNextMini = document.getElementById('nextMini');
+
+            const toast = document.getElementById('toast');
+            let toastTimer = null;
+            // === 🎯 토스트 메시지 버퍼 시스템 (한 턴 내 묶어서 표시) ===
+            let toastBuffer = [];
+
+            // 메시지를 큐에 임시 저장
+            function queueInfo(msg, type = "info") {
+                toastBuffer.push({ msg, type });
+            }
+
+            // 버퍼에 쌓인 메시지를 한 번에 출력
+            function flushToast() {
+                // 🎯 게임 오버 상태면 토스트 표시 완전 차단
+                if (gameOverShown || !gameActive) {
+                    toastBuffer = []; // 버퍼도 비워서 이후 누적 방지
+                    return;
+                }
+                if (toastBuffer.length === 0) return;
+
+                const grouped = {};
+                for (const t of toastBuffer) {
+                    if (!grouped[t.type]) grouped[t.type] = [];
+                    grouped[t.type].push(t.msg);
                 }
 
-                // ✅ 블록 이미지 디코딩까지 미리 완료
-                async function decodeAllBlockImages() {
-                    const urls = [
-                        "images/block-1.png", "images/block-2.png", "images/block-3.png",
-                        "images/block-4.png", "images/block-5.png", "images/block-6.png",
-                        "images/block-7.png", "images/block-8.png", "images/block-9.png"
-                    ];
-                    await Promise.all(urls.map(src => {
-                        const img = new Image();
-                        img.src = src;
-                        return img.decode().catch(() => { });
-                    }));
-                    console.log("✅ 블록 이미지 decode 완료");
-                }
+                // 불필요한 '오류/경고/성공' 헤더 제거
+                let mergedText = "";
+                if (grouped.ok) mergedText += grouped.ok.join("\n") + "\n";
+                if (grouped.warn) mergedText += grouped.warn.join("\n") + "\n";
+                if (grouped.err) mergedText += grouped.err.join("\n") + "\n";
+                if (grouped.info) mergedText += grouped.info.join("\n");
+
+                // 마지막 메시지 타입 기준으로 색상 적용
+                const lastType = Object.keys(grouped).pop() || "ok";
+                info(mergedText.trim(), lastType);
+
+                toastBuffer = [];
+            }
 
 
-                /* ====== 🎵 사운드 로드 ====== */
-                window.sounds = {
-                    bgm: new Audio("sounds/bgm.mp3"),
-                    move: new Audio("sounds/move.mp3"),
-                    click: new Audio("sounds/click.mp3"),
-                    toast: new Audio("sounds/toast.mp3"),
-                    gameover: new Audio("sounds/gameover.mp3"),
-                    mergeMove: new Audio("sounds/move.mp3"),
-                    attack: new Audio("sounds/attack.mp3"),
-                    hammer: new Audio("sounds/hammer.mp3"),
-                    clickMenu: new Audio("sounds/click_menu.mp3"),
-                    warning: new Audio("sounds/warning.mp3"),
-                    bigcall: new Audio("sounds/bigcall.mp3"),
-                    blocks: {
-                        3: new Audio("sounds/block-2.mp3"),
-                        9: new Audio("sounds/block-3.mp3"),
-                        27: new Audio("sounds/block-4.mp3"),
-                        81: new Audio("sounds/block-5.mp3"),
-                        243: new Audio("sounds/block-6.mp3"),
-                        729: new Audio("sounds/block-7.mp3"),
-                        2187: new Audio("sounds/block-8.mp3"),
-                        6561: new Audio("sounds/block-9.mp3")
+
+            function info(t, k) {
+                // ✅ 토스트 두 개 다 찾기
+                const toast1 = document.getElementById('toast');
+                const toast2 = document.getElementById('toast2');
+
+                // 어떤 토스트를 쓸지 결정
+                const active1 = toast1.classList.contains('show');
+                const target = active1 ? toast2 : toast1;
+
+                target.textContent = t;
+                target.style.color = k === 'err' ? 'var(--err)' :
+                    k === 'warn' ? 'var(--warn)' :
+                        k === 'ok' ? 'var(--ok)' : 'var(--fg)';
+                target.classList.remove('show'); void target.offsetWidth; target.classList.add('show');
+
+                // 기존 타이머 제거 및 새 타이머 등록
+                const DISPLAY_TIME = 3500;
+                clearTimeout(target._timer);
+                target._timer = setTimeout(() => {
+                    target.classList.remove('show');
+                }, DISPLAY_TIME);
+
+                // 🔊 사운드 (기존처럼 유지)
+                try {
+                    sounds.toast.currentTime = 0;
+                    sounds.toast.play().catch(() => { });
+                } catch (e) { }
+            }
+
+
+            const popup = document.getElementById('resultPopup'),
+                finalScore = document.getElementById('finalScore'),
+                popupTitle = document.getElementById('popupTitle');
+            const idView = document.getElementById('idView');
+            const rankingsEl = document.getElementById('rankings');
+            const noMovesMsg = document.getElementById('noMovesMsg');
+
+            /* ====== 아이디 ====== */
+            let playerId = localStorage.getItem("mergePlayerId");
+            function askPlayerId(force = false) {
+                if (!playerId || force) {
+                    let input = "";
+                    while (!input) {
+                        input = prompt("플레이어 아이디를 입력하세요:");
+                        if (input === null) { input = ""; }
                     }
-                };
-                sounds.bgm.loop = true;
-                sounds.bgm.volume = 1;
-                sounds.move.volume = 1;
-                sounds.mergeMove.volume = 1;
-                sounds.click.volume = 0.5;
-                sounds.toast.volume = 1;
-                sounds.gameover.volume = 1;
-                sounds.attack.volume = 1;
-                sounds.warning.volume = 1;
-                sounds.bigcall.volume = 1;
-                sounds.hammer.volume = 1;
-                sounds.clickMenu.volume = 0.6;
-
-                for (let k in sounds.blocks) sounds.blocks[k].volume = 1;
-
-                /* ====== 기본 설정/상수 ====== */
-                const GAS_URL = "https://script.google.com/macros/s/AKfycbwIJmiCseB5UAQjfTIKN_812VkvXdLqmTObnq01JGxJV6D3T5TzKdsrU26_qbxQGGPq/exec";
-                const COLS = 5, ROWS = 7;
-                const INIT_TILES = 12;
-                const SPAWN_EVERY = 3;
-                const SPAWN_BATCH = 3;
-                const MEGA_INTERVAL = 5;
-                // ==== ⚔️ 적의 공격 확률 설정 ====
-                const ENEMY_ATTACK_CHANCE = 0.3; // 0.0~1.0 사이 (공격 예고 확률)
-                let gameActive = false; // 게임 활성 상태 여부
-
-
-                // 이동/머지 속도
-                const MOVE_SPEED = 80;    // 일반 이동
-                const MERGE_SPEED = 120;  // 그룹 흡수 이동
-
-                // 딜레이 상수
-                const MERGE_CHAIN_DELAY = 200;   // 연속 머지 간 간격
-                const SPAWN_TO_MERGE_DELAY = 200; // 스폰 후 자동 머지 전 대기
-
-                const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-
-                const TILE_IMAGES = {
-                    1: "images/block-1.png", 3: "images/block-2.png", 9: "images/block-3.png",
-                    27: "images/block-4.png", 81: "images/block-5.png", 243: "images/block-6.png",
-                    729: "images/block-7.png", 2187: "images/block-8.png", 6561: "images/block-9.png"
-                };
-
-                let grid = [], turn = 0, untilSpawn = SPAWN_EVERY, spawnCount = 0, selected = null, history = [], gameOverShown = false;
-                let lastGameState = null, bestScore = 0, bestGameState = null;
-                let isAnimating = false;
-                // 🪨 rock 블록 위치 추적용 Set
-                const rockSet = new Set();
-
-                const board = document.getElementById('board');
-                let hammerMode = false;
-                let hammerCount = 0;
-                function updateHammerUI() {
-                    document.getElementById("hammerCount").textContent = hammerCount;
+                    playerId = input.trim();
+                    localStorage.setItem("mergePlayerId", playerId);
+                    info(`아이디 설정됨: ${playerId}`);
                 }
+                idView.textContent = "ID: " + playerId;
+            }
 
-                const elTurn = document.getElementById('turn'),
-                    elNext = document.getElementById('nextSpawn'),
-                    elMega = document.getElementById('megaLeft');
-                const elTurnMini = document.getElementById('turnMini');
-                const elNextMini = document.getElementById('nextMini');
-
-                const toast = document.getElementById('toast');
-                let toastTimer = null;
-                // === 🎯 토스트 메시지 버퍼 시스템 (한 턴 내 묶어서 표시) ===
-                let toastBuffer = [];
-
-                // 메시지를 큐에 임시 저장
-                function queueInfo(msg, type = "info") {
-                    toastBuffer.push({ msg, type });
-                }
-
-                // 버퍼에 쌓인 메시지를 한 번에 출력
-                function flushToast() {
-                    // 🎯 게임 오버 상태면 토스트 표시 완전 차단
-                    if (gameOverShown || !gameActive) {
-                        toastBuffer = []; // 버퍼도 비워서 이후 누적 방지
-                        return;
-                    }
-                    if (toastBuffer.length === 0) return;
-
-                    const grouped = {};
-                    for (const t of toastBuffer) {
-                        if (!grouped[t.type]) grouped[t.type] = [];
-                        grouped[t.type].push(t.msg);
-                    }
-
-                    // 불필요한 '오류/경고/성공' 헤더 제거
-                    let mergedText = "";
-                    if (grouped.ok) mergedText += grouped.ok.join("\n") + "\n";
-                    if (grouped.warn) mergedText += grouped.warn.join("\n") + "\n";
-                    if (grouped.err) mergedText += grouped.err.join("\n") + "\n";
-                    if (grouped.info) mergedText += grouped.info.join("\n");
-
-                    // 마지막 메시지 타입 기준으로 색상 적용
-                    const lastType = Object.keys(grouped).pop() || "ok";
-                    info(mergedText.trim(), lastType);
-
-                    toastBuffer = [];
-                }
-
-
-
-                function info(t, k) {
-                    // ✅ 토스트 두 개 다 찾기
-                    const toast1 = document.getElementById('toast');
-                    const toast2 = document.getElementById('toast2');
-
-                    // 어떤 토스트를 쓸지 결정
-                    const active1 = toast1.classList.contains('show');
-                    const target = active1 ? toast2 : toast1;
-
-                    target.textContent = t;
-                    target.style.color = k === 'err' ? 'var(--err)' :
-                        k === 'warn' ? 'var(--warn)' :
-                            k === 'ok' ? 'var(--ok)' : 'var(--fg)';
-                    target.classList.remove('show'); void target.offsetWidth; target.classList.add('show');
-
-                    // 기존 타이머 제거 및 새 타이머 등록
-                    const DISPLAY_TIME = 3500;
-                    clearTimeout(target._timer);
-                    target._timer = setTimeout(() => {
-                        target.classList.remove('show');
-                    }, DISPLAY_TIME);
-
-                    // 🔊 사운드 (기존처럼 유지)
-                    try {
-                        sounds.toast.currentTime = 0;
-                        sounds.toast.play().catch(() => { });
-                    } catch (e) { }
-                }
-
-
-                const popup = document.getElementById('resultPopup'),
-                    finalScore = document.getElementById('finalScore'),
-                    popupTitle = document.getElementById('popupTitle');
-                const idView = document.getElementById('idView');
-                const rankingsEl = document.getElementById('rankings');
-                const noMovesMsg = document.getElementById('noMovesMsg');
-
-                /* ====== 아이디 ====== */
-                let playerId = localStorage.getItem("mergePlayerId");
-                function askPlayerId(force = false) {
-                    if (!playerId || force) {
-                        let input = "";
-                        while (!input) {
-                            input = prompt("플레이어 아이디를 입력하세요:");
-                            if (input === null) { input = ""; }
-                        }
-                        playerId = input.trim();
-                        localStorage.setItem("mergePlayerId", playerId);
-                        info(`아이디 설정됨: ${playerId}`);
-                    }
-                    idView.textContent = "ID: " + playerId;
-                }
-
-                /* ====== 유틸 ====== */
-                const key = (r, c) => `${r},${c}`;
-                const cloneGrid = (g) => g.map(r => r.slice());
-                const inBounds = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
-                const isEmpty = (r, c) => grid[r][c] === 0;
-                const isBlocked = (r, c) => grid[r][c] === -1;
-                const isTile = (r, c) => grid[r][c] > 0;
-                function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[a[i], a[j]] = [a[j], a[i]]; } }
-                function listEmpty() {
-                    const out = [];
-                    for (let r = 0; r < ROWS; r++) {
-                        for (let c = 0; c < COLS; c++) {
-                            const k = `${r},${c}`;
-                            if (grid[r][c] === 0 && !rockSet.has(k)) {
-                                out.push({ r, c });
-                            }
+            /* ====== 유틸 ====== */
+            const key = (r, c) => `${r},${c}`;
+            const cloneGrid = (g) => g.map(r => r.slice());
+            const inBounds = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+            const isEmpty = (r, c) => grid[r][c] === 0;
+            const isBlocked = (r, c) => grid[r][c] === -1;
+            const isTile = (r, c) => grid[r][c] > 0;
+            function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[a[i], a[j]] = [a[j], a[i]]; } }
+            function listEmpty() {
+                const out = [];
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const k = `${r},${c}`;
+                        if (grid[r][c] === 0 && !rockSet.has(k)) {
+                            out.push({ r, c });
                         }
                     }
-                    return out;
                 }
+                return out;
+            }
 
-                // ✅ createRockAt()는 listEmpty() 밖으로 이동!
-                function createRockAt(r, c) {
-                    const cell = board.children[r * COLS + c];
-                    if (!cell || cell.querySelector('.rock-block')) return;
-                    const rock = document.createElement('div');
-                    rock.className = 'tile rock-block';
-                    rock.style.backgroundImage = "url('images/rock.png')";
-                    rock.style.position = 'absolute';
-                    rock.style.inset = '0';
-                    rock.style.pointerEvents = 'auto';
-                    cell.appendChild(rock);
-
-
-                    // 💥 rock 생성 애니메이션 클래스 추가
-                    rock.classList.add('spawn');
+            // ✅ createRockAt()는 listEmpty() 밖으로 이동!
+            function createRockAt(r, c) {
+                const cell = board.children[r * COLS + c];
+                if (!cell || cell.querySelector('.rock-block')) return;
+                const rock = document.createElement('div');
+                rock.className = 'tile rock-block';
+                rock.style.backgroundImage = "url('images/rock.png')";
+                rock.style.position = 'absolute';
+                rock.style.inset = '0';
+                rock.style.pointerEvents = 'auto';
+                cell.appendChild(rock);
 
 
-
-                    rockSet.add(`${r},${c}`);
-
-                    // 🔊 공격 사운드 추가
-                    try {
-                        sounds.attack.currentTime = 0;
-                        sounds.attack.play().catch(() => { });
-                    } catch (e) { console.error(e); }
-                }
-
-                // 💥 rock 제거 시 폭발 스프라이트 재생
-                // 💥 rock 제거 시 폭발 스프라이트 재생 (깜빡임 방지 버전)
-                function playBombAnimation(r, c, options = {}) {
-                    const { frameCount = 12, fps = 24, scale = 1.0 } = options;
-                    const cell = board.children[r * COLS + c];
-                    if (!cell) return;
-
-                    const bomb = document.createElement('div');
-                    bomb.className = 'tile bomb-effect';
-                    bomb.style.position = 'absolute';
-                    bomb.style.inset = '0';
-                    bomb.style.backgroundSize = 'contain';
-                    bomb.style.backgroundRepeat = 'no-repeat';
-                    bomb.style.backgroundPosition = 'center';
-                    bomb.style.transform = `scale(${scale})`;
-                    bomb.style.zIndex = 9999;
-                    cell.appendChild(bomb);
-
-                    // ✅ 모든 폭발 프레임 미리 로드 후 실행
-                    const frames = Array.from({ length: frameCount }, (_, i) => `images/bomb${String(i + 1).padStart(2, '0')}.png`);
-                    const preloadAll = frames.map(src => new Promise(res => {
-                        const img = new Image();
-                        img.onload = res;
-                        img.onerror = res;
-                        img.src = src;
-                    }));
-
-                    Promise.all(preloadAll).then(() => {
-                        let frame = 1;
-                        const interval = 1000 / fps;
-                        const timer = setInterval(() => {
-                            bomb.style.backgroundImage = `url('images/bomb${String(frame).padStart(2, '0')}.png')`;
-                            frame++;
-                            if (frame > frameCount) {
-                                clearInterval(timer);
-                                bomb.remove();
-                            }
-                        }, interval);
-                    });
-                }
+                // 💥 rock 생성 애니메이션 클래스 추가
+                rock.classList.add('spawn');
+                // ⚠️ 경고 오버레이 추가
+                const overlay = document.createElement('div');
+                overlay.className = 'warning-overlay';
+                rock.appendChild(overlay);
 
 
-                function randomValue() { return [1, 1, 1, 1, 3, 3, 9][(Math.random() * 7) | 0]; }
+                rockSet.add(`${r},${c}`);
 
-                /* 깜빡임 방지 플레이스홀더 */
-                function addEmptyPlaceholderAt(r, c) {
-                    const cell = board.children[r * COLS + c]; if (!cell) return;
-                    if (cell.querySelector('.placeholder')) return;
-                    const ph = document.createElement('div');
-                    ph.className = 'tile placeholder';
-                    ph.style.backgroundImage = "url('images/empty.png')";
-                    cell.appendChild(ph);
-                }
-                function removePlaceholderAt(r, c) {
-                    const cell = board.children[r * COLS + c]; if (!cell) return;
-                    const ph = cell.querySelector('.placeholder'); if (ph) ph.remove();
-                }
+                // 🔊 공격 사운드 추가
+                try {
+                    sounds.attack.currentTime = 0;
+                    sounds.attack.play().catch(() => { });
+                } catch (e) { console.error(e); }
+            }
 
-                /* ====== 렌더 잠금 ====== */
-                const renderLocks = new Set();
-                const lockCell = (r, c) => renderLocks.add(`${r},${c}`);
-                const unlockCell = (r, c) => renderLocks.delete(`${r},${c}`);
-                const isLocked = (r, c) => renderLocks.has(`${r},${c}`);
+            // 💥 rock 제거 시 폭발 스프라이트 재생
+            // 💥 rock 제거 시 폭발 스프라이트 재생 (깜빡임 방지 버전)
+            function playBombAnimation(r, c, options = {}) {
+                const { frameCount = 12, fps = 24, scale = 1.0 } = options;
+                const cell = board.children[r * COLS + c];
+                if (!cell) return;
 
-                /* ====== 셀 렌더 ====== */
-                function drawCell(r, c, opt = {}) {
-                    if (!opt.force && isLocked(r, c)) return;
-                    const idx = r * COLS + c, cell = board.children[idx];
-                    cell.classList.toggle('blocked', isBlocked(r, c));
-                    const tiles = cell.querySelectorAll('.tile:not(.placeholder)'); tiles.forEach(n => n.remove());
-                    const v = grid[r][c];
+                const bomb = document.createElement('div');
+                bomb.className = 'tile bomb-effect';
+                bomb.style.position = 'absolute';
+                bomb.style.inset = '0';
+                bomb.style.backgroundSize = 'contain';
+                bomb.style.backgroundRepeat = 'no-repeat';
+                bomb.style.backgroundPosition = 'center';
+                bomb.style.transform = `scale(${scale})`;
+                bomb.style.zIndex = 9999;
+                cell.appendChild(bomb);
+
+                // ✅ 모든 폭발 프레임 미리 로드 후 실행
+                const frames = Array.from({ length: frameCount }, (_, i) => `images/bomb${String(i + 1).padStart(2, '0')}.png`);
+                const preloadAll = frames.map(src => new Promise(res => {
+                    const img = new Image();
+                    img.onload = res;
+                    img.onerror = res;
+                    img.src = src;
+                }));
+
+                Promise.all(preloadAll).then(() => {
+                    let frame = 1;
+                    const interval = 1000 / fps;
+                    const timer = setInterval(() => {
+                        bomb.style.backgroundImage = `url('images/bomb${String(frame).padStart(2, '0')}.png')`;
+                        frame++;
+                        if (frame > frameCount) {
+                            clearInterval(timer);
+                            bomb.remove();
+                        }
+                    }, interval);
+                });
+            }
+
+
+            function randomValue() { return [1, 1, 1, 1, 3, 3, 9][(Math.random() * 7) | 0]; }
+
+            /* 깜빡임 방지 플레이스홀더 */
+            function addEmptyPlaceholderAt(r, c) {
+                const cell = board.children[r * COLS + c]; if (!cell) return;
+                if (cell.querySelector('.placeholder')) return;
+                const ph = document.createElement('div');
+                ph.className = 'tile placeholder';
+                ph.style.backgroundImage = "url('images/empty.png')";
+                cell.appendChild(ph);
+            }
+            function removePlaceholderAt(r, c) {
+                const cell = board.children[r * COLS + c]; if (!cell) return;
+                const ph = cell.querySelector('.placeholder'); if (ph) ph.remove();
+            }
+
+            /* ====== 렌더 잠금 ====== */
+            const renderLocks = new Set();
+            const lockCell = (r, c) => renderLocks.add(`${r},${c}`);
+            const unlockCell = (r, c) => renderLocks.delete(`${r},${c}`);
+            const isLocked = (r, c) => renderLocks.has(`${r},${c}`);
+
+            /* ====== 셀 렌더 ====== */
+            function drawCell(r, c, opt = {}) {
+                if (!opt.force && isLocked(r, c)) return;
+                const idx = r * COLS + c, cell = board.children[idx];
+                cell.classList.toggle('blocked', isBlocked(r, c));
+                const tiles = cell.querySelectorAll('.tile:not(.placeholder)'); tiles.forEach(n => n.remove());
+                const v = grid[r][c];
+                if (v > 0) {
                     if (v > 0) {
-                        if (v > 0) {
-                            const t = document.createElement('div');
-                            t.className = 'tile';
-                            t.dataset.val = v;
-                            if (opt.spawn) t.classList.add('spawn');
-                            if (TILE_IMAGES[v]) t.style.backgroundImage = `url(${TILE_IMAGES[v]})`;
-                            cell.appendChild(t);
+                        const t = document.createElement('div');
+                        t.className = 'tile';
+                        t.dataset.val = v;
+                        if (opt.spawn) t.classList.add('spawn');
+                        if (TILE_IMAGES[v]) t.style.backgroundImage = `url(${TILE_IMAGES[v]})`;
+                        cell.appendChild(t);
 
-                            // ✅ 망치는 '스폰된 블록'일 때만 확률적으로 부착, 망치 아이템 등장 확률
-                            if (opt.spawn && Math.random() < 0.1) {
-                                t.dataset.hammer = "1";
-                                const icon = document.createElement('img');
-                                icon.src = "images/hammer.png";
-                                icon.className = "hammer-icon";
-                                t.appendChild(icon);
-                            }
+                        // ✅ 망치는 '스폰된 블록'일 때만 확률적으로 부착, 망치 아이템 등장 확률
+                        if (opt.spawn && Math.random() < 0.1) {
+                            t.dataset.hammer = "1";
+                            const icon = document.createElement('img');
+                            icon.src = "images/hammer.png";
+                            icon.className = "hammer-icon";
+                            t.appendChild(icon);
                         }
+                    }
 
 
-                    } else if (v === -1) {
-                        const b = document.createElement('div');
-                        b.className = 'tile';
-                        b.style.backgroundImage = "url('images/blocked.png')";
-                        cell.appendChild(b);
-                    } else if (v === -2) {
-                        const b = document.createElement('div');
-                        b.className = 'tile';
-                        b.style.backgroundImage = "url('images/rock.png')";
-                        cell.appendChild(b);
+                } else if (v === -1) {
+                    const b = document.createElement('div');
+                    b.className = 'tile';
+                    b.style.backgroundImage = "url('images/blocked.png')";
+                    cell.appendChild(b);
+                } else if (v === -2) {
+                    const b = document.createElement('div');
+                    b.className = 'tile';
+                    b.style.backgroundImage = "url('images/rock.png')";
+                    cell.appendChild(b);
+                } else {
+
+                    const e = document.createElement('div'); e.className = 'tile'; e.style.backgroundImage = "url('images/empty.png')";
+                    cell.appendChild(e);
+                }
+            }
+
+            function updateMegaLeft() {
+                const batchesSinceLastMega = spawnCount % MEGA_INTERVAL;
+                const remBatches = (MEGA_INTERVAL - batchesSinceLastMega) || MEGA_INTERVAL;
+                const movesLeft = (remBatches - 1) * SPAWN_EVERY + untilSpawn;
+                elMega.textContent = String(movesLeft);
+            }
+            let hammerBubbleEl = null;
+            function ensureHammerBubble() {
+                return null; // ⚡ 아예 생성하지 않음
+                if (hammerBubbleEl) return hammerBubbleEl;
+                hammerBubbleEl = document.createElement('div');
+                hammerBubbleEl.className = 'hammer-bubble';
+                hammerBubbleEl.textContent = '방해 블록을 탭해서 제거';
+                hammerBubbleEl.style.display = 'none';
+                document.body.appendChild(hammerBubbleEl);
+                return hammerBubbleEl;
+            }
+            function positionHammerBubble() {
+                const b = ensureHammerBubble();
+                const btn = document.getElementById('btnHammer');
+                if (!btn || b.style.display === 'none') return;
+                const r = btn.getBoundingClientRect();
+                b.style.left = (r.left + r.width / 2) + 'px';
+                b.style.top = (r.top - 10) + 'px';
+            }
+            function showHammerBubble() {
+                const b = ensureHammerBubble();
+                b.style.display = 'block';
+                positionHammerBubble();
+            }
+
+            function showHammerBubbleAt(x, y) {
+                const b = ensureHammerBubble();
+                b.style.display = 'block';
+                b.style.left = `${x}px`;
+                b.style.top = `${y}px`;
+            }
+
+            function hideHammerBubble() {
+                const bubble = document.querySelector('.hammer-bubble');
+                if (bubble) bubble.style.display = 'none';
+            }
+
+            window.addEventListener('resize', positionHammerBubble);
+            window.addEventListener('scroll', positionHammerBubble, true);
+
+            function renderAll(spawn = false) {
+                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) drawCell(r, c, { spawn: spawn && isTile(r, c) });
+                elTurn.textContent = String(turn);
+                elNext.textContent = String(untilSpawn);
+                elTurnMini.textContent = String(turn);
+                elNextMini.textContent = String(untilSpawn);
+                updateMegaLeft();
+            }
+
+            function highlightSelection() {
+                for (const cell of board.children) { const t = cell.querySelector('.tile'); if (t) t.classList.remove('sel'); }
+                if (selected) { const tile = board.children[selected.r * COLS + selected.c].querySelector('.tile'); if (tile) tile.classList.add('sel'); }
+            }
+
+            /* ====== 이동 가능 위치 표시 ====== */
+            function clearPossibleMoves() {
+                board.querySelectorAll('.possible-move').forEach(el => el.classList.remove('possible-move'));
+                board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
+            }
+            function showPossibleMoves(r, c) {
+                const val = grid[r][c];
+                const currentGroup = floodSame(r, c, val);
+                for (let tr = 0; tr < ROWS; tr++) {
+                    for (let tc = 0; tc < COLS; tc++) {
+                        if (!isEmpty(tr, tc)) continue;
+                        const to = { r: tr, c: tc };
+                        const path = findPathViaEmpties({ r, c }, to); if (!path) continue;
+                        const gsize = groupSizeIfMoved({ r, c }, to, val); if (gsize < 2) continue;
+                        if (currentGroup.length === 2 && gsize < 3) continue;
+                        board.children[tr * COLS + tc].classList.add('possible-move');
+                    }
+                }
+            }
+
+            /* ====== 초기화 ====== */
+            function init() {
+                function updateLoadIcon() {
+                    const btn = document.getElementById('mLoad');
+                    const hasSave = !!localStorage.getItem("mergeSave");
+
+                    // 기존 아이콘 제거
+                    const old = btn.querySelector('.save-icon');
+                    if (old) old.remove();
+
+                    // 저장 있으면 새로 추가
+                    if (hasSave) {
+                        const icon = document.createElement('span');
+                        icon.className = 'save-icon';
+                        icon.textContent = '📂';
+                        icon.style.marginLeft = '4px';
+                        icon.style.display = 'inline-block';
+                        icon.style.verticalAlign = 'middle';
+
+                        // ✅ 버튼 텍스트 바로 옆에 붙이기
+                        const textNode = [...btn.childNodes].find(n => n.nodeType === 3); // 순수 텍스트 노드 찾기
+                        if (textNode) {
+                            textNode.after(icon);
+                        } else {
+                            btn.appendChild(icon); // fallback
+                        }
+                    }
+                }
+
+
+
+                askPlayerId();
+
+                const savedBest = Number(localStorage.getItem("mergeBestScore") || 0);
+                if (!Number.isNaN(savedBest)) bestScore = savedBest;
+                try { const savedState = localStorage.getItem("mergeBestState"); if (savedState) bestGameState = JSON.parse(savedState); } catch (e) { }
+
+                board.innerHTML = '';
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell'; cell.dataset.r = r; cell.dataset.c = c;
+                        cell.addEventListener('click', onTapCell);
+                        board.appendChild(cell);
+                    }
+                }
+                newGame();
+
+                document.getElementById('btnRestart').addEventListener('click', () => {
+                    popup.classList.remove('show');
+                    window.location.reload(); // 🔄 완전 새로고침으로 재시작
+                });
+
+                document.getElementById('btnBack').addEventListener('click', () => { popup.classList.remove('show'); });
+                document.getElementById('btnViewBest').addEventListener('click', () => {
+                    if (bestGameState) { renderMiniPopup(bestGameState, playerId, bestScore); }
+                    else alert("아직 최고 기록이 없습니다.");
+                });
+
+                // ===== 하단 아이콘 / 설정 팝업 =====
+                const settingsPopup = document.getElementById('settingsPopup');
+                const openSettings = () => settingsPopup.classList.add('show');
+                const closeSettings = () => settingsPopup.classList.remove('show');
+                function setHammerMode(on) {
+                    hammerMode = !!on;
+                    if (hammerMode) {
+                        document.body.classList.add('hammer-select');
+                        showHammerBubble();
                     } else {
-
-                        const e = document.createElement('div'); e.className = 'tile'; e.style.backgroundImage = "url('images/empty.png')";
-                        cell.appendChild(e);
+                        document.body.classList.remove('hammer-select');
+                        hideHammerBubble();
                     }
                 }
 
-                function updateMegaLeft() {
-                    const batchesSinceLastMega = spawnCount % MEGA_INTERVAL;
-                    const remBatches = (MEGA_INTERVAL - batchesSinceLastMega) || MEGA_INTERVAL;
-                    const movesLeft = (remBatches - 1) * SPAWN_EVERY + untilSpawn;
-                    elMega.textContent = String(movesLeft);
-                }
-                let hammerBubbleEl = null;
-                function ensureHammerBubble() {
-                    return null; // ⚡ 아예 생성하지 않음
-                    if (hammerBubbleEl) return hammerBubbleEl;
-                    hammerBubbleEl = document.createElement('div');
-                    hammerBubbleEl.className = 'hammer-bubble';
-                    hammerBubbleEl.textContent = '방해 블록을 탭해서 제거';
-                    hammerBubbleEl.style.display = 'none';
-                    document.body.appendChild(hammerBubbleEl);
-                    return hammerBubbleEl;
-                }
-                function positionHammerBubble() {
-                    const b = ensureHammerBubble();
-                    const btn = document.getElementById('btnHammer');
-                    if (!btn || b.style.display === 'none') return;
-                    const r = btn.getBoundingClientRect();
-                    b.style.left = (r.left + r.width / 2) + 'px';
-                    b.style.top = (r.top - 10) + 'px';
-                }
-                function showHammerBubble() {
-                    const b = ensureHammerBubble();
-                    b.style.display = 'block';
-                    positionHammerBubble();
-                }
+                const btnHammer = document.getElementById('btnHammer');
+                btnHammer.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    try { sounds.clickMenu.currentTime = 0; sounds.clickMenu.play().catch(() => { }); } catch (e) { }
 
-                function showHammerBubbleAt(x, y) {
-                    const b = ensureHammerBubble();
-                    b.style.display = 'block';
-                    b.style.left = `${x}px`;
-                    b.style.top = `${y}px`;
-                }
-
-                function hideHammerBubble() {
-                    const bubble = document.querySelector('.hammer-bubble');
-                    if (bubble) bubble.style.display = 'none';
-                }
-
-                window.addEventListener('resize', positionHammerBubble);
-                window.addEventListener('scroll', positionHammerBubble, true);
-
-                function renderAll(spawn = false) {
-                    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) drawCell(r, c, { spawn: spawn && isTile(r, c) });
-                    elTurn.textContent = String(turn);
-                    elNext.textContent = String(untilSpawn);
-                    elTurnMini.textContent = String(turn);
-                    elNextMini.textContent = String(untilSpawn);
-                    updateMegaLeft();
-                }
-
-                function highlightSelection() {
-                    // 모든 셀의 선택 상태 초기화
-                    board.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
-                    if (selected) {
-                        const cell = board.children[selected.r * COLS + selected.c];
-                        if (cell) cell.classList.add('selected');
-                    }
-                }
-                
-
-
-                /* ====== 이동 가능 위치 표시 ====== */
-                function clearPossibleMoves() {
-                    board.querySelectorAll('.possible-move').forEach(el => el.classList.remove('possible-move'));
-                    board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight'));
-                }
-                function showPossibleMoves(r, c) {
-                    const val = grid[r][c];
-                    const currentGroup = floodSame(r, c, val);
-                    for (let tr = 0; tr < ROWS; tr++) {
-                        for (let tc = 0; tc < COLS; tc++) {
-                            if (!isEmpty(tr, tc)) continue;
-                            const to = { r: tr, c: tc };
-                            const path = findPathViaEmpties({ r, c }, to); if (!path) continue;
-                            const gsize = groupSizeIfMoved({ r, c }, to, val); if (gsize < 2) continue;
-                            if (currentGroup.length === 2 && gsize < 3) continue;
-                            board.children[tr * COLS + tc].classList.add('possible-move');
-                        }
-                    }
-                }
-
-                /* ====== 초기화 ====== */
-                function init() {
-                    function updateLoadIcon() {
-                        const btn = document.getElementById('mLoad');
-                        const hasSave = !!localStorage.getItem("mergeSave");
-
-                        // 기존 아이콘 제거
-                        const old = btn.querySelector('.save-icon');
-                        if (old) old.remove();
-
-                        // 저장 있으면 새로 추가
-                        if (hasSave) {
-                            const icon = document.createElement('span');
-                            icon.className = 'save-icon';
-                            icon.textContent = '📂';
-                            icon.style.marginLeft = '4px';
-                            icon.style.display = 'inline-block';
-                            icon.style.verticalAlign = 'middle';
-
-                            // ✅ 버튼 텍스트 바로 옆에 붙이기
-                            const textNode = [...btn.childNodes].find(n => n.nodeType === 3); // 순수 텍스트 노드 찾기
-                            if (textNode) {
-                                textNode.after(icon);
-                            } else {
-                                btn.appendChild(icon); // fallback
-                            }
-                        }
-                    }
-
-
-
-                    askPlayerId();
-
-                    const savedBest = Number(localStorage.getItem("mergeBestScore") || 0);
-                    if (!Number.isNaN(savedBest)) bestScore = savedBest;
-                    try { const savedState = localStorage.getItem("mergeBestState"); if (savedState) bestGameState = JSON.parse(savedState); } catch (e) { }
-
-                    board.innerHTML = '';
-                    for (let r = 0; r < ROWS; r++) {
-                        for (let c = 0; c < COLS; c++) {
-                            const cell = document.createElement('div');
-                            cell.className = 'cell'; cell.dataset.r = r; cell.dataset.c = c;
-                            cell.addEventListener('click', onTapCell);
-                            board.appendChild(cell);
-                        }
-                    }
-                    newGame();
-
-                    document.getElementById('btnRestart').addEventListener('click', () => {
-                        popup.classList.remove('show');
-                        window.location.reload(); // 🔄 완전 새로고침으로 재시작
-                    });
-
-                    document.getElementById('btnBack').addEventListener('click', () => { popup.classList.remove('show'); });
-                    document.getElementById('btnViewBest').addEventListener('click', () => {
-                        if (bestGameState) { renderMiniPopup(bestGameState, playerId, bestScore); }
-                        else alert("아직 최고 기록이 없습니다.");
-                    });
-
-                    // ===== 하단 아이콘 / 설정 팝업 =====
-                    const settingsPopup = document.getElementById('settingsPopup');
-                    const openSettings = () => settingsPopup.classList.add('show');
-                    const closeSettings = () => settingsPopup.classList.remove('show');
-                    function setHammerMode(on) {
-                        hammerMode = !!on;
-                        if (hammerMode) {
-                            document.body.classList.add('hammer-select');
-                            showHammerBubble();
-                        } else {
-                            document.body.classList.remove('hammer-select');
-                            hideHammerBubble();
-                        }
-                    }
-
-                    const btnHammer = document.getElementById('btnHammer');
-                    btnHammer.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        try { sounds.clickMenu.currentTime = 0; sounds.clickMenu.play().catch(() => { }); } catch (e) { }
-
-                        if (isAnimating) return;
-
-                        // ✅ 망치 개수 확인
-                        if (hammerCount <= 0) {
-                            info("사용할 망치가 없습니다.", "warn");
-                            return;
-                        }
-
-                        // ✅ rock 블럭 존재 여부 확인
-                        const hasRock = board.querySelector('.rock-block');
-                        if (!hasRock) {
-                            info("제거할 블럭이 없습니다.", "warn");
-                            return; // 🔥 딤드 진입 X
-                        }
-
-                        // ✅ 정상적인 경우에만 모드 진입
-                        if (hammerMode) {
-                            setHammerMode(false);
-                        } else {
-                            setHammerMode(true);
-                            const r = btnHammer.getBoundingClientRect();
-                            const centerX = r.left + r.width / 2;
-                            const topY = r.top - 10;
-                            showHammerBubbleAt(centerX, topY);
-                        }
-                    });
-                    // ==== 🛠 망치 아이템 사용 ====
-                    board.addEventListener('click', (e) => {
-                        if (!hammerMode) return;
-                        const cell = e.target.closest('.cell');
-                        if (!cell) return;
-
-                        const rock = cell.querySelector('.rock-block');
-                        if (rock) {
-                            // ⚠️ warning-overlay도 함께 제거
-                            const overlay = rock.querySelector('.warning-overlay');
-                            if (overlay) overlay.remove();
-
-                            // ✅ 방해블록 제거
-                            rock.remove();
-                            const r = +cell.dataset.r;
-                            const c = +cell.dataset.c;
-                            rockSet.delete(`${r},${c}`);
-
-                            // 💥 폭발 스프라이트 재생
-                            playBombAnimation(r, c, { fps: 30, scale: 2 });
-
-
-                            // ✅ 🔊 망치 사운드 재생
-                            try {
-                                sounds.hammer.currentTime = 0;
-                                sounds.hammer.play().catch(() => { });
-                            } catch (e) { console.error(e); }
-
-                            // ✅ 망치 차감
-                            hammerCount = Math.max(0, hammerCount - 1);
-                            updateHammerUI();
-
-                            // ✅ 모드 해제 (딤드 해제 포함)
-                            hammerMode = false;
-                            document.body.classList.remove('hammer-select');
-                            hideHammerBubble();
-
-                            info("방해 블록이 제거되었습니다!", "ok");
-                        } else {
-                            // ✅ 방해블록이 하나도 없을 경우: 딤드 유지, 토스트만 출력
-                            const hasAnyRock = board.querySelector('.rock-block');
-                            if (!hasAnyRock) {
-                                info("제거할 블럭이 없습니다.", "warn");
-                                return; // 🔥 모드 유지
-                            }
-
-                            // ✅ 잘못된 위치 클릭: 토스트만 띄우고 모드 종료
-                            info("방해 블록만 제거할 수 있습니다!", "warn");
-                            hammerMode = false;
-                            document.body.classList.remove('hammer-select');
-                            hideHammerBubble();
-                        }
-                    });
-
-
-
-                    document.getElementById('btnSettings').addEventListener('click', () => {
-                        try { sounds.clickMenu.currentTime = 0; sounds.clickMenu.play().catch(() => { }); } catch (e) { }
-                        openSettings();
-                    });
-
-                    document.getElementById('btnSettingsClose').addEventListener('click', closeSettings);
-                    settingsPopup.addEventListener('click', (e) => { if (e.target.id === 'settingsPopup') closeSettings(); });
-
-                    // 메뉴 클릭
-                    document.getElementById('mNew').addEventListener('click', () => {
-                        closeSettings();
-                        // 🔄 완전 초기화: 새로고침
-                        window.location.reload();
-                    });
-
-                    document.getElementById('mSave').addEventListener('click', () => {
-                        const ok = saveGameToLocal();
-                        if (ok) {
-                            info("💾 저장되었습니다.", "ok");
-                            sounds.toast.currentTime = 0;
-                            sounds.toast.play().catch(() => { });
-                            document.getElementById('settingsPopup').classList.remove('show');
-                            updateLoadIcon(); // ✅ 저장 후 아이콘 갱신
-                        } else {
-                            info("저장 실패", "err");
-                        }
-                    });
-
-
-
-                    document.getElementById('mLoad').addEventListener('click', () => {
-                        const ok = loadGameFromLocal();
-                        if (ok) {
-                            renderAll(true);
-                            info("📂 불러오기 완료!");
-                            checkGameOverSoon();
-                        }
-
-                        else info("불러올 데이터가 없습니다.", "warn");
-                        closeSettings();
-                        updateLoadIcon();
-                    });
-                    document.getElementById('mViewBest').addEventListener('click', () => {
-                        // closeSettings();  ← ❌ 이 줄 삭제!
-                        if (bestGameState) {
-                            renderMiniPopup(bestGameState, playerId, bestScore);
-                        } else {
-                            info("아직 저장된 최고 기록이 없습니다.", "warn");
-                        }
-                    });
-
-                    document.getElementById('mResetId').addEventListener('click', () => { closeSettings(); askPlayerId(true); });
-                    document.getElementById('mRanking').addEventListener('click', () => {
-                        closeSettings();
-                        popup.classList.add('show');
-                        rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
-                        loadRanking();
-                    });
-                    document.getElementById('mExit').addEventListener('click', () => {
-                        closeSettings();
-                        window.location.href = "index.html"; // 필요 시 파일명 수정
-                    });
-                    updateLoadIcon(); // ✅ 초기 실행 시 아이콘 상태 반영
-                    // 🔊 설정 팝업 내 모든 버튼에 클릭 사운드 공통 적용
-                    document.querySelectorAll('#settingsPopup button').forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            try {
-                                sounds.clickMenu.currentTime = 0;
-                                sounds.clickMenu.play().catch(() => { });
-                            } catch (e) { }
-                        });
-                    });
-
-                }
-
-                /* 경로 하이라이트 */
-                function highlightPath(path) {
-                    if (!path || path.length < 2) return;
-                    for (let i = 1; i < path.length; i++) {   // <--- 여기 수정 ( -1 제거 )
-                        const cell = board.children[path[i].r * COLS + path[i].c];
-                        if (cell) cell.classList.add('path-highlight');
-                    }
-                }
-                function clearPathHighlight() { board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight')); }
-
-                /* ====== 이동 ====== */
-                function onTapCell() {
-                    // ✅ grid 비정상 상태 방어 (불러오기 직후 오류 예방)
-                    if (!Array.isArray(grid) || grid.length === 0) {
-                        console.warn("⚠️ grid 비정상 상태 감지, 클릭 무시");
-                        return;
-                    }
-
-                    if (!gameActive || gameOverShown) return; // 🎯 게임오버 상태면 클릭 차단
-                    if (hammerMode) return;
                     if (isAnimating) return;
 
-                    const r = +this.dataset.r, c = +this.dataset.c;
-                    clearPossibleMoves();
-
-                    if (isTile(r, c)) {
-                        selected = { r, c };
-                        highlightSelection();
-                        showPossibleMoves(r, c);
-                        if (!board.querySelector('.possible-move')) info("이동 가능한 곳이 없습니다.", "warn");
-                        try { sounds.click.currentTime = 0; sounds.click.play().catch(() => { }); } catch (e) { }
+                    // ✅ 망치 개수 확인
+                    if (hammerCount <= 0) {
+                        info("사용할 망치가 없습니다.", "warn");
                         return;
                     }
 
-                    if (isEmpty(r, c) && selected) {
-                        const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
-                        const reasons = [];
-                        const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
-                        const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
-                        const currentGroup = floodSame(from.r, from.c, val);
-                        if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
-                        // 이동 실패 사유 누적
-                        if (reasons.length > 0) {
-                            // 동일 카테고리 이동 오류는 한 번만 출력
-                            const uniqueReasons = [...new Set(reasons)];
-                            const combinedMsg = "🚫 이동 불가\n" + uniqueReasons.join("\n");
-
-                            // 최근 같은 카테고리 메시지가 바로 전에 떴다면 무시 (1초 내)
-                            const now = Date.now();
-                            if (!window.lastMoveToastTime || now - window.lastMoveToastTime > 1000) {
-                                info(combinedMsg, "err");
-                                window.lastMoveToastTime = now;
-                            }
-                            return;
-                        }
-
-
-                        isAnimating = true;
-
-                        animateMoveTile(from, to, path, async () => {
-                            const pivotIfMerge = (gsize >= 3) ? to : null;
-
-                            try {
-                                if (gsize >= 3) { sounds.mergeMove.currentTime = 0; sounds.mergeMove.play().catch(() => { }); }
-                                else { sounds.move.currentTime = 0; sounds.move.play().catch(() => { }); }
-                            } catch (e) { }
-
-                            await completeTurnPipeline(pivotIfMerge);
-                        });
-                    }
-                }
-
-                function animateMoveTile(from, to, path, callback) {
-                    board.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
-                    const v = grid[from.r][from.c];
-                    const fromCell = board.children[from.r * COLS + from.c];
-                    const fromTile = fromCell.querySelector('.tile');
-
-                    if (!fromTile || !path || path.length < 2) {
-                        moveTileInstant(from, to);
-                        if (callback) callback();
-                        return;
+                    // ✅ rock 블럭 존재 여부 확인
+                    const hasRock = board.querySelector('.rock-block');
+                    if (!hasRock) {
+                        info("제거할 블럭이 없습니다.", "warn");
+                        return; // 🔥 딤드 진입 X
                     }
 
-                    // ✅ 망치 아이콘 여부 저장
-                    const hadHammer = fromTile.dataset.hammer === "1";
-
-                    addEmptyPlaceholderAt(from.r, from.c);
-                    const animatingTile = fromTile.cloneNode(true);
-                    animatingTile.classList.add('moving');
-                    highlightPath(path);
-
-                    grid[from.r][from.c] = 0;
-                    grid[to.r][to.c] = v;
-
-                    fromTile.style.visibility = 'hidden';
-                    drawCell(from.r, from.c);
-
-                    board.appendChild(animatingTile);
-                    setTilePosition(animatingTile, path[0]);
-
-                    animateStepByStep(animatingTile, path, 0, () => {
-                        animatingTile.remove();
-                        removePlaceholderAt(from.r, from.c);
-
-                        drawCell(to.r, to.c);
-
-                        // ✅ 이동 완료 후 망치 아이콘 복원
-                        if (hadHammer) {
-                            const targetTile = board.children[to.r * COLS + to.c].querySelector('.tile');
-                            if (targetTile && !targetTile.querySelector('.hammer-icon')) {
-                                targetTile.dataset.hammer = "1";
-                                const icon = document.createElement('img');
-                                icon.src = "images/hammer.png";
-                                icon.className = "hammer-icon";
-                                targetTile.appendChild(icon);
-                            }
-                        }
-
-                        clearPathHighlight();
-                        const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
-                        if (finalTile) {
-                            finalTile.classList.add('bump');
-                            setTimeout(() => finalTile.classList.remove('bump'), 200);
-                        }
-                        if (callback) callback();
-                    });
-                }
-
-
-                function setTilePosition(tile, gridPos) {
-                    const targetCell = board.children[gridPos.r * COLS + gridPos.c];
-                    const rect = targetCell.getBoundingClientRect();
-                    const boardRect = board.getBoundingClientRect();
-                    tile.style.position = 'absolute';
-                    tile.style.left = (rect.left - boardRect.left) + 'px';
-                    tile.style.top = (rect.top - boardRect.top) + 'px';
-                    tile.style.width = targetCell.offsetWidth + 'px';
-                    tile.style.height = targetCell.offsetHeight + 'px';
-                    tile.style.transition = 'none';
-                }
-
-                function animateStepByStep(tile, path, currentStep, callback, speed = MOVE_SPEED) {
-                    if (currentStep >= path.length - 1) { if (callback) callback(); return; }
-                    const nextPos = path[currentStep + 1];
-                    const targetCell = board.children[nextPos.r * COLS + nextPos.c];
-                    const rect = targetCell.getBoundingClientRect();
-                    const boardRect = board.getBoundingClientRect();
-
-                    tile.style.transition = `left ${speed}ms ease-out, top ${speed}ms ease-out`;
-                    tile.style.left = (rect.left - boardRect.left) + 'px';
-                    tile.style.top = (rect.top - boardRect.top) + 'px';
-
-                    setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback, speed); }, speed);
-                }
-
-                function moveTileInstant(from, to) {
-                    const v = grid[from.r][from.c];
-                    addEmptyPlaceholderAt(from.r, from.c);
-                    grid[from.r][from.c] = 0; grid[to.r][to.c] = v;
-                    drawCell(from.r, from.c); removePlaceholderAt(from.r, from.c);
-                    drawCell(to.r, to.c);
-                    const tCell = board.children[to.r * COLS + to.c].querySelector('.tile');
-                    if (tCell) { tCell.classList.add('bump'); setTimeout(() => tCell.classList.remove('bump'), 200); }
-                }
-
-                /* ====== 경로 탐색 ====== */
-                // ✅ 추가: rock(-2) 값도 막히게 처리
-                const isRock = (r, c) => grid[r][c] === -2;
-
-                function findPathViaEmpties(from, to) {
-                    const q = [from],
-                        prev = Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
-                        vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-                    vis[from.r][from.c] = true;
-                    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-                    while (q.length) {
-                        const cur = q.shift();
-                        for (const [dr, dc] of dirs) {
-                            const nr = cur.r + dr, nc = cur.c + dc;
-                            if (!inBounds(nr, nc) || vis[nr][nc]) continue;
-                            else if (isBlocked(nr, nc) || isRock(nr, nc) || isTile(nr, nc) || rockSet.has(`${nr},${nc}`)) continue;
-
-
-                            vis[nr][nc] = true; prev[nr][nc] = cur;
-                            if (nr === to.r && nc === to.c) {
-                                const path = []; let x = { r: nr, c: nc };
-                                while (x) { path.push(x); x = prev[x.r][x.c]; }
-                                path.reverse(); return path;
-                            }
-                            q.push({ r: nr, c: nc });
-                        }
+                    // ✅ 정상적인 경우에만 모드 진입
+                    if (hammerMode) {
+                        setHammerMode(false);
+                    } else {
+                        setHammerMode(true);
+                        const r = btnHammer.getBoundingClientRect();
+                        const centerX = r.left + r.width / 2;
+                        const topY = r.top - 10;
+                        showHammerBubbleAt(centerX, topY);
                     }
-                    return null;
-                }
+                });
+                // ==== 🛠 망치 아이템 사용 ====
+                board.addEventListener('click', (e) => {
+                    if (!hammerMode) return;
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
 
-                function destAdjacentSame(to, val) {
-                    return [[1, 0], [-1, 0], [0, 1], [0, -1]]
-                        .some(([dr, dc]) => inBounds(to.r + dr, to.c + dc) && grid[to.r + dr][to.c + dc] === val);
-                }
+                    const rock = cell.querySelector('.rock-block');
+                    if (rock) {
+                        // ⚠️ warning-overlay도 함께 제거
+                        const overlay = rock.querySelector('.warning-overlay');
+                        if (overlay) overlay.remove();
 
-                function floodSame(sr, sc, val, g = grid) {
-                    const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)),
-                        q = [{ r: sr, c: sc }], out = [];
-                    vis[sr][sc] = true;
-                    while (q.length) {
-                        const { r, c } = q.shift(); out.push({ r, c });
-                        for (const [dr, dc] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-                            const nr = r + dr, nc = c + dc;
-                            if (inBounds(nr, nc) && !vis[nr][nc] && g[nr][nc] === val) { vis[nr][nc] = true; q.push({ r: nr, c: nc }); }
-                        }
-                    }
-                    return out;
-                }
+                        // ✅ 방해블록 제거
+                        rock.remove();
+                        const r = +cell.dataset.r;
+                        const c = +cell.dataset.c;
+                        rockSet.delete(`${r},${c}`);
 
-                function groupSizeIfMoved(from, to, val) {
-                    const tmp = cloneGrid(grid);
-                    // rockSet도 반영
-                    for (const pos of rockSet) {
-                        const [r, c] = pos.split(',').map(Number);
-                        tmp[r][c] = -2; // rock은 막힘 처리
-                    }
-                    tmp[from.r][from.c] = 0;
-                    tmp[to.r][to.c] = val;
-                    return floodSame(to.r, to.c, val, tmp).length;
-                }
+                        // 💥 폭발 스프라이트 재생
+                        playBombAnimation(r, c, { fps: 30, scale: 2 });
 
 
-                /* ====== 보드/새게임 ====== */
-                const makeGrid = () => Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-
-                function newGame() {
-                    popupTitle.textContent = "게임 오버";
-                    grid = makeGrid();
-                    const blockedCount = 3; // 2~3 랜덤 가능 등장 블럭 갯수
-                    placeRandomBlocks(-1, blockedCount);
-
-                    placeRandomTilesAvoidingTriples(INIT_TILES, 400);
-                    renderAll(true);
-
-                    turn = 0; untilSpawn = SPAWN_EVERY; spawnCount = 0; selected = null; gameOverShown = false;
-                    elTurn.textContent = '0'; elNext.textContent = String(SPAWN_EVERY);
-                    elTurnMini.textContent = '0'; elNextMini.textContent = String(SPAWN_EVERY);
-                    updateMegaLeft();
-                    popup.classList.remove('show');
-                    checkGameOverSoon();
-
-                    // 🧹 rock 관련 잔여물 완전 정리
-                    document.querySelectorAll('.rock-block').forEach(el => el.remove());
-                    rockSet.clear();
-
-                    gameActive = true;
-                    window.pendingEnemyAttack = false;
-                }
-
-                // 🎯 추가 코드
-                gameActive = true;
-                window.pendingEnemyAttack = false;
-                /* ====== 소환 ====== */
-                function placeRandomBlocks(v, count) {
-                    const E = listEmpty(); shuffle(E);
-                    for (let i = 0; i < count && i < E.length; i++) grid[E[i].r][E[i].c] = v;
-                }
-                function placeRandomTilesAvoidingTriples(count, maxTry = 200) {
-                    let placed = 0, tries = 0;
-                    while (placed < count && tries < maxTry) {
-                        const E = listEmpty(); if (!E.length) break;
-                        const p = E[(Math.random() * E.length) | 0], v = randomValue();
-                        grid[p.r][p.c] = v;
-                        if (findLowestGroupGE3()) { grid[p.r][p.c] = 0; } else { placed++; }
-                        tries++;
-                    }
-                    if (placed < count) placeRandomTiles(count - placed);
-                }
-                function placeRandomTiles(count) {
-                    const E = listEmpty(); shuffle(E);
-                    for (let i = 0; i < count && i < E.length; i++) grid[E[i].r][E[i].c] = randomValue();
-                }
-
-                async function spawnBatch() {
-                    isAnimating = true;
-                    spawnCount++;
-
-                    if (spawnCount % MEGA_INTERVAL === 0) {
-                        info("🌟 대소환! 블록 2배 소환!");
-
-                        // 🔊 대소환 사운드 재생
+                        // ✅ 🔊 망치 사운드 재생
                         try {
-                            sounds.bigcall.currentTime = 0;
-                            sounds.bigcall.play().catch(() => { });
+                            sounds.hammer.currentTime = 0;
+                            sounds.hammer.play().catch(() => { });
                         } catch (e) { console.error(e); }
 
-                        for (let i = 0; i < SPAWN_BATCH * 2; i++) spawnOne();
+                        // ✅ 망치 차감
+                        hammerCount = Math.max(0, hammerCount - 1);
+                        updateHammerUI();
+
+                        // ✅ 모드 해제 (딤드 해제 포함)
+                        hammerMode = false;
+                        document.body.classList.remove('hammer-select');
+                        hideHammerBubble();
+
+                        info("방해 블록이 제거되었습니다!", "ok");
+                    } else {
+                        // ✅ 방해블록이 하나도 없을 경우: 딤드 유지, 토스트만 출력
+                        const hasAnyRock = board.querySelector('.rock-block');
+                        if (!hasAnyRock) {
+                            info("제거할 블럭이 없습니다.", "warn");
+                            return; // 🔥 모드 유지
+                        }
+
+                        // ✅ 잘못된 위치 클릭: 토스트만 띄우고 모드 종료
+                        info("방해 블록만 제거할 수 있습니다!", "warn");
+                        hammerMode = false;
+                        document.body.classList.remove('hammer-select');
+                        hideHammerBubble();
+                    }
+                });
+
+
+
+                document.getElementById('btnSettings').addEventListener('click', () => {
+                    try { sounds.clickMenu.currentTime = 0; sounds.clickMenu.play().catch(() => { }); } catch (e) { }
+                    openSettings();
+                });
+
+                document.getElementById('btnSettingsClose').addEventListener('click', closeSettings);
+                settingsPopup.addEventListener('click', (e) => { if (e.target.id === 'settingsPopup') closeSettings(); });
+
+                // 메뉴 클릭
+                document.getElementById('mNew').addEventListener('click', () => {
+                    closeSettings();
+                    // 🔄 완전 초기화: 새로고침
+                    window.location.reload();
+                });
+
+                document.getElementById('mSave').addEventListener('click', () => {
+                    const ok = saveGameToLocal();
+                    if (ok) {
+                        info("💾 저장되었습니다.", "ok");
+                        sounds.toast.currentTime = 0;
+                        sounds.toast.play().catch(() => { });
+                        document.getElementById('settingsPopup').classList.remove('show');
+                        updateLoadIcon(); // ✅ 저장 후 아이콘 갱신
+                    } else {
+                        info("저장 실패", "err");
+                    }
+                });
+
+
+
+                document.getElementById('mLoad').addEventListener('click', () => {
+                    const ok = loadGameFromLocal();
+                    if (ok) {
+                        renderAll(true);
+                        info("📂 불러오기 완료!");
+                        checkGameOverSoon();
                     }
 
-                    else {
-                        for (let i = 0; i < SPAWN_BATCH; i++) spawnOne();
+                    else info("불러올 데이터가 없습니다.", "warn");
+                    closeSettings();
+                    updateLoadIcon();
+                });
+                document.getElementById('mViewBest').addEventListener('click', () => {
+                    // closeSettings();  ← ❌ 이 줄 삭제!
+                    if (bestGameState) {
+                        renderMiniPopup(bestGameState, playerId, bestScore);
+                    } else {
+                        info("아직 저장된 최고 기록이 없습니다.", "warn");
+                    }
+                });
+
+                document.getElementById('mResetId').addEventListener('click', () => { closeSettings(); askPlayerId(true); });
+                document.getElementById('mRanking').addEventListener('click', () => {
+                    closeSettings();
+                    popup.classList.add('show');
+                    rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
+                    loadRanking();
+                });
+                document.getElementById('mExit').addEventListener('click', () => {
+                    closeSettings();
+                    window.location.href = "index.html"; // 필요 시 파일명 수정
+                });
+                updateLoadIcon(); // ✅ 초기 실행 시 아이콘 상태 반영
+                // 🔊 설정 팝업 내 모든 버튼에 클릭 사운드 공통 적용
+                document.querySelectorAll('#settingsPopup button').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        try {
+                            sounds.clickMenu.currentTime = 0;
+                            sounds.clickMenu.play().catch(() => { });
+                        } catch (e) { }
+                    });
+                });
+
+            }
+
+            /* 경로 하이라이트 */
+            function highlightPath(path) {
+                if (!path || path.length < 2) return;
+                for (let i = 1; i < path.length; i++) {   // <--- 여기 수정 ( -1 제거 )
+                    const cell = board.children[path[i].r * COLS + path[i].c];
+                    if (cell) cell.classList.add('path-highlight');
+                }
+            }
+            function clearPathHighlight() { board.querySelectorAll('.path-highlight').forEach(el => el.classList.remove('path-highlight')); }
+
+            /* ====== 이동 ====== */
+            function onTapCell() {
+                // ✅ grid 비정상 상태 방어 (불러오기 직후 오류 예방)
+                if (!Array.isArray(grid) || grid.length === 0) {
+                    console.warn("⚠️ grid 비정상 상태 감지, 클릭 무시");
+                    return;
+                }
+
+                if (!gameActive || gameOverShown) return; // 🎯 게임오버 상태면 클릭 차단
+                if (hammerMode) return;
+                if (isAnimating) return;
+
+                const r = +this.dataset.r, c = +this.dataset.c;
+                clearPossibleMoves();
+
+                if (isTile(r, c)) {
+                    selected = { r, c };
+                    highlightSelection();
+                    showPossibleMoves(r, c);
+                    if (!board.querySelector('.possible-move')) info("이동 가능한 곳이 없습니다.", "warn");
+                    try { sounds.click.currentTime = 0; sounds.click.play().catch(() => { }); } catch (e) { }
+                    return;
+                }
+
+                if (isEmpty(r, c) && selected) {
+                    const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
+                    const reasons = [];
+                    const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
+                    const gsize = groupSizeIfMoved(from, to, val); if (gsize < 2) reasons.push("이동해도 그룹이 형성되지 않습니다.");
+                    const currentGroup = floodSame(from.r, from.c, val);
+                    if (currentGroup.length === 2 && gsize < 3) reasons.push("3매칭 목적이 아니면 두개를 떼어 놓을 수 없습니다.");
+                    // 이동 실패 사유 누적
+                    if (reasons.length > 0) {
+                        // 동일 카테고리 이동 오류는 한 번만 출력
+                        const uniqueReasons = [...new Set(reasons)];
+                        const combinedMsg = "🚫 이동 불가\n" + uniqueReasons.join("\n");
+
+                        // 최근 같은 카테고리 메시지가 바로 전에 떴다면 무시 (1초 내)
+                        const now = Date.now();
+                        if (!window.lastMoveToastTime || now - window.lastMoveToastTime > 1000) {
+                            info(combinedMsg, "err");
+                            window.lastMoveToastTime = now;
+                        }
+                        return;
                     }
 
-                    await sleep(SPAWN_TO_MERGE_DELAY);
-                    await resolveAutoMergesAsync(null);
-                    isAnimating = false;
-                }
 
-                function spawnOne() {
-                    const E = listEmpty(); if (!E.length) return false;
-                    const p = E[(Math.random() * E.length) | 0];
-                    grid[p.r][p.c] = randomValue();
-                    drawCell(p.r, p.c, { spawn: true });
-                    const t = board.children[p.r * COLS + p.c].querySelector('.tile');
-                    if (t) t.classList.add('spawn');
-                    return true;
-                }
+                    isAnimating = true;
 
-                /* ====== 머지 ====== */
-                function findPathWithinGroup(from, to, groupSet) {
-                    const q = [from], prev = new Map(), vis = new Set([key(from.r, from.c)]);
-                    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-                    while (q.length) {
-                        const cur = q.shift();
-                        if (cur.r === to.r && cur.c === to.c) {
-                            const path = []; let k = key(cur.r, cur.c);
-                            while (k) { const [rr, cc] = k.split(',').map(Number); path.push({ r: rr, c: cc }); k = prev.get(k); }
-                            path.reverse(); return path;
-                        }
-                        for (const [dr, dc] of dirs) {
-                            const nr = cur.r + dr, nc = cur.c + dc, nk = key(nr, nc);
-                            if (!inBounds(nr, nc) || vis.has(nk)) continue;
-                            if (!groupSet.has(nk)) continue;
-                            vis.add(nk); prev.set(nk, key(cur.r, cur.c)); q.push({ r: nr, c: nc });
-                        }
-                    }
-                    return null;
-                }
-                function manhattanFallbackPath(from, to) {
-                    const path = [{ r: from.r, c: from.c }];
-                    let r = from.r, c = from.c;
-                    while (r !== to.r) { r += (to.r > r ? 1 : -1); path.push({ r, c }); }
-                    while (c !== to.c) { c += (to.c > c ? 1 : -1); path.push({ r, c }); }
-                    return path;
-                }
-                function findLowestGroupGE3() {
-                    const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-                    let best = null;
-                    for (let r = 0; r < ROWS; r++) {
-                        for (let c = 0; c < COLS; c++) {
-                            const v = grid[r][c];
-                            if (v <= 0 || seen[r][c]) continue;
-                            const comp = floodSame(r, c, v);
-                            for (const p of comp) seen[p.r][p.c] = true;
-                            if (comp.length >= 3) { if (!best || v < best.val) best = { val: v, group: comp }; }
-                        }
-                    }
-                    return best;
-                }
+                    animateMoveTile(from, to, path, async () => {
+                        const pivotIfMerge = (gsize >= 3) ? to : null;
 
-                function animateGroupMerge(group, pivot, val) {
-                    return new Promise((resolve) => {
-                        const absorbers = group.filter(p => !(p.r === pivot.r && p.c === pivot.c)).slice(0, 2);
-                        const gset = new Set(group.map(p => key(p.r, p.c)));
+                        try {
+                            if (gsize >= 3) { sounds.mergeMove.currentTime = 0; sounds.mergeMove.play().catch(() => { }); }
+                            else { sounds.move.currentTime = 0; sounds.move.play().catch(() => { }); }
+                        } catch (e) { }
 
-                        const paths = absorbers.map(src => {
-                            let path = findPathWithinGroup(src, pivot, gset);
-                            if (!path || path.length < 2) path = manhattanFallbackPath(src, pivot);
-                            return path;
-                        });
-
-                        lockCell(pivot.r, pivot.c);
-
-                        const clones = absorbers.map((src, i) => {
-                            const cell = board.children[src.r * COLS + src.c];
-                            const tile = cell.querySelector('.tile');
-                            addEmptyPlaceholderAt(src.r, src.c);
-                            const clone = tile ? tile.cloneNode(true) : null;
-                            if (tile) tile.style.visibility = 'hidden';
-                            if (clone) {
-                                clone.classList.add('moving'); clone.style.zIndex = 500;
-                                board.appendChild(clone);
-                                setTilePosition(clone, paths[i][0]);
-                            }
-                            return { src, clone };
-                        });
-
-                        let finished = 0;
-                        const onOneDone = () => { finished++; if (finished === paths.length) afterAllArrived(); };
-
-                        clones.forEach((pack, i) => {
-                            const cl = pack.clone;
-                            if (!cl) { onOneDone(); return; }
-                            animateStepByStep(cl, paths[i], 0, () => { onOneDone(); }, MERGE_SPEED);
-                        });
-
-                        async function afterAllArrived() {
-                            clones.forEach(p => { if (p.clone) p.clone.remove(); });
-                            // 🔨 머지된 그룹 내 망치 개수 계산
-                            const hammerCountInGroup = group.reduce((count, p) => {
-                                const cell = board.children[p.r * COLS + p.c];
-                                const t = cell && cell.querySelector('.tile[data-hammer="1"]');
-                                return count + (t ? 1 : 0);
-                            }, 0);
-
-                            for (const p of absorbers) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
-                            grid[pivot.r][pivot.c] = val * 3;
-                            drawCell(pivot.r, pivot.c, { force: true });
-                            // 기존 부분 (animateGroupMerge 내부)
-                            absorbers.forEach(p => removePlaceholderAt(p.r, p.c));
-
-                            for (const p of absorbers) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
-
-                            // ✅ 새 상위 블록 이미지 미리 디코딩 후 생성
-                            const nextVal = val * 3;
-                            const preloadImg = new Image();
-                            preloadImg.src = TILE_IMAGES[nextVal];
-                            preloadImg.decode().catch(() => { }); // 디코딩 완료 대기
-
-                            grid[pivot.r][pivot.c] = nextVal;
-                            drawCell(pivot.r, pivot.c, { force: true });
-                            unlockCell(pivot.r, pivot.c);
-
-                            unlockCell(pivot.r, pivot.c);
-
-                            const tCell = board.children[pivot.r * COLS + pivot.c].querySelector('.tile');
-                            if (tCell) { tCell.classList.add('merge'); setTimeout(() => tCell.classList.remove('merge'), 240); }
-
-                            try { if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); } } catch (e) { }
-                            if (hammerCountInGroup > 0) {
-                                hammerCount += hammerCountInGroup;
-                                updateHammerUI();
-                                info(`🔨 망치 ${hammerCountInGroup}개를 획득했습니다!`, "ok");
-                            }
-
-
-
-
-                            resolve();
-                        }
+                        await completeTurnPipeline(pivotIfMerge);
                     });
                 }
+            }
 
-                async function resolveAutoMergesAsync(forcePivot = null) {
-                    let currentPivot = forcePivot ? { ...forcePivot } : null;
+            function animateMoveTile(from, to, path, callback) {
+                const v = grid[from.r][from.c];
+                const fromCell = board.children[from.r * COLS + from.c];
+                const fromTile = fromCell.querySelector('.tile');
 
-                    while (true) {
-                        if (currentPivot) {
-                            const val = grid[currentPivot.r][currentPivot.c];
-                            if (val > 0) {
-                                const group = floodSame(currentPivot.r, currentPivot.c, val);
-                                if (group.length >= 3) {
-                                    await animateGroupMerge(group, currentPivot, val);
-                                    saveSnapshot();
-                                    await sleep(MERGE_CHAIN_DELAY);
-                                    currentPivot = { r: currentPivot.r, c: currentPivot.c };
-                                    continue;
-                                }
+                if (!fromTile || !path || path.length < 2) {
+                    moveTileInstant(from, to);
+                    if (callback) callback();
+                    return;
+                }
+
+                // ✅ 망치 아이콘 여부 저장
+                const hadHammer = fromTile.dataset.hammer === "1";
+
+                addEmptyPlaceholderAt(from.r, from.c);
+                const animatingTile = fromTile.cloneNode(true);
+                animatingTile.classList.add('moving');
+                highlightPath(path);
+
+                grid[from.r][from.c] = 0;
+                grid[to.r][to.c] = v;
+
+                fromTile.style.visibility = 'hidden';
+                drawCell(from.r, from.c);
+
+                board.appendChild(animatingTile);
+                setTilePosition(animatingTile, path[0]);
+
+                animateStepByStep(animatingTile, path, 0, () => {
+                    animatingTile.remove();
+                    removePlaceholderAt(from.r, from.c);
+
+                    drawCell(to.r, to.c);
+
+                    // ✅ 이동 완료 후 망치 아이콘 복원
+                    if (hadHammer) {
+                        const targetTile = board.children[to.r * COLS + to.c].querySelector('.tile');
+                        if (targetTile && !targetTile.querySelector('.hammer-icon')) {
+                            targetTile.dataset.hammer = "1";
+                            const icon = document.createElement('img');
+                            icon.src = "images/hammer.png";
+                            icon.className = "hammer-icon";
+                            targetTile.appendChild(icon);
+                        }
+                    }
+
+                    clearPathHighlight();
+                    const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
+                    if (finalTile) {
+                        finalTile.classList.add('bump');
+                        setTimeout(() => finalTile.classList.remove('bump'), 200);
+                    }
+                    if (callback) callback();
+                });
+            }
+
+
+            function setTilePosition(tile, gridPos) {
+                const targetCell = board.children[gridPos.r * COLS + gridPos.c];
+                const rect = targetCell.getBoundingClientRect();
+                const boardRect = board.getBoundingClientRect();
+                tile.style.position = 'absolute';
+                tile.style.left = (rect.left - boardRect.left) + 'px';
+                tile.style.top = (rect.top - boardRect.top) + 'px';
+                tile.style.width = targetCell.offsetWidth + 'px';
+                tile.style.height = targetCell.offsetHeight + 'px';
+                tile.style.transition = 'none';
+            }
+
+            function animateStepByStep(tile, path, currentStep, callback, speed = MOVE_SPEED) {
+                if (currentStep >= path.length - 1) { if (callback) callback(); return; }
+                const nextPos = path[currentStep + 1];
+                const targetCell = board.children[nextPos.r * COLS + nextPos.c];
+                const rect = targetCell.getBoundingClientRect();
+                const boardRect = board.getBoundingClientRect();
+
+                tile.style.transition = `left ${speed}ms ease-out, top ${speed}ms ease-out`;
+                tile.style.left = (rect.left - boardRect.left) + 'px';
+                tile.style.top = (rect.top - boardRect.top) + 'px';
+
+                setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback, speed); }, speed);
+            }
+
+            function moveTileInstant(from, to) {
+                const v = grid[from.r][from.c];
+                addEmptyPlaceholderAt(from.r, from.c);
+                grid[from.r][from.c] = 0; grid[to.r][to.c] = v;
+                drawCell(from.r, from.c); removePlaceholderAt(from.r, from.c);
+                drawCell(to.r, to.c);
+                const tCell = board.children[to.r * COLS + to.c].querySelector('.tile');
+                if (tCell) { tCell.classList.add('bump'); setTimeout(() => tCell.classList.remove('bump'), 200); }
+            }
+
+            /* ====== 경로 탐색 ====== */
+            // ✅ 추가: rock(-2) 값도 막히게 처리
+            const isRock = (r, c) => grid[r][c] === -2;
+
+            function findPathViaEmpties(from, to) {
+                const q = [from],
+                    prev = Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
+                    vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+                vis[from.r][from.c] = true;
+                const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+                while (q.length) {
+                    const cur = q.shift();
+                    for (const [dr, dc] of dirs) {
+                        const nr = cur.r + dr, nc = cur.c + dc;
+                        if (!inBounds(nr, nc) || vis[nr][nc]) continue;
+                        else if (isBlocked(nr, nc) || isRock(nr, nc) || isTile(nr, nc) || rockSet.has(`${nr},${nc}`)) continue;
+
+
+                        vis[nr][nc] = true; prev[nr][nc] = cur;
+                        if (nr === to.r && nc === to.c) {
+                            const path = []; let x = { r: nr, c: nc };
+                            while (x) { path.push(x); x = prev[x.r][x.c]; }
+                            path.reverse(); return path;
+                        }
+                        q.push({ r: nr, c: nc });
+                    }
+                }
+                return null;
+            }
+
+            function destAdjacentSame(to, val) {
+                return [[1, 0], [-1, 0], [0, 1], [0, -1]]
+                    .some(([dr, dc]) => inBounds(to.r + dr, to.c + dc) && grid[to.r + dr][to.c + dc] === val);
+            }
+
+            function floodSame(sr, sc, val, g = grid) {
+                const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false)),
+                    q = [{ r: sr, c: sc }], out = [];
+                vis[sr][sc] = true;
+                while (q.length) {
+                    const { r, c } = q.shift(); out.push({ r, c });
+                    for (const [dr, dc] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+                        const nr = r + dr, nc = c + dc;
+                        if (inBounds(nr, nc) && !vis[nr][nc] && g[nr][nc] === val) { vis[nr][nc] = true; q.push({ r: nr, c: nc }); }
+                    }
+                }
+                return out;
+            }
+
+            function groupSizeIfMoved(from, to, val) {
+                const tmp = cloneGrid(grid);
+                // rockSet도 반영
+                for (const pos of rockSet) {
+                    const [r, c] = pos.split(',').map(Number);
+                    tmp[r][c] = -2; // rock은 막힘 처리
+                }
+                tmp[from.r][from.c] = 0;
+                tmp[to.r][to.c] = val;
+                return floodSame(to.r, to.c, val, tmp).length;
+            }
+
+
+            /* ====== 보드/새게임 ====== */
+            const makeGrid = () => Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+            function newGame() {
+                popupTitle.textContent = "게임 오버";
+                grid = makeGrid();
+                const blockedCount = 3; // 2~3 랜덤 가능 등장 블럭 갯수
+                placeRandomBlocks(-1, blockedCount);
+
+                placeRandomTilesAvoidingTriples(INIT_TILES, 400);
+                renderAll(true);
+
+                turn = 0; untilSpawn = SPAWN_EVERY; spawnCount = 0; selected = null; gameOverShown = false;
+                elTurn.textContent = '0'; elNext.textContent = String(SPAWN_EVERY);
+                elTurnMini.textContent = '0'; elNextMini.textContent = String(SPAWN_EVERY);
+                updateMegaLeft();
+                popup.classList.remove('show');
+                checkGameOverSoon();
+
+                // 🧹 rock 관련 잔여물 완전 정리
+                document.querySelectorAll('.rock-block').forEach(el => el.remove());
+                rockSet.clear();
+
+                gameActive = true;
+                window.pendingEnemyAttack = false;
+            }
+
+            // 🎯 추가 코드
+            gameActive = true;
+            window.pendingEnemyAttack = false;
+            /* ====== 소환 ====== */
+            function placeRandomBlocks(v, count) {
+                const E = listEmpty(); shuffle(E);
+                for (let i = 0; i < count && i < E.length; i++) grid[E[i].r][E[i].c] = v;
+            }
+            function placeRandomTilesAvoidingTriples(count, maxTry = 200) {
+                let placed = 0, tries = 0;
+                while (placed < count && tries < maxTry) {
+                    const E = listEmpty(); if (!E.length) break;
+                    const p = E[(Math.random() * E.length) | 0], v = randomValue();
+                    grid[p.r][p.c] = v;
+                    if (findLowestGroupGE3()) { grid[p.r][p.c] = 0; } else { placed++; }
+                    tries++;
+                }
+                if (placed < count) placeRandomTiles(count - placed);
+            }
+            function placeRandomTiles(count) {
+                const E = listEmpty(); shuffle(E);
+                for (let i = 0; i < count && i < E.length; i++) grid[E[i].r][E[i].c] = randomValue();
+            }
+
+            async function spawnBatch() {
+                isAnimating = true;
+                spawnCount++;
+
+                if (spawnCount % MEGA_INTERVAL === 0) {
+                    info("🌟 대소환! 블록 2배 소환!");
+
+                    // 🔊 대소환 사운드 재생
+                    try {
+                        sounds.bigcall.currentTime = 0;
+                        sounds.bigcall.play().catch(() => { });
+                    } catch (e) { console.error(e); }
+
+                    for (let i = 0; i < SPAWN_BATCH * 2; i++) spawnOne();
+                }
+
+                else {
+                    for (let i = 0; i < SPAWN_BATCH; i++) spawnOne();
+                }
+
+                await sleep(SPAWN_TO_MERGE_DELAY);
+                await resolveAutoMergesAsync(null);
+                isAnimating = false;
+            }
+
+            function spawnOne() {
+                const E = listEmpty(); if (!E.length) return false;
+                const p = E[(Math.random() * E.length) | 0];
+                grid[p.r][p.c] = randomValue();
+                drawCell(p.r, p.c, { spawn: true });
+                const t = board.children[p.r * COLS + p.c].querySelector('.tile');
+                if (t) t.classList.add('spawn');
+                return true;
+            }
+
+            /* ====== 머지 ====== */
+            function findPathWithinGroup(from, to, groupSet) {
+                const q = [from], prev = new Map(), vis = new Set([key(from.r, from.c)]);
+                const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+                while (q.length) {
+                    const cur = q.shift();
+                    if (cur.r === to.r && cur.c === to.c) {
+                        const path = []; let k = key(cur.r, cur.c);
+                        while (k) { const [rr, cc] = k.split(',').map(Number); path.push({ r: rr, c: cc }); k = prev.get(k); }
+                        path.reverse(); return path;
+                    }
+                    for (const [dr, dc] of dirs) {
+                        const nr = cur.r + dr, nc = cur.c + dc, nk = key(nr, nc);
+                        if (!inBounds(nr, nc) || vis.has(nk)) continue;
+                        if (!groupSet.has(nk)) continue;
+                        vis.add(nk); prev.set(nk, key(cur.r, cur.c)); q.push({ r: nr, c: nc });
+                    }
+                }
+                return null;
+            }
+            function manhattanFallbackPath(from, to) {
+                const path = [{ r: from.r, c: from.c }];
+                let r = from.r, c = from.c;
+                while (r !== to.r) { r += (to.r > r ? 1 : -1); path.push({ r, c }); }
+                while (c !== to.c) { c += (to.c > c ? 1 : -1); path.push({ r, c }); }
+                return path;
+            }
+            function findLowestGroupGE3() {
+                const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+                let best = null;
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const v = grid[r][c];
+                        if (v <= 0 || seen[r][c]) continue;
+                        const comp = floodSame(r, c, v);
+                        for (const p of comp) seen[p.r][p.c] = true;
+                        if (comp.length >= 3) { if (!best || v < best.val) best = { val: v, group: comp }; }
+                    }
+                }
+                return best;
+            }
+
+            function animateGroupMerge(group, pivot, val) {
+                return new Promise((resolve) => {
+                    const absorbers = group.filter(p => !(p.r === pivot.r && p.c === pivot.c)).slice(0, 2);
+                    const gset = new Set(group.map(p => key(p.r, p.c)));
+
+                    const paths = absorbers.map(src => {
+                        let path = findPathWithinGroup(src, pivot, gset);
+                        if (!path || path.length < 2) path = manhattanFallbackPath(src, pivot);
+                        return path;
+                    });
+
+                    lockCell(pivot.r, pivot.c);
+
+                    const clones = absorbers.map((src, i) => {
+                        const cell = board.children[src.r * COLS + src.c];
+                        const tile = cell.querySelector('.tile');
+                        addEmptyPlaceholderAt(src.r, src.c);
+                        const clone = tile ? tile.cloneNode(true) : null;
+                        if (tile) tile.style.visibility = 'hidden';
+                        if (clone) {
+                            clone.classList.add('moving'); clone.style.zIndex = 500;
+                            board.appendChild(clone);
+                            setTilePosition(clone, paths[i][0]);
+                        }
+                        return { src, clone };
+                    });
+
+                    let finished = 0;
+                    const onOneDone = () => { finished++; if (finished === paths.length) afterAllArrived(); };
+
+                    clones.forEach((pack, i) => {
+                        const cl = pack.clone;
+                        if (!cl) { onOneDone(); return; }
+                        animateStepByStep(cl, paths[i], 0, () => { onOneDone(); }, MERGE_SPEED);
+                    });
+
+                    async function afterAllArrived() {
+                        clones.forEach(p => { if (p.clone) p.clone.remove(); });
+                        // 🔨 머지된 그룹 내 망치 개수 계산
+                        const hammerCountInGroup = group.reduce((count, p) => {
+                            const cell = board.children[p.r * COLS + p.c];
+                            const t = cell && cell.querySelector('.tile[data-hammer="1"]');
+                            return count + (t ? 1 : 0);
+                        }, 0);
+
+                        for (const p of absorbers) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
+                        grid[pivot.r][pivot.c] = val * 3;
+                        drawCell(pivot.r, pivot.c, { force: true });
+                        // 기존 부분 (animateGroupMerge 내부)
+                        absorbers.forEach(p => removePlaceholderAt(p.r, p.c));
+
+                        for (const p of absorbers) { grid[p.r][p.c] = 0; drawCell(p.r, p.c); }
+
+                        // ✅ 새 상위 블록 이미지 미리 디코딩 후 생성
+                        const nextVal = val * 3;
+                        const preloadImg = new Image();
+                        preloadImg.src = TILE_IMAGES[nextVal];
+                        preloadImg.decode().catch(() => { }); // 디코딩 완료 대기
+
+                        grid[pivot.r][pivot.c] = nextVal;
+                        drawCell(pivot.r, pivot.c, { force: true });
+                        unlockCell(pivot.r, pivot.c);
+
+                        unlockCell(pivot.r, pivot.c);
+
+                        const tCell = board.children[pivot.r * COLS + pivot.c].querySelector('.tile');
+                        if (tCell) { tCell.classList.add('merge'); setTimeout(() => tCell.classList.remove('merge'), 240); }
+
+                        try { if (sounds.blocks[val * 3]) { sounds.blocks[val * 3].currentTime = 0; sounds.blocks[val * 3].play().catch(() => { }); } } catch (e) { }
+                        if (hammerCountInGroup > 0) {
+                            hammerCount += hammerCountInGroup;
+                            updateHammerUI();
+                            info(`🔨 망치 ${hammerCountInGroup}개를 획득했습니다!`, "ok");
+                        }
+
+
+
+
+                        resolve();
+                    }
+                });
+            }
+
+            async function resolveAutoMergesAsync(forcePivot = null) {
+                let currentPivot = forcePivot ? { ...forcePivot } : null;
+
+                while (true) {
+                    if (currentPivot) {
+                        const val = grid[currentPivot.r][currentPivot.c];
+                        if (val > 0) {
+                            const group = floodSame(currentPivot.r, currentPivot.c, val);
+                            if (group.length >= 3) {
+                                await animateGroupMerge(group, currentPivot, val);
+                                saveSnapshot();
+                                await sleep(MERGE_CHAIN_DELAY);
+                                currentPivot = { r: currentPivot.r, c: currentPivot.c };
+                                continue;
                             }
                         }
-                        const pick = findLowestGroupGE3();
-                        if (!pick) break;
+                    }
+                    const pick = findLowestGroupGE3();
+                    if (!pick) break;
 
-                        const { val, group } = pick;
-                        const pivot = group[0];
-                        await animateGroupMerge(group, pivot, val);
-                        saveSnapshot();
-                        await sleep(MERGE_CHAIN_DELAY);
-                        currentPivot = { r: pivot.r, c: pivot.c };
+                    const { val, group } = pick;
+                    const pivot = group[0];
+                    await animateGroupMerge(group, pivot, val);
+                    saveSnapshot();
+                    await sleep(MERGE_CHAIN_DELAY);
+                    currentPivot = { r: pivot.r, c: pivot.c };
+                }
+            }
+
+            async function completeTurnPipeline(pivotOrNull) {
+                // 🚫 게임오버 상태면 턴 로직 완전 차단
+                if (!gameActive || gameOverShown) return;
+                await resolveAutoMergesAsync(pivotOrNull);
+
+                turn++;
+                untilSpawn--;
+
+                let didSpawnThisTurn = false; // 🔥 이번 턴에 블럭 소환이 있었는지 체크
+
+                if (untilSpawn === 0) {
+                    await spawnBatch();
+                    untilSpawn = SPAWN_EVERY;
+                    didSpawnThisTurn = true; // 이번 턴엔 소환 발생
+                }
+
+                updateMegaLeft();
+                saveSnapshot();
+                elTurn.textContent = String(turn);
+                elNext.textContent = String(untilSpawn);
+                elTurnMini.textContent = String(turn);
+                elNextMini.textContent = String(untilSpawn);
+                selected = null;
+                highlightSelection();
+                clearPossibleMoves();
+
+                isAnimating = false;
+
+                // ==== 🪨 적의 공격 시스템 ====
+                if (gameActive && !gameOverShown && !didSpawnThisTurn) {
+                    if (window.pendingEnemyAttack) {
+                        // 이전 턴에 예고된 공격 실행
+                        window.pendingEnemyAttack = false;
+                        const empties = listEmpty();
+                        if (empties.length > 0) {
+                            const { r, c } = empties[Math.floor(Math.random() * empties.length)];
+                            createRockAt(r, c);
+                            queueInfo("💥 인간의 공격으로 경로 일부가 막혔습니다!", "err");
+                        }
+                    } else {
+                        // ✅ 다음 턴 공격 예고 조건:
+                        // 1. 이번 턴은 소환 턴이 아님
+                        // 2. 다음 턴이 소환 턴이 아님 (untilSpawn > 1)
+                        // 3. 확률 충족
+                        if (untilSpawn > 1 && Math.random() < ENEMY_ATTACK_CHANCE) {
+                            queueInfo("⚠️ 다음 턴에 인간의 공격이 날아옵니다!", "warn");
+                            window.pendingEnemyAttack = true;
+
+                            // 🔊 경고 사운드 재생
+                            try {
+                                sounds.warning.currentTime = 0;
+                                sounds.warning.play().catch(() => { });
+                            } catch (e) { console.error(e); }
+                        }
+
                     }
                 }
 
-                async function completeTurnPipeline(pivotOrNull) {
-                    // 🚫 게임오버 상태면 턴 로직 완전 차단
-                    if (!gameActive || gameOverShown) return;
-                    await resolveAutoMergesAsync(pivotOrNull);
+                checkGameOverSoon();
 
-                    turn++;
-                    untilSpawn--;
+                flushToast();
 
-                    let didSpawnThisTurn = false; // 🔥 이번 턴에 블럭 소환이 있었는지 체크
 
-                    if (untilSpawn === 0) {
-                        await spawnBatch();
-                        untilSpawn = SPAWN_EVERY;
-                        didSpawnThisTurn = true; // 이번 턴엔 소환 발생
+                // 턴이 끝날 때마다 쓰레기 정리
+                function cleanupDetachedNodes() {
+                    document.querySelectorAll('.moving, .bomb-effect, .placeholder')
+                        .forEach(el => el.remove());
+                }
+
+            }
+
+            /* ====== 게임오버 ====== */
+            function legalMoveExistsForTile(r, c) {
+                const v = grid[r][c]; const currentGroup = floodSame(r, c, v);
+                for (let rr = 0; rr < ROWS; rr++) for (let cc = 0; cc < COLS; cc++) {
+                    if (!isEmpty(rr, cc)) continue;
+                    const to = { r: rr, c: cc }; const path = findPathViaEmpties({ r, c }, to); if (!path) continue;
+                    if (!destAdjacentSame(to, v)) continue;
+                    const gsize = groupSizeIfMoved({ r, c }, to, v); if (gsize < 2) continue;
+                    if (currentGroup.length === 2 && gsize < 3) continue;
+                    return true;
+                }
+                return false;
+            }
+            function hasAnyMoves() {
+                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] > 0 && legalMoveExistsForTile(r, c)) return true;
+                return false;
+            }
+            function checkGameOverSoon() {
+                setTimeout(() => {
+                    if (!gameOverShown && !hasAnyMoves()) {
+                        gameOverShown = true;
+                        const total = grid.flat().filter(v => v > 0).reduce((a, b) => a + b, 0);
+                        showResult(total);
+                    }
+                }, 30);
+            }
+
+            /* ====== 히스토리 ====== */
+            function saveSnapshot() {
+                history.push({ grid: cloneGrid(grid), turn, untilSpawn });
+                if (history.length > 50) history.shift();
+            }
+
+            /* ====== 결과/랭킹 ====== */
+            async function showResult(total) {
+                // ✅ 게임오버 진입 시 공격 완전 차단
+                gameActive = false;
+                gameOverShown = true;
+                window.pendingEnemyAttack = false;
+
+                // 혹시 예약된 공격 타이머가 있다면 제거
+                if (typeof window.enemyAttackTimer !== "undefined") {
+                    clearTimeout(window.enemyAttackTimer);
+                    window.enemyAttackTimer = null;
+                }
+
+                // 토스트 즉시 닫기
+                if (toastTimer) clearTimeout(toastTimer);
+                if (toast) toast.classList.remove('show');
+                popupTitle.textContent = "게임 오버";
+                finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
+                noMovesMsg.style.display = "block";
+                lastGameState = cloneGrid(grid);
+
+                if (total > bestScore) {
+                    bestScore = total; bestGameState = cloneGrid(grid);
+                    localStorage.setItem("mergeBestScore", bestScore);
+                    localStorage.setItem("mergeBestState", JSON.stringify(bestGameState));
+                }
+
+                rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
+                popup.classList.add('show');
+
+                try { sounds.gameover.currentTime = 0; sounds.gameover.play().catch(() => { }); } catch (e) { }
+
+                try {
+                    await fetch(GAS_URL, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ secret: "TEST2", name: playerId, score: total, state: grid }),
+                        mode: "no-cors"
+                    });
+                } catch (e) { console.error("❌ POST 오류:", e); }
+
+                loadRanking();
+            }
+
+            async function loadRanking() {
+                try {
+                    const res = await fetch(`${GAS_URL}?mode=ranking`, { cache: "no-cache" });
+                    let data = []; try { data = await res.json(); } catch (e) { console.error("❌ JSON 파싱 실패:", e); }
+                    renderRanking(Array.isArray(data) ? data.slice(0, 100) : []);
+                } catch (e) {
+                    console.error("❌ 랭킹 fetch 실패:", e);
+                    renderRanking([]);
+                }
+            }
+
+            function renderRanking(rows) {
+                rankingsEl.innerHTML = "";
+                if (!rows || rows.length === 0) {
+                    const empty = document.createElement('div'); empty.style.padding = '10px';
+                    empty.textContent = '랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return;
+                }
+                rows.forEach((row, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'rank-item' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '');
+                    const left = document.createElement('div'); left.className = 'left';
+                    const crown = document.createElement('span'); crown.className = 'crown'; crown.textContent = (i < 3 ? '👑' : ''); left.appendChild(crown);
+                    const name = document.createElement('span'); name.textContent = `${i + 1}. ${row.name}`; left.appendChild(name);
+
+                    const right = document.createElement('div'); right.className = 'right';
+                    if (i < 3) {
+                        const btn = document.createElement('button'); btn.textContent = "보기"; btn.className = "btn";
+                        btn.addEventListener('click', async () => {
+                            try {
+                                if (row.state) { renderMiniPopup(JSON.parse(row.state), row.name, row.score); }
+                                else {
+                                    const res = await fetch(`${GAS_URL}?mode=last&name=${encodeURIComponent(row.name)}`);
+                                    const data = await res.json();
+                                    if (data.state) renderMiniPopup(JSON.parse(data.state), data.name, data.score);
+                                    else alert("저장된 전적이 없습니다.");
+                                }
+                            } catch (e) { console.error("❌ last fetch 오류:", e); alert("전적을 불러올 수 없습니다."); }
+                        });
+                        right.appendChild(btn);
+                    }
+                    const score = document.createElement('span'); score.className = 'score'; score.textContent = `${row.score}`;
+                    right.appendChild(score);
+
+                    item.appendChild(left); item.appendChild(right); rankingsEl.appendChild(item);
+                });
+            }
+
+            /* ====== 미니팝업 ====== */
+            function renderMiniPopup(state, id, score) {
+                let mini = document.getElementById('miniPopup');
+                if (!mini) {
+                    mini = document.createElement('div'); mini.id = 'miniPopup';
+                    mini.style.position = 'fixed'; mini.style.inset = '0'; mini.style.background = 'rgba(0,0,0,0.6)';
+                    mini.style.display = 'flex'; mini.style.alignItems = 'center'; mini.style.justifyContent = 'center';
+                    mini.style.zIndex = '3000'; document.body.appendChild(mini);
+                }
+                mini.innerHTML = '';
+                const box = document.createElement('div');
+                box.style.background = '#161c29'; box.style.padding = '16px'; box.style.borderRadius = '12px';
+                box.style.textAlign = 'center'; box.style.boxShadow = '0 6px 20px rgba(0,0,0,0.6)';
+                const title = document.createElement('h3'); title.textContent = `${id} 최종 보드 (점수 ${score})`; box.appendChild(title);
+
+                const wrap = document.createElement('div');
+                wrap.style.display = 'grid';
+                wrap.style.gridTemplateColumns = `repeat(${COLS},1fr)`;
+                wrap.style.gridTemplateRows = `repeat(${ROWS},1fr)`;
+                wrap.style.gap = '4px'; wrap.style.width = '90%'; wrap.style.maxWidth = '420px';
+                wrap.style.aspectRatio = `${COLS}/${ROWS}`; wrap.style.margin = '12px auto';
+                for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.style.width = '100%'; cell.style.aspectRatio = '1/1'; cell.style.border = '1px solid #222'; cell.style.background = '#111';
+                    const v = state[r][c];
+                    if (v > 0 && TILE_IMAGES[v]) { cell.style.backgroundImage = `url(${TILE_IMAGES[v]})`; cell.style.backgroundSize = "contain"; cell.style.backgroundRepeat = "no-repeat"; cell.style.backgroundPosition = "center"; }
+                    else if (v === -1) { cell.style.backgroundImage = "url('images/blocked.png')"; cell.style.backgroundSize = "contain"; cell.style.backgroundRepeat = "no-repeat"; cell.style.backgroundPosition = "center"; }
+                    else { cell.style.backgroundImage = "url('images/empty.png')"; cell.style.backgroundSize = "contain"; cell.style.backgroundRepeat = "no-repeat"; cell.style.backgroundPosition = "center"; }
+                    wrap.appendChild(cell);
+                }
+                box.appendChild(wrap);
+                const close = document.createElement('button'); close.textContent = '닫기'; close.className = 'btn'; close.style.marginTop = '10px'; close.onclick = () => mini.remove(); box.appendChild(close);
+                mini.appendChild(box);
+            }
+
+            /* ====== 토스트 닫기 (두 개 모두 클릭 시 즉시 닫힘) ====== */
+            document.addEventListener('click', (e) => {
+                const t1 = document.getElementById('toast');
+                const t2 = document.getElementById('toast2');
+
+                // 클릭된 대상이 토스트 영역이라면 그냥 통과 (닫지 않음)
+                if (e.target.closest('#toast') || e.target.closest('#toast2')) return;
+
+                // #toast 닫기
+                if (t1 && t1.classList.contains('show')) {
+                    t1.classList.remove('show');
+                    if (t1._timer) clearTimeout(t1._timer);
+                }
+
+                // #toast2 닫기
+                if (t2 && t2.classList.contains('show')) {
+                    t2.classList.remove('show');
+                    if (t2._timer) clearTimeout(t2._timer);
+                }
+            }, true);
+
+            /* ====== 저장/불러오기 ====== */
+            function saveGameToLocal() {
+                try {
+                    const saveObj = {
+                        grid,
+                        turn,
+                        untilSpawn,
+                        spawnCount,
+                        bestScore,
+                        playerId,
+                        hammerCount // ✅ 망치 갯수도 저장
+                    };
+                    localStorage.setItem("mergeSave", JSON.stringify(saveObj));
+                    return true;
+                } catch (e) {
+                    console.error("save fail", e);
+                    return false;
+                }
+            }
+
+
+            function loadGameFromLocal() {
+                try {
+                    const raw = localStorage.getItem("mergeSave");
+                    if (!raw) return false;
+                    const obj = JSON.parse(raw);
+                    if (!obj || !Array.isArray(obj.grid)) return false;
+
+                    grid = obj.grid.map(row => row.slice());
+                    turn = Number(obj.turn) || 0;
+                    untilSpawn = Number(obj.untilSpawn) || SPAWN_EVERY;
+                    spawnCount = Number(obj.spawnCount) || 0;
+                    bestScore = Number(obj.bestScore) || bestScore;
+                    hammerCount = Number(obj.hammerCount) || 0; // ✅ 망치 갯수 복원
+                    updateHammerUI(); // ✅ UI 업데이트
+
+                    if (obj.playerId) {
+                        playerId = obj.playerId;
+                        localStorage.setItem("mergePlayerId", playerId);
                     }
 
                     updateMegaLeft();
-                    saveSnapshot();
-                    elTurn.textContent = String(turn);
-                    elNext.textContent = String(untilSpawn);
-                    elTurnMini.textContent = String(turn);
-                    elNextMini.textContent = String(untilSpawn);
                     selected = null;
                     highlightSelection();
                     clearPossibleMoves();
 
-                    isAnimating = false;
-
-                    // ==== 🪨 적의 공격 시스템 ====
-                    if (gameActive && !gameOverShown && !didSpawnThisTurn) {
-                        if (window.pendingEnemyAttack) {
-                            // 이전 턴에 예고된 공격 실행
-                            window.pendingEnemyAttack = false;
-                            const empties = listEmpty();
-                            if (empties.length > 0) {
-                                const { r, c } = empties[Math.floor(Math.random() * empties.length)];
-                                createRockAt(r, c);
-                                queueInfo("💥 인간의 공격으로 경로 일부가 막혔습니다!", "err");
-                            }
-                        } else {
-                            // ✅ 다음 턴 공격 예고 조건:
-                            // 1. 이번 턴은 소환 턴이 아님
-                            // 2. 다음 턴이 소환 턴이 아님 (untilSpawn > 1)
-                            // 3. 확률 충족
-                            if (untilSpawn > 1 && Math.random() < ENEMY_ATTACK_CHANCE) {
-                                queueInfo("⚠️ 다음 턴에 인간의 공격이 날아옵니다!", "warn");
-                                window.pendingEnemyAttack = true;
-
-                                // 🔊 경고 사운드 재생
-                                try {
-                                    sounds.warning.currentTime = 0;
-                                    sounds.warning.play().catch(() => { });
-                                } catch (e) { console.error(e); }
-                            }
-
-                        }
-                    }
-
-                    checkGameOverSoon();
-
-                    flushToast();
-
-
-                    // 턴이 끝날 때마다 쓰레기 정리
-                    function cleanupDetachedNodes() {
-                        document.querySelectorAll('.moving, .bomb-effect, .placeholder')
-                            .forEach(el => el.remove());
-                    }
-
-                }
-
-                /* ====== 게임오버 ====== */
-                function legalMoveExistsForTile(r, c) {
-                    const v = grid[r][c]; const currentGroup = floodSame(r, c, v);
-                    for (let rr = 0; rr < ROWS; rr++) for (let cc = 0; cc < COLS; cc++) {
-                        if (!isEmpty(rr, cc)) continue;
-                        const to = { r: rr, c: cc }; const path = findPathViaEmpties({ r, c }, to); if (!path) continue;
-                        if (!destAdjacentSame(to, v)) continue;
-                        const gsize = groupSizeIfMoved({ r, c }, to, v); if (gsize < 2) continue;
-                        if (currentGroup.length === 2 && gsize < 3) continue;
-                        return true;
-                    }
-                    return false;
-                }
-                function hasAnyMoves() {
-                    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] > 0 && legalMoveExistsForTile(r, c)) return true;
-                    return false;
-                }
-                function checkGameOverSoon() {
-                    setTimeout(() => {
-                        if (!gameOverShown && !hasAnyMoves()) {
-                            gameOverShown = true;
-                            const total = grid.flat().filter(v => v > 0).reduce((a, b) => a + b, 0);
-                            showResult(total);
-                        }
-                    }, 30);
-                }
-
-                /* ====== 히스토리 ====== */
-                function saveSnapshot() {
-                    history.push({ grid: cloneGrid(grid), turn, untilSpawn });
-                    if (history.length > 50) history.shift();
-                }
-
-                /* ====== 결과/랭킹 ====== */
-                async function showResult(total) {
-                    // ✅ 게임오버 진입 시 공격 완전 차단
-                    gameActive = false;
-                    gameOverShown = true;
+                    // ✅ 불러오기 시 항상 다시 플레이 가능 상태로 전환
+                    gameActive = true;
+                    gameOverShown = false;
                     window.pendingEnemyAttack = false;
+                    popup.classList.remove('show'); // 결과창 닫기
 
-                    // 혹시 예약된 공격 타이머가 있다면 제거
-                    if (typeof window.enemyAttackTimer !== "undefined") {
-                        clearTimeout(window.enemyAttackTimer);
-                        window.enemyAttackTimer = null;
-                    }
-
-                    // 토스트 즉시 닫기
-                    if (toastTimer) clearTimeout(toastTimer);
-                    if (toast) toast.classList.remove('show');
-                    popupTitle.textContent = "게임 오버";
-                    finalScore.textContent = `${playerId}의 최종 점수: ${total}`;
-                    noMovesMsg.style.display = "block";
-                    lastGameState = cloneGrid(grid);
-
-                    if (total > bestScore) {
-                        bestScore = total; bestGameState = cloneGrid(grid);
-                        localStorage.setItem("mergeBestScore", bestScore);
-                        localStorage.setItem("mergeBestState", JSON.stringify(bestGameState));
-                    }
-
-                    rankingsEl.innerHTML = "<div style='padding:10px'>랭킹을 불러오는중...</div>";
-                    popup.classList.add('show');
-
-                    try { sounds.gameover.currentTime = 0; sounds.gameover.play().catch(() => { }); } catch (e) { }
-
-                    try {
-                        await fetch(GAS_URL, {
-                            method: "POST", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ secret: "TEST2", name: playerId, score: total, state: grid }),
-                            mode: "no-cors"
-                        });
-                    } catch (e) { console.error("❌ POST 오류:", e); }
-
-                    loadRanking();
-                }
-
-                async function loadRanking() {
-                    try {
-                        const res = await fetch(`${GAS_URL}?mode=ranking`, { cache: "no-cache" });
-                        let data = []; try { data = await res.json(); } catch (e) { console.error("❌ JSON 파싱 실패:", e); }
-                        renderRanking(Array.isArray(data) ? data.slice(0, 100) : []);
-                    } catch (e) {
-                        console.error("❌ 랭킹 fetch 실패:", e);
-                        renderRanking([]);
-                    }
-                }
-
-                function renderRanking(rows) {
-                    rankingsEl.innerHTML = "";
-                    if (!rows || rows.length === 0) {
-                        const empty = document.createElement('div'); empty.style.padding = '10px';
-                        empty.textContent = '랭킹 데이터를 불러오지 못했습니다.'; rankingsEl.appendChild(empty); return;
-                    }
-                    rows.forEach((row, i) => {
-                        const item = document.createElement('div');
-                        item.className = 'rank-item' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '');
-                        const left = document.createElement('div'); left.className = 'left';
-                        const crown = document.createElement('span'); crown.className = 'crown'; crown.textContent = (i < 3 ? '👑' : ''); left.appendChild(crown);
-                        const name = document.createElement('span'); name.textContent = `${i + 1}. ${row.name}`; left.appendChild(name);
-
-                        const right = document.createElement('div'); right.className = 'right';
-                        if (i < 3) {
-                            const btn = document.createElement('button'); btn.textContent = "보기"; btn.className = "btn";
-                            btn.addEventListener('click', async () => {
-                                try {
-                                    if (row.state) { renderMiniPopup(JSON.parse(row.state), row.name, row.score); }
-                                    else {
-                                        const res = await fetch(`${GAS_URL}?mode=last&name=${encodeURIComponent(row.name)}`);
-                                        const data = await res.json();
-                                        if (data.state) renderMiniPopup(JSON.parse(data.state), data.name, data.score);
-                                        else alert("저장된 전적이 없습니다.");
-                                    }
-                                } catch (e) { console.error("❌ last fetch 오류:", e); alert("전적을 불러올 수 없습니다."); }
-                            });
-                            right.appendChild(btn);
-                        }
-                        const score = document.createElement('span'); score.className = 'score'; score.textContent = `${row.score}`;
-                        right.appendChild(score);
-
-                        item.appendChild(left); item.appendChild(right); rankingsEl.appendChild(item);
-                    });
-                }
-
-                /* ====== 미니팝업 ====== */
-                function renderMiniPopup(state, id, score) {
-                    let mini = document.getElementById('miniPopup');
-                    if (!mini) {
-                        mini = document.createElement('div'); mini.id = 'miniPopup';
-                        mini.style.position = 'fixed'; mini.style.inset = '0'; mini.style.background = 'rgba(0,0,0,0.6)';
-                        mini.style.display = 'flex'; mini.style.alignItems = 'center'; mini.style.justifyContent = 'center';
-                        mini.style.zIndex = '3000'; document.body.appendChild(mini);
-                    }
-                    mini.innerHTML = '';
-                    const box = document.createElement('div');
-                    box.style.background = '#161c29'; box.style.padding = '16px'; box.style.borderRadius = '12px';
-                    box.style.textAlign = 'center'; box.style.boxShadow = '0 6px 20px rgba(0,0,0,0.6)';
-                    const title = document.createElement('h3'); title.textContent = `${id} 최종 보드 (점수 ${score})`; box.appendChild(title);
-
-                    const wrap = document.createElement('div');
-                    wrap.style.display = 'grid';
-                    wrap.style.gridTemplateColumns = `repeat(${COLS},1fr)`;
-                    wrap.style.gridTemplateRows = `repeat(${ROWS},1fr)`;
-                    wrap.style.gap = '4px'; wrap.style.width = '90%'; wrap.style.maxWidth = '420px';
-                    wrap.style.aspectRatio = `${COLS}/${ROWS}`; wrap.style.margin = '12px auto';
-                    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-                        const cell = document.createElement('div');
-                        cell.style.width = '100%'; cell.style.aspectRatio = '1/1'; cell.style.border = '1px solid #222'; cell.style.background = '#111';
-                        const v = state[r][c];
-                        if (v > 0 && TILE_IMAGES[v]) { cell.style.backgroundImage = `url(${TILE_IMAGES[v]})`; cell.style.backgroundSize = "contain"; cell.style.backgroundRepeat = "no-repeat"; cell.style.backgroundPosition = "center"; }
-                        else if (v === -1) { cell.style.backgroundImage = "url('images/blocked.png')"; cell.style.backgroundSize = "contain"; cell.style.backgroundRepeat = "no-repeat"; cell.style.backgroundPosition = "center"; }
-                        else { cell.style.backgroundImage = "url('images/empty.png')"; cell.style.backgroundSize = "contain"; cell.style.backgroundRepeat = "no-repeat"; cell.style.backgroundPosition = "center"; }
-                        wrap.appendChild(cell);
-                    }
-                    box.appendChild(wrap);
-                    const close = document.createElement('button'); close.textContent = '닫기'; close.className = 'btn'; close.style.marginTop = '10px'; close.onclick = () => mini.remove(); box.appendChild(close);
-                    mini.appendChild(box);
-                }
-
-                /* ====== 토스트 닫기 (두 개 모두 클릭 시 즉시 닫힘) ====== */
-                document.addEventListener('click', (e) => {
-                    const t1 = document.getElementById('toast');
-                    const t2 = document.getElementById('toast2');
-
-                    // 클릭된 대상이 토스트 영역이라면 그냥 통과 (닫지 않음)
-                    if (e.target.closest('#toast') || e.target.closest('#toast2')) return;
-
-                    // #toast 닫기
-                    if (t1 && t1.classList.contains('show')) {
-                        t1.classList.remove('show');
-                        if (t1._timer) clearTimeout(t1._timer);
-                    }
-
-                    // #toast2 닫기
-                    if (t2 && t2.classList.contains('show')) {
-                        t2.classList.remove('show');
-                        if (t2._timer) clearTimeout(t2._timer);
-                    }
-                }, true);
-
-                /* ====== 저장/불러오기 ====== */
-                function saveGameToLocal() {
-                    try {
-                        const saveObj = {
-                            grid,
-                            turn,
-                            untilSpawn,
-                            spawnCount,
-                            bestScore,
-                            playerId,
-                            hammerCount // ✅ 망치 갯수도 저장
-                        };
-                        localStorage.setItem("mergeSave", JSON.stringify(saveObj));
-                        return true;
-                    } catch (e) {
-                        console.error("save fail", e);
-                        return false;
-                    }
-                }
-
-
-                function loadGameFromLocal() {
-                    try {
-                        const raw = localStorage.getItem("mergeSave");
-                        if (!raw) return false;
-                        const obj = JSON.parse(raw);
-                        if (!obj || !Array.isArray(obj.grid)) return false;
-
-                        grid = obj.grid.map(row => row.slice());
-                        turn = Number(obj.turn) || 0;
-                        untilSpawn = Number(obj.untilSpawn) || SPAWN_EVERY;
-                        spawnCount = Number(obj.spawnCount) || 0;
-                        bestScore = Number(obj.bestScore) || bestScore;
-                        hammerCount = Number(obj.hammerCount) || 0; // ✅ 망치 갯수 복원
-                        updateHammerUI(); // ✅ UI 업데이트
-
-                        if (obj.playerId) {
-                            playerId = obj.playerId;
-                            localStorage.setItem("mergePlayerId", playerId);
-                        }
-
-                        updateMegaLeft();
-                        selected = null;
-                        highlightSelection();
-                        clearPossibleMoves();
-
-                        // ✅ 불러오기 시 항상 다시 플레이 가능 상태로 전환
-                        gameActive = true;
-                        gameOverShown = false;
-                        window.pendingEnemyAttack = false;
-                        popup.classList.remove('show'); // 결과창 닫기
-
-                        // ✅ 불러오기 성공 후 저장데이터 즉시 폐기
-                        localStorage.removeItem("mergeSave");
-                        // ✅ rockSet 초기화 (찌꺼기 제거)
-                        rockSet.clear();
-                        return true;
-                    } catch (e) {
-                        console.error("load fail", e);
-                        return false;
-                    }
-                }
-
-
-
-                /* ====== 시작 ====== */
-                preloadImages(IMAGE_URLS)
-                    .then(() => decodeAllBlockImages())  // ✅ 디코딩까지 완료
-                    .then(() => init());
-
-
-            })(); // IIFE 끝
-
-            // 🎵 첫 터치/클릭 시 BGM 시작 + 시작 메시지 숨김
-            function startBgm() {
-                if (sounds.bgm && sounds.bgm.paused) {
-                    sounds.bgm.play().then(() => { console.log("🎶 BGM 시작됨"); }).catch(err => { console.log("🔇 BGM 시작 실패:", err); });
-                }
-            }
-            function hideStartMsg() { const m = document.getElementById("startMsg"); if (m) m.classList.add("hide"); }
-            document.addEventListener("touchstart", () => { startBgm(); hideStartMsg(); }, { once: true });
-            document.addEventListener("click", () => { startBgm(); hideStartMsg(); }, { once: true });
-
-            // 앱/탭 전환 시 BGM 제어
-            function pauseBgm() { if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) { sounds.bgm.pause(); } }
-            function resumeBgm() { if (window.sounds && window.sounds.bgm) { sounds.bgm.play().catch(err => console.log("재생 실패:", err)); } }
-            document.addEventListener("visibilitychange", () => { if (document.hidden) pauseBgm(); else resumeBgm(); });
-            window.addEventListener("pagehide", pauseBgm);
-            window.addEventListener("pageshow", resumeBgm);
-            window.addEventListener("blur", pauseBgm);
-            window.addEventListener("focus", resumeBgm);
-            // 🎬 인게임 진입 시 페이드 인
-            window.addEventListener("DOMContentLoaded", () => {
-                const fade = document.getElementById("fadeLayer");
-                if (fade) {
-                    requestAnimationFrame(() => {
-                        fade.classList.add("fade-in");
-                        setTimeout(() => fade.remove(), 400);
-                    });
-                }
-            });
-
-            function adjustFooterPosition() {
-                const ratio = window.innerWidth / window.innerHeight;
-                const root = document.documentElement;
-
-                // 세로가 긴 경우 (스마트폰)
-                if (ratio < 0.6) {
-                    root.style.setProperty('--footer-bottom', '20px');
-                }
-                // 중간 비율 (일반 모바일 or 세로 긴 태블릿)
-                else if (ratio < 0.75) {
-                    root.style.setProperty('--footer-bottom', '40px');
-                }
-                // 가로가 넓은 화면 (PC 등)
-                else {
-                    root.style.setProperty('--footer-bottom', '60px');
+                    // ✅ 불러오기 성공 후 저장데이터 즉시 폐기
+                    localStorage.removeItem("mergeSave");
+                    // ✅ rockSet 초기화 (찌꺼기 제거)
+                    rockSet.clear();
+                    return true;
+                } catch (e) {
+                    console.error("load fail", e);
+                    return false;
                 }
             }
 
-            window.addEventListener('resize', adjustFooterPosition);
-            window.addEventListener('load', adjustFooterPosition);
 
-        </script>
-        <!-- ✅ 페이드 인 레이어 -->
-        <div id="fadeLayer"></div>
 
-    
+            /* ====== 시작 ====== */
+            preloadImages(IMAGE_URLS)
+                .then(() => decodeAllBlockImages())  // ✅ 디코딩까지 완료
+                .then(() => init());
+
+
+        })(); // IIFE 끝
+
+        // 🎵 첫 터치/클릭 시 BGM 시작 + 시작 메시지 숨김
+        function startBgm() {
+            if (sounds.bgm && sounds.bgm.paused) {
+                sounds.bgm.play().then(() => { console.log("🎶 BGM 시작됨"); }).catch(err => { console.log("🔇 BGM 시작 실패:", err); });
+            }
+        }
+        function hideStartMsg() { const m = document.getElementById("startMsg"); if (m) m.classList.add("hide"); }
+        document.addEventListener("touchstart", () => { startBgm(); hideStartMsg(); }, { once: true });
+        document.addEventListener("click", () => { startBgm(); hideStartMsg(); }, { once: true });
+
+        // 앱/탭 전환 시 BGM 제어
+        function pauseBgm() { if (window.sounds && window.sounds.bgm && !window.sounds.bgm.paused) { sounds.bgm.pause(); } }
+        function resumeBgm() { if (window.sounds && window.sounds.bgm) { sounds.bgm.play().catch(err => console.log("재생 실패:", err)); } }
+        document.addEventListener("visibilitychange", () => { if (document.hidden) pauseBgm(); else resumeBgm(); });
+        window.addEventListener("pagehide", pauseBgm);
+        window.addEventListener("pageshow", resumeBgm);
+        window.addEventListener("blur", pauseBgm);
+        window.addEventListener("focus", resumeBgm);
+        // 🎬 인게임 진입 시 페이드 인
+        window.addEventListener("DOMContentLoaded", () => {
+            const fade = document.getElementById("fadeLayer");
+            if (fade) {
+                requestAnimationFrame(() => {
+                    fade.classList.add("fade-in");
+                    setTimeout(() => fade.remove(), 400);
+                });
+            }
+        });
+
+
+    </script>
+    <!-- ✅ 페이드 인 레이어 -->
+    <div id="fadeLayer"></div>
 </body>
 </html>
