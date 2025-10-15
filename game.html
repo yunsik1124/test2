@@ -174,6 +174,8 @@
             }
 
         .tile {
+            will-change: transform, left, top;
+            transform: translateZ(0); /* GPU 강제 캐싱 */
             position: absolute;
             inset: 0;
             display: flex;
@@ -1650,18 +1652,51 @@
                 tile.style.transition = 'none';
             }
 
+            // 🚀 iOS 최적화 버전 (rAF 기반 smooth move)
             function animateStepByStep(tile, path, currentStep, callback, speed = MOVE_SPEED) {
-                if (currentStep >= path.length - 1) { if (callback) callback(); return; }
+                if (currentStep >= path.length - 1) {
+                    if (callback) callback();
+                    return;
+                }
+
                 const nextPos = path[currentStep + 1];
-                const targetCell = board.children[nextPos.r * COLS + nextPos.c];
-                const rect = targetCell.getBoundingClientRect();
+                const nextCell = board.children[nextPos.r * COLS + nextPos.c];
+                if (!nextCell) { if (callback) callback(); return; }
+
                 const boardRect = board.getBoundingClientRect();
+                const startRect = tile.getBoundingClientRect();
+                const endRect = nextCell.getBoundingClientRect();
 
-                tile.style.transition = `left ${speed}ms ease-out, top ${speed}ms ease-out`;
-                tile.style.left = (rect.left - boardRect.left) + 'px';
-                tile.style.top = (rect.top - boardRect.top) + 'px';
+                const startX = startRect.left - boardRect.left;
+                const startY = startRect.top - boardRect.top;
+                const endX = endRect.left - boardRect.left;
+                const endY = endRect.top - boardRect.top;
 
-                setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback, speed); }, speed);
+                const duration = speed;
+                let startTime = null;
+
+                tile.style.willChange = 'transform, left, top';
+
+                function step(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    const elapsed = timestamp - startTime;
+                    const t = Math.min(elapsed / duration, 1); // 진행률(0~1)
+                    const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+                    const x = startX + (endX - startX) * ease;
+                    const y = startY + (endY - startY) * ease;
+                    tile.style.left = `${x}px`;
+                    tile.style.top = `${y}px`;
+
+                    if (t < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        // 다음 구간으로 이동
+                        animateStepByStep(tile, path, currentStep + 1, callback, speed);
+                    }
+                }
+
+                requestAnimationFrame(step);
             }
 
             function moveTileInstant(from, to) {
