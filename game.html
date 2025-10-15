@@ -1540,7 +1540,9 @@
                     return;
                 }
 
+
                 if (isEmpty(r, c) && selected) {
+
                     const from = { ...selected }, to = { r, c }, val = grid[from.r][from.c];
                     const reasons = [];
                     const path = findPathViaEmpties(from, to); if (!path) reasons.push("경로가 막혀 이동할 수 없습니다.");
@@ -1578,7 +1580,10 @@
                 }
             }
 
-            function animateMoveTile(from, to, path, callback) {          
+            function animateMoveTile(from, to, path, callback) {      
+                // 🔥 이동 시작 시 선택 효과 전부 제거
+                board.querySelectorAll('.tile.sel').forEach(t => t.classList.remove('sel'));
+                selected = null;
                 selected = null; // 선택 상태 해제
                 const v = grid[from.r][from.c];
                 const fromCell = board.children[from.r * COLS + from.c];
