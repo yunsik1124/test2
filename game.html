@@ -174,8 +174,6 @@
             }
 
         .tile {
-            will-change: transform, left, top;
-            transform: translateZ(0); /* GPU 강제 캐싱 */
             position: absolute;
             inset: 0;
             display: flex;
@@ -199,8 +197,15 @@
                 animation: pop .22s ease-out;
             }
 
+            .tile.bump {
+                animation: bump .18s ease-out;
+            }
 
-          
+            .tile.merge {
+                animation: merge .22s ease-in-out;
+            }
+
+
 
         @keyframes pop {
             from {
@@ -214,7 +219,34 @@
             }
         }
 
-    
+        @keyframes bump {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes merge {
+            0% {
+                transform: scale(0.95);
+            }
+
+            50% {
+                transform: scale(1.12);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
 
         .btn {
             appearance: none;
@@ -645,10 +677,10 @@
             #fadeLayer.fade-in {
                 opacity: 0;
             }
+
         .footer-center {
             display: none;
         }
-
     </style>
 </head>
 <body>
@@ -1036,8 +1068,6 @@
                 } catch (e) { console.error(e); }
             }
 
-            // 💥 rock 제거 시 폭발 스프라이트 재생
-            // 💥 rock 제거 시 폭발 스프라이트 재생 (깜빡임 방지 버전)
             // 💥 폭발 스프라이트 (iOS 프레임드랍 방지 + requestAnimationFrame 버전)
             function playBombAnimation(r, c, options = {}) {
                 const { frameCount = 12, fps = 24, scale = 1.0 } = options;
@@ -1545,7 +1575,7 @@
                 }
             }
 
-            function animateMoveTile(from, to, path, callback) {      
+            function animateMoveTile(from, to, path, callback) {
                 // 🔥 이동 시작 시 선택 효과 전부 제거
                 board.querySelectorAll('.tile.sel').forEach(t => t.classList.remove('sel'));
                 selected = null;
@@ -1565,7 +1595,7 @@
 
                 addEmptyPlaceholderAt(from.r, from.c);
                 const animatingTile = fromTile.cloneNode(true);
-                animatingTile.classList.add('moving');            
+                animatingTile.classList.add('moving');
                 highlightPath(path);
 
                 grid[from.r][from.c] = 0;
@@ -1598,57 +1628,12 @@
                     clearPathHighlight();
                     const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
                     if (finalTile) {
-                        animateBump(finalTile);
+                        finalTile.classList.add('bump');
+                        setTimeout(() => finalTile.classList.remove('bump'), 200);
                     }
                     if (callback) callback();
                 });
             }
-            /* ==========================================================
- 🧩 iOS 최적화 버전: bump + merge 애니메이션 (rAF 기반)
-========================================================== */
-
-            // 🔹 scale 애니메이션을 rAF로 구현하는 헬퍼
-            function animateScale(el, { from = 1, to = 1.1, duration = 180, easeOut = true }) {
-                if (!el) return;
-                const start = performance.now();
-                const diff = to - from;
-
-                function step(now) {
-                    const t = Math.min((now - start) / duration, 1);
-                    const eased = easeOut ? 1 - Math.pow(1 - t, 3) : t;
-                    const scale = from + diff * eased;
-                    el.style.transform = `scale(${scale})`;
-
-                    if (t < 1) {
-                        requestAnimationFrame(step);
-                    } else {
-                        // 복귀 애니메이션
-                        const backStart = performance.now();
-                        function back(now2) {
-                            const tt = Math.min((now2 - backStart) / duration, 1);
-                            const eased2 = easeOut ? 1 - Math.pow(1 - tt, 3) : tt;
-                            const s = to - diff * eased2;
-                            el.style.transform = `scale(${s})`;
-                            if (tt < 1) requestAnimationFrame(back);
-                            else el.style.transform = "scale(1)";
-                        }
-                        requestAnimationFrame(back);
-                    }
-                }
-                requestAnimationFrame(step);
-            }
-
-            // 🔹 merge 전용 (조금 더 세게 튀게)
-            function animateMerge(el) {
-                animateScale(el, { from: 0.95, to: 1.12, duration: 200 });
-            }
-
-            // 🔹 bump 전용 (가볍게 툭)
-            function animateBump(el) {
-                animateScale(el, { from: 1, to: 1.08, duration: 140 });
-            }
-
-
 
 
             function setTilePosition(tile, gridPos) {
@@ -1663,51 +1648,18 @@
                 tile.style.transition = 'none';
             }
 
-            // 🚀 iOS 최적화 버전 (rAF 기반 smooth move)
             function animateStepByStep(tile, path, currentStep, callback, speed = MOVE_SPEED) {
-                if (currentStep >= path.length - 1) {
-                    if (callback) callback();
-                    return;
-                }
-
+                if (currentStep >= path.length - 1) { if (callback) callback(); return; }
                 const nextPos = path[currentStep + 1];
-                const nextCell = board.children[nextPos.r * COLS + nextPos.c];
-                if (!nextCell) { if (callback) callback(); return; }
-
+                const targetCell = board.children[nextPos.r * COLS + nextPos.c];
+                const rect = targetCell.getBoundingClientRect();
                 const boardRect = board.getBoundingClientRect();
-                const startRect = tile.getBoundingClientRect();
-                const endRect = nextCell.getBoundingClientRect();
 
-                const startX = startRect.left - boardRect.left;
-                const startY = startRect.top - boardRect.top;
-                const endX = endRect.left - boardRect.left;
-                const endY = endRect.top - boardRect.top;
+                tile.style.transition = `left ${speed}ms ease-out, top ${speed}ms ease-out`;
+                tile.style.left = (rect.left - boardRect.left) + 'px';
+                tile.style.top = (rect.top - boardRect.top) + 'px';
 
-                const duration = speed;
-                let startTime = null;
-
-                tile.style.willChange = 'transform, left, top';
-
-                function step(timestamp) {
-                    if (!startTime) startTime = timestamp;
-                    const elapsed = timestamp - startTime;
-                    const t = Math.min(elapsed / duration, 1); // 진행률(0~1)
-                    const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
-
-                    const x = startX + (endX - startX) * ease;
-                    const y = startY + (endY - startY) * ease;
-                    tile.style.left = `${x}px`;
-                    tile.style.top = `${y}px`;
-
-                    if (t < 1) {
-                        requestAnimationFrame(step);
-                    } else {
-                        // 다음 구간으로 이동
-                        animateStepByStep(tile, path, currentStep + 1, callback, speed);
-                    }
-                }
-
-                requestAnimationFrame(step);
+                setTimeout(() => { animateStepByStep(tile, path, currentStep + 1, callback, speed); }, speed);
             }
 
             function moveTileInstant(from, to) {
@@ -1717,9 +1669,7 @@
                 drawCell(from.r, from.c); removePlaceholderAt(from.r, from.c);
                 drawCell(to.r, to.c);
                 const tCell = board.children[to.r * COLS + to.c].querySelector('.tile');
-                if (tCell) {
-                    animateMerge(tCell);
-                }
+                if (tCell) { tCell.classList.add('bump'); setTimeout(() => tCell.classList.remove('bump'), 200); }
             }
 
             /* ====== 경로 탐색 ====== */
