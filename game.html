@@ -188,6 +188,7 @@
 
             .tile.sel {
                 border: 3px solid var(--accent);
+                border-radius: 14px; /* 🔹 선택 시 둥근 모서리 추가 */
                 transform: scale(1.1);
                 box-shadow: 0 0 15px var(--accent), 0 0 25px rgba(70,211,255,0.7);
                 z-index: 10;
@@ -473,17 +474,15 @@
 
         /* 기존 pointer-events 관계를 단순화: 부모도 클릭 가능 */
         #footerBar {
-            position: fixed;
-            left: 50%;
-            bottom: 20px; /* ← 하단에서 떨어진 거리 */
-            transform: translateX(-50%);
+            position: static; /* ✅ fixed → static 으로 변경 */
+            transform: none; /* ✅ translateX 제거 */
+            margin-top: 16px; /* 🔹 보드와 간격 */
             width: 100%;
             max-width: 480px;
-            padding: 10px 16px; /* ← 내부 여백 */
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 2000;
+            padding: 10px 0;
         }
 
         /* 네모 박스 느낌 빼고, 단순 컨테이너로 */
