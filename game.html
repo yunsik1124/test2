@@ -692,16 +692,14 @@
         }
         /* === 🟦 선택 오버레이 (보드 바깥 전용) === */
         .selection-overlay {
-            position: fixed; /* ✅ 보드 바깥에서 마스크 영향 X */
+            position: fixed;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
-            background: url("images/select.png") center/contain no-repeat;
+            background: url("images/select.png") center/cover no-repeat; /* contain → cover로 */
             pointer-events: none;
-            z-index: 9999; /* 최상단 */
-            width: 200px; /* 기본 크기 (필요시 수정 가능) */
-            height: 200px;
-            display: none; /* 기본 숨김 */
+            z-index: 9999;
+            display: none;
         }
         .footer-center {
             visibility: hidden; /* ✅ 공간은 유지, 보이지만 않음 */
@@ -1250,9 +1248,14 @@
 
                         overlay.style.left = rect.left + rect.width / 2 + 'px';
                         overlay.style.top = rect.top + rect.height / 2 + 'px';
-                        overlay.style.width = "138px";
-                        overlay.style.height = "138px";
+                        const scaleFactor = 1.55; // ← 필요시 0.95~1.15 사이로 조정해봐
+                        overlay.style.width = rect.width * scaleFactor + 'px';
+                        overlay.style.height = rect.height * scaleFactor + 'px';
+                        overlay.style.left = rect.left + rect.width / 2 + 'px';
+                        overlay.style.top = rect.top + rect.height / 2 + 'px';
+                        overlay.style.transform = `translate(-50%, -50%)`;
                         overlay.style.display = 'block';
+
                     }
                 }
             }
