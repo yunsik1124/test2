@@ -199,13 +199,6 @@
                 animation: pop .22s ease-out;
             }
 
-            .tile.bump {
-                animation: bump .18s ease-out;
-            }
-
-            .tile.merge {
-                animation: merge .22s ease-in-out;
-            }
 
           
 
@@ -221,34 +214,7 @@
             }
         }
 
-        @keyframes bump {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.08);
-            }
-
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        @keyframes merge {
-            0% {
-                transform: scale(0.95);
-            }
-
-            50% {
-                transform: scale(1.12);
-            }
-
-            100% {
-                transform: scale(1);
-            }
-        }
-
+    
 
         .btn {
             appearance: none;
@@ -1632,12 +1598,57 @@
                     clearPathHighlight();
                     const finalTile = board.children[to.r * COLS + to.c].querySelector('.tile');
                     if (finalTile) {
-                        finalTile.classList.add('bump');
-                        setTimeout(() => finalTile.classList.remove('bump'), 200);
+                        animateBump(finalTile);
                     }
                     if (callback) callback();
                 });
             }
+            /* ==========================================================
+ 🧩 iOS 최적화 버전: bump + merge 애니메이션 (rAF 기반)
+========================================================== */
+
+            // 🔹 scale 애니메이션을 rAF로 구현하는 헬퍼
+            function animateScale(el, { from = 1, to = 1.1, duration = 180, easeOut = true }) {
+                if (!el) return;
+                const start = performance.now();
+                const diff = to - from;
+
+                function step(now) {
+                    const t = Math.min((now - start) / duration, 1);
+                    const eased = easeOut ? 1 - Math.pow(1 - t, 3) : t;
+                    const scale = from + diff * eased;
+                    el.style.transform = `scale(${scale})`;
+
+                    if (t < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        // 복귀 애니메이션
+                        const backStart = performance.now();
+                        function back(now2) {
+                            const tt = Math.min((now2 - backStart) / duration, 1);
+                            const eased2 = easeOut ? 1 - Math.pow(1 - tt, 3) : tt;
+                            const s = to - diff * eased2;
+                            el.style.transform = `scale(${s})`;
+                            if (tt < 1) requestAnimationFrame(back);
+                            else el.style.transform = "scale(1)";
+                        }
+                        requestAnimationFrame(back);
+                    }
+                }
+                requestAnimationFrame(step);
+            }
+
+            // 🔹 merge 전용 (조금 더 세게 튀게)
+            function animateMerge(el) {
+                animateScale(el, { from: 0.95, to: 1.12, duration: 200 });
+            }
+
+            // 🔹 bump 전용 (가볍게 툭)
+            function animateBump(el) {
+                animateScale(el, { from: 1, to: 1.08, duration: 140 });
+            }
+
+
 
 
             function setTilePosition(tile, gridPos) {
@@ -1706,7 +1717,9 @@
                 drawCell(from.r, from.c); removePlaceholderAt(from.r, from.c);
                 drawCell(to.r, to.c);
                 const tCell = board.children[to.r * COLS + to.c].querySelector('.tile');
-                if (tCell) { tCell.classList.add('bump'); setTimeout(() => tCell.classList.remove('bump'), 200); }
+                if (tCell) {
+                    animateMerge(tCell);
+                }
             }
 
             /* ====== 경로 탐색 ====== */
