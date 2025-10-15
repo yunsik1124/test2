@@ -528,7 +528,7 @@
             <p>🔥 빈칸을 지배하는 자, 신이 된다! 🔥</p>
 
             <div class="ft"><button id="tipCloseBtn" class="btn ok">확인</button></div>
-</section>
+    </section>
 
     <audio id="bgm" src="sounds/mainmap_bgm.mp3" preload="auto" loop></audio>
 
@@ -726,6 +726,59 @@
             window.location.href = '../index.html';
         });
 
+        /* ===== 브라우저 종료 / 백그라운드 시 BGM 정지 + 복귀 시 재개 (전 기기 대응) ===== */
+
+        // BGM 안전 정지 함수
+        function stopBGM(reason = '') {
+            try {
+                if (!bgm.paused) {
+                    bgm.pause();
+                    console.log('🎵 BGM 정지됨:', reason);
+                }
+            } catch (e) { console.warn('BGM 정지 실패:', e); }
+        }
+
+        // BGM 재개 함수
+        function resumeBGM(reason = '') {
+            try {
+                if (bgmStarted && bgm.paused) {
+                    bgm.play().then(() => {
+                        console.log('🎵 BGM 재개됨:', reason);
+                    }).catch(err => {
+                        console.warn('BGM 재개 실패:', err);
+                    });
+                }
+            } catch (e) { console.warn('BGM 재개 오류:', e); }
+        }
+
+        // 1️⃣ PC / Android / iOS: 탭 전환, 최소화, 백그라운드
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopBGM('visibilitychange');
+            } else {
+                resumeBGM('visibilitychange');
+            }
+        });
+
+        // 2️⃣ iOS Safari / 모바일 앱 전환 감지
+        window.addEventListener('pagehide', () => stopBGM('pagehide'));
+        window.addEventListener('blur', () => stopBGM('blur'));
+        window.addEventListener('focus', () => resumeBGM('focus'));
+
+        // 3️⃣ 브라우저 닫기 / 새로고침 시 완전 정지
+        window.addEventListener('beforeunload', () => {
+            stopBGM('beforeunload');
+            bgm.currentTime = 0;
+        });
+
+        // 4️⃣ iOS standalone(홈 화면 앱) 대응
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                stopBGM('ios-standalone hidden');
+            } else {
+                resumeBGM('ios-standalone visible');
+            }
+        });
 
     </script>
 </body>
