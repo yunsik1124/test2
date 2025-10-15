@@ -9,7 +9,7 @@
         :root {
             --cols: 5;
             --rows: 7;
-            --gap: 1vw;
+            --gap: 6px;
             --bg: #0b0f14;
             --fg: #e8f0ff;
             --muted: #7f8da3;
@@ -33,7 +33,8 @@
         body {
             margin: 0;
             background: url('images/bg.png') no-repeat center center fixed;
-            background-size: cover;
+            background-size: contain; /* ✅ 비율 유지하면서 전체가 다 보이게 */
+            background-color: #000000; /* ✅ 남는 여백은 이 색으로 채움 */
             color: var(--fg);
             font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
             display: flex;
