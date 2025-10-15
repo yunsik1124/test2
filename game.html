@@ -658,8 +658,32 @@
             transform-origin: center;
         }
 
+        /* ==== 💣 폭발 효과 (단일 PNG 버전) ==== */
         .bomb-effect {
-            animation: bombFade 0.6s ease-out forwards;
+            position: absolute;
+            inset: 0;
+            background: url('images/bomb.png') center/contain no-repeat;
+            animation: bombPulse 0.5s ease-out forwards;
+            z-index: 9999;
+            pointer-events: none;
+            transform-origin: center;
+        }
+
+        @keyframes bombPulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            40% {
+                transform: scale(1.4);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.8);
+                opacity: 0;
+            }
         }
 
 
@@ -791,7 +815,7 @@
                 "images/block-7.png", "images/block-8.png", "images/block-9.png",
                 "images/blocked.png", "images/empty.png", "images/bg.png", "images/hammer.png",
                 "images/hammer_big.png", "images/rock.png", "images/setup.png",
-                "images/bomb01.png", "images/bomb02.png", "images/bomb03.png", "images/bomb04.png", "images/bomb05.png", "images/bomb06.png", "images/bomb07.png", "images/bomb08.png", "images/bomb09.png", "images/bomb10.png", "images/bomb11.png", "images/bomb12.png"
+                "images/bomb.png"
 
             ];
 
@@ -1069,52 +1093,21 @@
             }
 
             // 💥 폭발 스프라이트 (iOS 프레임드랍 방지 + requestAnimationFrame 버전)
-            function playBombAnimation(r, c, options = {}) {
-                const { frameCount = 12, fps = 24, scale = 1.0 } = options;
+            function playBombAnimation(r, c) {
                 const cell = board.children[r * COLS + c];
                 if (!cell) return;
 
                 const bomb = document.createElement('div');
                 bomb.className = 'tile bomb-effect';
-                bomb.style.position = 'absolute';
-                bomb.style.inset = '0';
-                bomb.style.backgroundSize = 'contain';
-                bomb.style.backgroundRepeat = 'no-repeat';
-                bomb.style.backgroundPosition = 'center';
-                bomb.style.transform = `scale(${scale})`;
-                bomb.style.zIndex = 9999;
-                bomb.style.willChange = 'background-image, transform'; // GPU 캐싱 힌트
                 cell.appendChild(bomb);
 
-                // ✅ 미리 프레임 이미지들 로드
-                const frames = Array.from({ length: frameCount }, (_, i) => new Image());
-                for (let i = 0; i < frameCount; i++) {
-                    frames[i].src = `images/bomb${String(i + 1).padStart(2, '0')}.png`;
-                }
+                // 폭발 사운드 추가 (hammer랑 동일하게)
+                try {
+                    sounds.hammer.currentTime = 0;
+                    sounds.hammer.play().catch(() => { });
+                } catch (e) { console.error(e); }
 
-                let frame = 0;
-                let lastTime = 0;
-                const frameInterval = 1000 / fps;
-
-                function step(timestamp) {
-                    if (!lastTime) lastTime = timestamp;
-                    const elapsed = timestamp - lastTime;
-
-                    // 일정 시간마다 다음 프레임으로
-                    if (elapsed >= frameInterval) {
-                        bomb.style.backgroundImage = `url('images/bomb${String(frame + 1).padStart(2, '0')}.png')`;
-                        frame++;
-                        lastTime = timestamp;
-                    }
-
-                    if (frame < frameCount) {
-                        requestAnimationFrame(step);
-                    } else {
-                        bomb.remove();
-                    }
-                }
-
-                requestAnimationFrame(step);
+                bomb.addEventListener('animationend', () => bomb.remove());
             }
 
 
