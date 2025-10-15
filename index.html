@@ -741,23 +741,29 @@
             preloadImages(INGAME_IMAGES).then(() => {
                 console.log("🎨 인게임 이미지 사전 로드 완료");
             });
-            // ✅ 버튼 클릭 사운드 (startBtn 제외)
-            const clickSound = new Audio('sounds/click_menu.mp3');
-            clickSound.volume = 0.5;
+            function adjustViewport() {
+                const vp = document.getElementById('viewport');
+                if (!vp) return;
 
-            document.querySelectorAll('button').forEach(btn => {
-                if (btn.id !== 'startBtn') {
-                    btn.addEventListener('click', () => {
-                        try {
-                            clickSound.currentTime = 0;
-                            clickSound.play().catch(() => { });
-                        } catch (e) { }
-                    });
+                const winW = window.innerWidth;
+                const winH = window.innerHeight;
+                const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+                if (isMobile) {
+                    // 📱 모바일에서는 100% 채우기
+                    vp.style.width = '100vw';
+                    vp.style.height = '100vh';
+                } else {
+                    // 💻 PC에서만 9:16 비율 유지
+                    const targetW = Math.min(winW, winH * 9 / 16);
+                    const targetH = targetW * 16 / 9;
+                    vp.style.width = `${targetW}px`;
+                    vp.style.height = `${targetH}px`;
                 }
-            });
-            document.querySelector('.btn-skin').addEventListener('click', () => {
-                window.location.href = 'forest/index.html';
-            });
+            }
+            window.addEventListener('resize', adjustViewport);
+            window.addEventListener('load', adjustViewport);
+
 
 
         </script>
