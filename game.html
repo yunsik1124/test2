@@ -33,8 +33,7 @@
         body {
             margin: 0;
             background: url('images/bg.png') no-repeat center center fixed;
-            background-size: contain; /* ✅ 비율 유지하면서 전체가 다 보이게 */
-            background-color: #000000; /* ✅ 남는 여백은 이 색으로 채움 */
+            background-size: cover;
             color: var(--fg);
             font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
             display: flex;
@@ -477,7 +476,7 @@
         #footerBar {
             position: static; /* ✅ fixed → static 으로 변경 */
             transform: none; /* ✅ translateX 제거 */
-            margin-top: 16px; /* 🔹 보드와 간격 */
+            margin-top: 10px; /* 🔹 보드와 간격 */
             width: 100%;
             max-width: 480px;
             display: flex;
@@ -1728,7 +1727,7 @@
             function newGame() {
                 popupTitle.textContent = "게임 오버";
                 grid = makeGrid();
-                const blockedCount = 2; // 2~3 랜덤 가능 등장 블럭 갯수
+                const blockedCount = 3; // 2~3 랜덤 가능 등장 블럭 갯수
                 placeRandomBlocks(-1, blockedCount);
 
                 placeRandomTilesAvoidingTriples(INIT_TILES, 400);
