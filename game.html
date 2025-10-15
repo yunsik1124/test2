@@ -1733,7 +1733,7 @@
             function newGame() {
                 popupTitle.textContent = "게임 오버";
                 grid = makeGrid();
-                const blockedCount = 3; // 2~3 랜덤 가능 등장 블럭 갯수
+                const blockedCount = 2; // 2~3 랜덤 가능 등장 블럭 갯수
                 placeRandomBlocks(-1, blockedCount);
 
                 placeRandomTilesAvoidingTriples(INIT_TILES, 400);
