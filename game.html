@@ -132,7 +132,7 @@
             display: grid;
             grid-template-columns: repeat(var(--cols), 1fr);
             grid-template-rows: repeat(var(--rows), 1fr);
-            gap: var(--gap);
+            gap: 6px;
             position: relative;
             margin: 0 auto;
         }
@@ -184,6 +184,7 @@
             background-position: center;
             user-select: none;
             transition: transform .15s ease;
+            transform: scale(1.03);
         }
 
             .tile.sel {
