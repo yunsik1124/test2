@@ -2321,7 +2321,7 @@
             }
         });
 
-
+        document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
     </script>
     <!-- ✅ 페이드 인 레이어 -->
     <div id="fadeLayer"></div>
